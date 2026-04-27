@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xiaolai.blog.mapper.CommentMapper">
+
+    <resultMap id="commentWithReplies" type="com.xiaolai.blog.entity.Comment">
+        <id property="id" column="id"/>
+    </resultMap>
+
+    <select id="selectApprovedByArticleId" resultMap="commentWithReplies">
+        SELECT * FROM comment
+        WHERE article_id = #{articleId} AND status = 1 AND parent_id IS NULL
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectRepliesByParentId" resultMap="commentWithReplies">
+        SELECT * FROM comment
+        WHERE parent_id = #{parentId} AND status = 1
+        ORDER BY create_time ASC
+    </select>
+
+</mapper>

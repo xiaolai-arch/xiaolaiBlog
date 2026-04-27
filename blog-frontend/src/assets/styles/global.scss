@@ -1,0 +1,137 @@
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --text-primary: #1a1a2e;
+  --text-secondary: #495057;
+  --text-muted: #868e96;
+  --border-color: #e9ecef;
+  --accent-color: #4361ee;
+  --accent-hover: #3a56d4;
+  --card-bg: #ffffff;
+  --header-bg: rgba(255, 255, 255, 0.9);
+  --code-bg: #f6f8fa;
+  --max-width: 800px;
+  --content-font-size: 16px;
+  --content-line-height: 1.8;
+}
+
+[data-theme='dark'] {
+  --bg-primary: #0f0f23;
+  --bg-secondary: #1a1a2e;
+  --text-primary: #e4e6eb;
+  --text-secondary: #b0b3b8;
+  --text-muted: #6c757d;
+  --border-color: #2d2d44;
+  --accent-color: #5e7ce2;
+  --accent-hover: #7b93ea;
+  --card-bg: #1a1a2e;
+  --header-bg: rgba(15, 15, 35, 0.9);
+  --code-bg: #161b22;
+}
+
+/* Let highlight.js theme control code text colors, but keep background transparent
+   so the <pre> element's --code-bg shows through */
+.markdown-body .hljs {
+  background: transparent;
+}
+
+/* Inline code in dark mode */
+[data-theme='dark'] .markdown-body :not(pre) > code {
+  background-color: #252542;
+  color: #e4e6eb;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    'Noto Sans SC', sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+a {
+  color: var(--accent-color);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+a:hover {
+  color: var(--accent-hover);
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.page-container {
+  min-height: calc(100vh - 120px);
+  padding-top: 80px;
+}
+
+/* Markdown content styling */
+.markdown-body {
+  font-size: var(--content-font-size);
+  line-height: var(--content-line-height);
+  color: var(--text-primary);
+  background: transparent;
+}
+
+.markdown-body pre {
+  background-color: var(--code-bg) !important;
+  border-radius: 8px;
+  padding: 16px;
+  overflow-x: auto;
+}
+
+.markdown-body code {
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.markdown-body img {
+  border-radius: 8px;
+}
+
+/* Article card */
+.article-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.article-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Page transition */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
