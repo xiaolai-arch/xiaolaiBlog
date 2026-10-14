@@ -25,7 +25,7 @@ const tools = [
   {
     icon: '✍️',
     name: 'Markdown 笔记本',
-    desc: 'Typora 式即时渲染，多篇笔记管理，自动保存到本地浏览器',
+    desc: 'Typora 式即时渲染，多篇笔记管理；登录后云端同步，未登录本地保存',
     to: '/tools/markdown',
   },
 ]

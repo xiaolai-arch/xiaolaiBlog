@@ -22,7 +22,7 @@
           <span class="tools-icon">🧰</span>
           <div class="tools-info">
             <h3>工具箱</h3>
-            <p>Markdown 笔记本：Typora 式即时渲染，多篇笔记自动保存</p>
+            <p>Markdown 笔记本：Typora 式即时渲染，登录后云端同步</p>
           </div>
           <span class="tools-arrow">→</span>
         </router-link>

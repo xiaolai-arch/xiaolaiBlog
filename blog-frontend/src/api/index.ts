@@ -107,6 +107,14 @@ export const siteApi = {
   updateConfig: (data: any) => api.put('/admin/config', data),
 }
 
+export const noteApi = {
+  list: () => api.get('/notes'),
+  detail: (id: number) => api.get(`/notes/${id}`),
+  create: (data: { title: string; content: string }) => api.post('/notes', data),
+  update: (id: number, data: { title?: string; content?: string }) => api.put(`/notes/${id}`, data),
+  remove: (id: number) => api.delete(`/notes/${id}`),
+}
+
 export const authApi = {
   login: (data: any) => api.post('/admin/auth/login', data),
   logout: () => api.post('/admin/auth/logout'),

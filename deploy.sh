@@ -20,7 +20,12 @@ deploy_backend() {
   mvn -B test package
   echo "==> backend: upload"
   scp target/blog-1.0.0.jar "$SERVER:$BACKEND_DIR/blog-1.0.0.jar.new"
+  scp sql/note.sql "$SERVER:/tmp/note.sql"
   ssh "$SERVER" "cd $BACKEND_DIR && \
+    if command -v mysql >/dev/null 2>&1; then \
+      set -a && . ./blog.env && set +a && \
+      mysql -h 127.0.0.1 -u\"\${SPRING_DATASOURCE_USERNAME:-root}\" \"\${SPRING_DATASOURCE_PASSWORD:+-p\$SPRING_DATASOURCE_PASSWORD}\" xiaolai_blog < /tmp/note.sql && echo 'note.sql applied' || echo 'WARN: note.sql failed, apply manually'; \
+    else echo 'WARN: no mysql client on server, apply sql/note.sql manually'; fi && \
     cp blog-1.0.0.jar blog-1.0.0.jar.bak-\$(date +%Y%m%d-%H%M) && \
     mv blog-1.0.0.jar.new blog-1.0.0.jar && \
     chown www:www blog-1.0.0.jar && chmod 755 blog-1.0.0.jar && \
