@@ -18,6 +18,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'tools', name: 'Tools', component: () => import('@/views/front/ToolsPage.vue') },
       { path: 'tools/markdown', name: 'ToolMarkdown', component: () => import('@/views/front/MarkdownToolPage.vue') },
       { path: 'leetcode', name: 'LeetCode', component: () => import('@/views/front/LeetCodePage.vue') },
+      { path: 'cet4', name: 'CET4', component: () => import('@/views/front/CET4Page.vue') },
       { path: 'about', name: 'About', component: () => import('@/views/front/AboutPage.vue') },
     ]
   },

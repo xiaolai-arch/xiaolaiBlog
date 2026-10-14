@@ -30,7 +30,15 @@
           <span class="tools-icon">🧮</span>
           <div class="tools-info">
             <h3>算法刷题</h3>
-            <p>12 个专题 2820 题，打卡记录进度</p>
+            <p>12 个专题力扣题单，打卡记录进度</p>
+          </div>
+          <span class="tools-arrow">→</span>
+        </router-link>
+        <router-link to="/cet4" class="tools-entry">
+          <span class="tools-icon">📖</span>
+          <div class="tools-info">
+            <h3>四级备考</h3>
+            <p>刘晓艳四级课程 2064 节，看课打卡计时</p>
           </div>
           <span class="tools-arrow">→</span>
         </router-link>
