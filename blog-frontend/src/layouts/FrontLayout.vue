@@ -320,6 +320,13 @@ function doSearch() {
   max-height: calc(100vh - 92px);
   overflow-y: auto;
   padding-bottom: 4px;
+  /* 隐藏滚动条但保留滚轮/触控板滚动 */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.site-sidebar::-webkit-scrollbar {
+  display: none;
 }
 
 .side-card {
