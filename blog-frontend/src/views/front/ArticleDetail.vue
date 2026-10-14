@@ -1,5 +1,17 @@
 <template>
   <div class="article-detail">
+    <!-- 悬浮目录（宽屏才显示） -->
+    <aside class="toc-panel" v-if="toc.length >= 2">
+      <div class="toc-title">目录</div>
+      <a
+        v-for="(h, i) in toc"
+        :key="i"
+        :href="'#' + h.id"
+        class="toc-link"
+        :class="{ lvl3: h.level >= 3, active: i === activeToc }"
+        @click.prevent="scrollToToc(h.id)"
+      >{{ h.text }}</a>
+    </aside>
     <div class="container">
       <div v-if="loading" class="loading">加载中...</div>
       <div v-else-if="!article" class="loading">文章未找到</div>
@@ -40,6 +52,17 @@
             <router-link :to="`/articles/${next.slug}`">{{ next.title }}</router-link>
           </div>
         </nav>
+
+        <!-- Related articles -->
+        <section class="related-section" v-if="related.length">
+          <h3>相关文章</h3>
+          <div class="related-grid">
+            <router-link v-for="rel in related" :key="rel.id" :to="`/articles/${rel.slug}`" class="related-item">
+              <div class="related-title">{{ rel.title }}</div>
+              <div class="related-meta">{{ formatDate(rel.createTime) }} · {{ rel.views || 0 }} 阅读</div>
+            </router-link>
+          </div>
+        </section>
 
         <!-- Comments -->
         <section class="comments-section">
@@ -107,7 +130,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { articleApi, commentApi, siteApi } from '@/api'
 import { ElMessage } from 'element-plus'
@@ -130,6 +153,9 @@ const comments = ref<any[]>([])
 const commentForm = ref({ nickname: '', email: '', website: '', contentMd: '' })
 const submitting = ref(false)
 const commentSubmitted = ref(false)
+const related = ref<any[]>([])
+const toc = ref<{ id: string; text: string; level: number }[]>([])
+const activeToc = ref(0)
 
 onMounted(async () => {
   await loadArticle()
@@ -153,6 +179,48 @@ async function loadArticle() {
   } catch (_) {}
   loading.value = false
   await highlightCode()
+  buildToc()
+  loadRelated()
+  window.addEventListener('scroll', onScroll, { passive: true })
+}
+
+// 从渲染后的正文提取 h2/h3 生成目录
+function buildToc() {
+  const headings = document.querySelectorAll('.article-content h2, .article-content h3')
+  toc.value = []
+  headings.forEach((h, i) => {
+    const id = `toc-${i}`
+    h.id = id
+    toc.value.push({ id, text: h.textContent || '', level: h.tagName === 'H2' ? 2 : 3 })
+  })
+}
+
+function scrollToToc(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function onScroll() {
+  const headings = toc.value
+    .map(h => document.getElementById(h.id))
+    .filter((el): el is HTMLElement => !!el)
+  let current = 0
+  for (let i = 0; i < headings.length; i++) {
+    if (headings[i].getBoundingClientRect().top <= 90) current = i
+  }
+  activeToc.value = current
+}
+
+// 同分类的相关文章
+async function loadRelated() {
+  const slug = route.params.slug as string
+  const catSlug = article.value?.categorySlug
+  if (!catSlug) return
+  try {
+    const res = await articleApi.getList({ page: 1, size: 4, category: catSlug })
+    if (res.data.code === 200) {
+      related.value = (res.data.data.list || []).filter((a: any) => a.slug !== slug).slice(0, 3)
+    }
+  } catch (_) {}
 }
 
 // The backend renders markdown without highlighting; enhance the code blocks
@@ -220,6 +288,10 @@ function timeAgo(d: string) {
 function getAvatar(emailHash?: string) {
   return `https://cravatar.cn/avatar/${emailHash || ''}?s=48&d=mp`
 }
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', onScroll)
+})
 </script>
 
 <style scoped>
@@ -378,6 +450,105 @@ function getAvatar(emailHash?: string) {
 .loading {
   text-align: center;
   padding: 80px;
+  color: var(--text-muted);
+}
+
+/* 悬浮目录（仅宽屏） */
+.toc-panel {
+  display: none;
+  position: fixed;
+  top: 100px;
+  left: calc(50% + 395px);
+  width: 230px;
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
+  border-left: 2px solid var(--border-color);
+  padding-left: 14px;
+}
+
+.toc-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.toc-link {
+  display: block;
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 4px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toc-link.lvl3 {
+  padding-left: 14px;
+  font-size: 12px;
+}
+
+.toc-link:hover {
+  color: var(--accent-color);
+}
+
+.toc-link.active {
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+@media (min-width: 1440px) {
+  .toc-panel {
+    display: block;
+  }
+}
+
+/* 相关文章 */
+.related-section {
+  padding: 8px 0 24px;
+}
+
+.related-section h3 {
+  font-size: 18px;
+  margin-bottom: 16px;
+}
+
+.related-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.related-item {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.related-item:hover {
+  border-color: var(--accent-color);
+  transform: translateY(-2px);
+}
+
+.related-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.related-item:hover .related-title {
+  color: var(--accent-color);
+}
+
+.related-meta {
+  font-size: 12px;
   color: var(--text-muted);
 }
 </style>
