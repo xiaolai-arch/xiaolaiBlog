@@ -36,7 +36,7 @@
           <el-input v-model="search" placeholder="搜索题号或题名…" size="small" clearable class="search-input">
             <template #prefix><el-icon><Search /></el-icon></template>
           </el-input>
-          <span class="toolbar-hint">{{ activeCatName }}：{{ activeDone }} / {{ activeUnique }} 题（{{ activeItems }} 条目）</span>
+          <span class="toolbar-hint">{{ activeCatName }}：{{ activeDone }} / {{ activeUnique }} 题（{{ activeItems }} 条目）<template v-if="cloudActive"> · ☁ 已云同步</template></span>
         </div>
 
         <div v-if="loadingCat" class="loading">加载中...</div>
@@ -95,6 +95,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { Search } from '@element-plus/icons-vue'
+import { progressApi } from '@/api'
+import { logStudy, unlogStudy } from '@/utils/studyLog'
 
 interface Problem {
   pid: string
@@ -123,6 +125,8 @@ const search = ref('')
 const status = ref<'all' | 'todo' | 'done'>('all')
 const doneSet = ref<Set<string>>(new Set())
 const openChapters = ref<Set<string>>(new Set())
+const cloudActive = ref(false)
+let pushTimer: number | undefined
 
 const activeData = computed(() => cache.value[activeKey.value])
 const activeCatName = computed(() => activeData.value?.name || '')
@@ -205,16 +209,51 @@ function onToggle(e: Event, title: string) {
 
 function toggle(pid: string) {
   const next = new Set(doneSet.value)
-  if (next.has(pid)) next.delete(pid)
-  else next.add(pid)
+  if (next.has(pid)) {
+    next.delete(pid)
+    unlogStudy(`lc:${pid}`)
+  } else {
+    next.add(pid)
+    logStudy(`lc:${pid}`)
+  }
   doneSet.value = next
   localStorage.setItem(DONE_KEY, JSON.stringify([...next]))
+  if (cloudActive.value) pushDone(next)
+}
+
+function pushDone(set: Set<string>) {
+  window.clearTimeout(pushTimer)
+  pushTimer = window.setTimeout(() => {
+    progressApi.put('leetcode', JSON.stringify([...set])).catch(() => { cloudActive.value = false })
+  }, 1500)
+}
+
+// 登录时把云端进度与本地合并（并集：条目只会由未做变已做，不会回退）
+async function loadDone() {
+  let local: string[] = []
+  try {
+    local = (JSON.parse(localStorage.getItem(DONE_KEY) || '[]') as any[]).map(String)
+  } catch (_) {}
+  const merged = new Set<string>(local)
+  if (localStorage.getItem('token')) {
+    try {
+      const res = await progressApi.get('leetcode')
+      if (res.data.code === 200) {
+        cloudActive.value = true
+        const cloud = JSON.parse(res.data.data.value || '[]')
+        if (Array.isArray(cloud)) cloud.forEach(x => merged.add(String(x)))
+        if (JSON.stringify([...merged].sort()) !== JSON.stringify([...new Set(local)].sort())) {
+          localStorage.setItem(DONE_KEY, JSON.stringify([...merged]))
+          pushDone(merged)
+        }
+      }
+    } catch (_) {}
+  }
+  doneSet.value = merged
 }
 
 onMounted(async () => {
-  try {
-    doneSet.value = new Set(JSON.parse(localStorage.getItem(DONE_KEY) || '[]'))
-  } catch (_) {}
+  await loadDone()
   try {
     const res = await fetch('/data/leetcode/index.json')
     index.value = await res.json()

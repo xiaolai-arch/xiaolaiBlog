@@ -6,6 +6,7 @@
         <router-link to="/" class="site-logo">{{ siteTitle }}</router-link>
         <nav class="main-nav" :class="{ 'nav-open': menuOpen }">
           <router-link to="/" @click="menuOpen = false">首页</router-link>
+          <router-link to="/study" @click="menuOpen = false">学习</router-link>
           <router-link to="/archives" @click="menuOpen = false">归档</router-link>
           <router-link to="/categories" @click="menuOpen = false">分类</router-link>
           <router-link to="/tags" @click="menuOpen = false">标签</router-link>
@@ -77,6 +78,7 @@
 
         <nav class="side-card nav-card">
           <router-link to="/" exact-active-class="active">首页</router-link>
+          <router-link to="/study" active-class="active">学习</router-link>
           <router-link to="/archives" active-class="active">归档</router-link>
           <router-link to="/categories" active-class="active">分类</router-link>
           <router-link to="/tags" active-class="active">标签</router-link>

@@ -115,6 +115,11 @@ export const noteApi = {
   remove: (id: number) => api.delete(`/notes/${id}`),
 }
 
+export const progressApi = {
+  get: (key: string) => api.get(`/progress/${key}`),
+  put: (key: string, value: string) => api.put(`/progress/${key}`, { value }),
+}
+
 export const authApi = {
   login: (data: any) => api.post('/admin/auth/login', data),
   logout: () => api.post('/admin/auth/logout'),

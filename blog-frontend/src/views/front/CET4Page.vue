@@ -9,7 +9,7 @@
         <div class="overall-progress" v-if="index">
           <div class="overall-num">{{ doneSet.size }}<span> / {{ totalItems }}</span></div>
           <div class="bar"><div class="bar-fill" :style="{ width: overallPercent + '%' }"></div></div>
-          <div class="overall-extra">已学 {{ doneDuration }}</div>
+          <div class="overall-extra">本书已学 {{ doneDuration }}<template v-if="cloudActive"> · ☁</template></div>
         </div>
       </header>
 
@@ -85,6 +85,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { Search } from '@element-plus/icons-vue'
+import { progressApi } from '@/api'
+import { logStudy, unlogStudy } from '@/utils/studyLog'
 
 interface Item {
   id: string
@@ -113,13 +115,15 @@ const status = ref<'all' | 'todo' | 'done'>('all')
 const doneSet = ref<Set<string>>(new Set())
 const doneSeconds = ref(0)
 const openChapters = ref<Set<string>>(new Set())
+const cloudActive = ref(false)
+let pushTimer: number | undefined
 
 const activeData = computed(() => cache.value[activeKey.value])
 const totalItems = computed(() => index.value?.totalItems || 0)
 const overallPercent = computed(() =>
   totalItems.value ? Math.round((doneSet.value.size / totalItems.value) * 1000) / 10 : 0)
 const doneDuration = computed(() => {
-  const h = doneSeconds.value // 3600, m = ...
+  const h = doneSeconds.value
   return `${Math.floor(h / 3600)} 小时 ${Math.floor((h % 3600) / 60)} 分钟`
 })
 
@@ -190,21 +194,50 @@ function toggle(id: string, sec: number) {
   const next = new Set(doneSet.value)
   if (next.has(id)) {
     next.delete(id)
-    doneSeconds.value = Math.max(0, doneSeconds.value - sec)
+    unlogStudy(`cet4:${id}`)
   } else {
     next.add(id)
-    doneSeconds.value += sec
+    logStudy(`cet4:${id}`, sec)
   }
   doneSet.value = next
   localStorage.setItem(DONE_KEY, JSON.stringify([...next]))
+  recalcSeconds()
+  if (cloudActive.value) pushDone(next)
+}
+
+function pushDone(set: Set<string>) {
+  window.clearTimeout(pushTimer)
+  pushTimer = window.setTimeout(() => {
+    progressApi.put('cet4', JSON.stringify([...set])).catch(() => { cloudActive.value = false })
+  }, 1500)
+}
+
+// 登录时合并云端进度（并集）
+async function loadDone() {
+  let local: string[] = []
+  try {
+    local = (JSON.parse(localStorage.getItem(DONE_KEY) || '[]') as any[]).map(String)
+  } catch (_) {}
+  const merged = new Set<string>(local)
+  if (localStorage.getItem('token')) {
+    try {
+      const res = await progressApi.get('cet4')
+      if (res.data.code === 200) {
+        cloudActive.value = true
+        const cloud = JSON.parse(res.data.data.value || '[]')
+        if (Array.isArray(cloud)) cloud.forEach(x => merged.add(String(x)))
+        if (merged.size !== local.length) {
+          localStorage.setItem(DONE_KEY, JSON.stringify([...merged]))
+          pushDone(merged)
+        }
+      }
+    } catch (_) {}
+  }
+  doneSet.value = merged
 }
 
 onMounted(async () => {
-  try {
-    doneSet.value = new Set(JSON.parse(localStorage.getItem(DONE_KEY) || '[]'))
-    doneSeconds.value = parseInt(localStorage.getItem(DONE_KEY + ':sec') || '0', 10) || 0
-    // 本地只存了勾选 id，时长按数据重算更可靠
-  } catch (_) {}
+  await loadDone()
   try {
     const res = await fetch('/data/cet4/index.json')
     index.value = await res.json()
@@ -233,6 +266,7 @@ async function selectCategory(key: string) {
   search.value = ''
   status.value = 'all'
   await loadCategory(key)
+  recalcSeconds()
   const chapters = activeData.value?.chapters || []
   openChapters.value = new Set(chapters.length ? [chapters[0].title] : [])
 }
