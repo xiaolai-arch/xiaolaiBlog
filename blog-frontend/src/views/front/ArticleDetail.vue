@@ -1,7 +1,7 @@
 <template>
   <div class="article-detail">
-    <!-- 悬浮目录（宽屏才显示） -->
-    <aside class="toc-panel" v-if="toc.length >= 2">
+    <!-- 悬浮目录（正文右侧有足够空间才显示） -->
+    <aside class="toc-panel" v-if="showToc && toc.length >= 2" :style="{ left: tocLeft + 'px' }">
       <div class="toc-title">目录</div>
       <a
         v-for="(h, i) in toc"
@@ -156,6 +156,8 @@ const commentSubmitted = ref(false)
 const related = ref<any[]>([])
 const toc = ref<{ id: string; text: string; level: number }[]>([])
 const activeToc = ref(0)
+const showToc = ref(false)
+const tocLeft = ref(0)
 
 onMounted(async () => {
   await loadArticle()
@@ -181,7 +183,18 @@ async function loadArticle() {
   await highlightCode()
   buildToc()
   loadRelated()
+  updateTocPos()
   window.addEventListener('scroll', onScroll, { passive: true })
+  window.addEventListener('resize', updateTocPos)
+}
+
+// 目录锚定正文容器右边缘：位置不随视口居中假设漂移，放不下就隐藏
+function updateTocPos() {
+  const container = document.querySelector('.article-detail .container')
+  if (!container) return
+  const right = container.getBoundingClientRect().right
+  tocLeft.value = right + 24
+  showToc.value = tocLeft.value + 230 < window.innerWidth - 16
 }
 
 // 从渲染后的正文提取 h2/h3 生成目录
@@ -291,6 +304,7 @@ function getAvatar(emailHash?: string) {
 
 onBeforeUnmount(() => {
   window.removeEventListener('scroll', onScroll)
+  window.removeEventListener('resize', updateTocPos)
 })
 </script>
 
@@ -453,12 +467,10 @@ onBeforeUnmount(() => {
   color: var(--text-muted);
 }
 
-/* 悬浮目录（仅宽屏） */
+/* 悬浮目录：left/显示与否由 JS 按正文容器位置计算 */
 .toc-panel {
-  display: none;
   position: fixed;
   top: 100px;
-  left: calc(50% + 395px);
   width: 230px;
   max-height: calc(100vh - 150px);
   overflow-y: auto;
@@ -496,12 +508,6 @@ onBeforeUnmount(() => {
 .toc-link.active {
   color: var(--accent-color);
   font-weight: 600;
-}
-
-@media (min-width: 1440px) {
-  .toc-panel {
-    display: block;
-  }
 }
 
 /* 相关文章 */
