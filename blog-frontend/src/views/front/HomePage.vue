@@ -18,11 +18,19 @@
       </section>
 
       <section class="tools-strip">
-        <router-link to="/tools" class="tools-entry">
-          <span class="tools-icon">🧰</span>
+        <router-link to="/tools/markdown" class="tools-entry">
+          <span class="tools-icon">✍️</span>
           <div class="tools-info">
-            <h3>工具箱</h3>
-            <p>Markdown 笔记本：Typora 式即时渲染，登录后云端同步</p>
+            <h3>Markdown 笔记本</h3>
+            <p>Typora 式即时渲染，登录后云端同步</p>
+          </div>
+          <span class="tools-arrow">→</span>
+        </router-link>
+        <router-link to="/leetcode" class="tools-entry">
+          <span class="tools-icon">🧮</span>
+          <div class="tools-info">
+            <h3>算法刷题</h3>
+            <p>12 个专题 2820 题，打卡记录进度</p>
           </div>
           <span class="tools-arrow">→</span>
         </router-link>

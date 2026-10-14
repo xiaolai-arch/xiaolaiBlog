@@ -28,6 +28,12 @@ const tools = [
     desc: 'Typora 式即时渲染，多篇笔记管理；登录后云端同步，未登录本地保存',
     to: '/tools/markdown',
   },
+  {
+    icon: '🧮',
+    name: '算法刷题',
+    desc: '12 个专题、2820 道力扣题目与讲解链接，支持打卡记录进度',
+    to: '/leetcode',
+  },
 ]
 </script>
 
