@@ -1,9 +1,10 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
-import * as ElementPlusIconsVue from '@element-plus/icons-vue'
-import 'github-markdown-css'
+import {
+  ArrowDown, ChatDotSquare, DataAnalysis, Document, Expand, Fold, Folder, Menu, Moon,
+  Picture, Plus, PriceTag, Search, Setting, Sunny, Upload, UploadFilled,
+} from '@element-plus/icons-vue'
 import 'katex/dist/katex.min.css'
 import App from './App.vue'
 import router from './router'
@@ -11,12 +12,16 @@ import './assets/styles/global.scss'
 
 const app = createApp(App)
 
-// Register all Element Plus icons
-for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+// Registered globally because some are referenced by name string via <component :is="...">.
+// Add new icons here when a template starts using them.
+const icons = {
+  ArrowDown, ChatDotSquare, DataAnalysis, Document, Expand, Fold, Folder, Menu, Moon,
+  Picture, Plus, PriceTag, Search, Setting, Sunny, Upload, UploadFilled,
+}
+for (const [key, component] of Object.entries(icons)) {
   app.component(key, component)
 }
 
 app.use(createPinia())
-app.use(ElementPlus)
 app.use(router)
 app.mount('#app')

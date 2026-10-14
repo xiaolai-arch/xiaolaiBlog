@@ -1,0 +1,106 @@
+<template>
+  <div class="tools-page">
+    <div class="container">
+      <header class="page-head">
+        <h1>🧰 工具箱</h1>
+        <p>一些常用的小工具，全部在浏览器本地运行，内容不会上传。</p>
+      </header>
+
+      <div class="tool-grid">
+        <router-link v-for="tool in tools" :key="tool.to" :to="tool.to" class="tool-card">
+          <span class="tool-icon">{{ tool.icon }}</span>
+          <div class="tool-info">
+            <h3>{{ tool.name }}</h3>
+            <p>{{ tool.desc }}</p>
+          </div>
+          <span class="tool-arrow">→</span>
+        </router-link>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+const tools = [
+  {
+    icon: '✍️',
+    name: 'Markdown 笔记本',
+    desc: 'Typora 式即时渲染，多篇笔记管理，自动保存到本地浏览器',
+    to: '/tools/markdown',
+  },
+]
+</script>
+
+<style scoped>
+.page-head {
+  padding: 36px 0 24px;
+}
+
+.page-head h1 {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.page-head p {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+  padding-bottom: 40px;
+}
+
+.tool-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 20px 22px;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+
+.tool-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-hover);
+  border-color: var(--accent-color);
+}
+
+.tool-icon {
+  font-size: 28px;
+  flex: none;
+}
+
+.tool-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.tool-info h3 {
+  font-size: 16px;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.tool-info p {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.tool-arrow {
+  color: var(--text-muted);
+  flex: none;
+  transition: transform 0.2s, color 0.2s;
+}
+
+.tool-card:hover .tool-arrow {
+  transform: translateX(3px);
+  color: var(--accent-color);
+}
+</style>

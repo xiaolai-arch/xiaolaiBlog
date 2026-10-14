@@ -110,4 +110,5 @@ export const siteApi = {
 export const authApi = {
   login: (data: any) => api.post('/admin/auth/login', data),
   logout: () => api.post('/admin/auth/logout'),
+  changePassword: (data: { oldPassword: string; newPassword: string }) => api.put('/admin/profile/password', data),
 }

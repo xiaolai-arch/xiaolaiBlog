@@ -78,14 +78,22 @@
           <div class="comments-list" v-if="comments.length > 0">
             <div v-for="comment in comments" :key="comment.id" class="comment-item">
               <div class="comment-avatar">
-                <img :src="getGravatar(comment.email)" :alt="comment.nickname" />
+                <img :src="getAvatar(comment.emailHash)" :alt="comment.nickname" loading="lazy" />
               </div>
               <div class="comment-body">
                 <div class="comment-header">
                   <strong>{{ comment.nickname }}</strong>
                   <time>{{ timeAgo(comment.createTime) }}</time>
                 </div>
-                <div class="comment-content markdown-body" v-html="comment.contentHtml"></div>
+                <div class="comment-content markdown-body" v-html="sanitize(comment.contentHtml)"></div>
+                <div v-for="reply in comment.replies || []" :key="reply.id" class="comment-reply">
+                  <div class="comment-header">
+                    <strong>{{ reply.nickname }}</strong>
+                    <span v-if="reply.isAdmin === 1" class="admin-badge">博主</span>
+                    <time>{{ timeAgo(reply.createTime) }}</time>
+                  </div>
+                  <div class="comment-content markdown-body" v-html="sanitize(reply.contentHtml)"></div>
+                </div>
               </div>
             </div>
           </div>
@@ -99,10 +107,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { articleApi, commentApi, siteApi } from '@/api'
+import { ElMessage } from 'element-plus'
+import DOMPurify from 'dompurify'
 import dayjs from 'dayjs'
+import hljs from 'highlight.js/lib/common'
+import dockerfile from 'highlight.js/lib/languages/dockerfile'
+import properties from 'highlight.js/lib/languages/properties'
+
+hljs.registerLanguage('dockerfile', dockerfile)
+hljs.registerLanguage('properties', properties)
 
 const route = useRoute()
 const article = ref<any>(null)
@@ -136,6 +152,19 @@ async function loadArticle() {
     }
   } catch (_) {}
   loading.value = false
+  await highlightCode()
+}
+
+// The backend renders markdown without highlighting; enhance the code blocks
+// client-side so the hljs theme (swapped in stores/theme.ts) applies.
+async function highlightCode() {
+  await nextTick()
+  document.querySelectorAll<HTMLElement>('.article-content pre code:not([data-hl])').forEach((el) => {
+    el.dataset.hl = '1'
+    try {
+      hljs.highlightElement(el)
+    } catch (_) {}
+  })
 }
 
 async function loadComments() {
@@ -150,13 +179,27 @@ async function loadComments() {
 
 async function submitComment() {
   submitting.value = true
+  commentSubmitted.value = false
   try {
     const slug = route.params.slug as string
-    await commentApi.create(slug, commentForm.value)
-    commentSubmitted.value = true
-    commentForm.value = { nickname: '', email: '', website: '', contentMd: '' }
-  } catch (_) {}
+    const res = await commentApi.create(slug, commentForm.value)
+    if (res.data.code === 200) {
+      commentSubmitted.value = true
+      commentForm.value = { nickname: '', email: '', website: '', contentMd: '' }
+    } else if (res.data.code === 429) {
+      ElMessage.warning('评论太频繁了，请稍后再试')
+    } else {
+      ElMessage.error(res.data.message || '提交失败')
+    }
+  } catch (e: any) {
+    ElMessage.error(e.response?.data?.message || '提交失败，请检查填写内容')
+  }
   submitting.value = false
+}
+
+// Backend already escapes comment HTML; this is a second line of defence for the v-html sink.
+function sanitize(html?: string) {
+  return html ? DOMPurify.sanitize(html) : ''
 }
 
 function formatDate(d: string) {
@@ -173,13 +216,17 @@ function timeAgo(d: string) {
   return dayjs(d).format('MM-DD')
 }
 
-function getGravatar(email: string) {
-  const hash = email.trim().toLowerCase()
-  return `https://www.gravatar.com/avatar/${hash}?s=48&d=mp`
+// Cravatar is a Gravatar-compatible mirror reachable from mainland China.
+function getAvatar(emailHash?: string) {
+  return `https://cravatar.cn/avatar/${emailHash || ''}?s=48&d=mp`
 }
 </script>
 
 <style scoped>
+.container {
+  max-width: 760px;
+}
+
 .article-header {
   padding: 40px 0 32px;
 }
@@ -304,6 +351,22 @@ function getGravatar(email: string) {
 
 .comment-content {
   font-size: 14px;
+}
+
+.comment-reply {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-left: 3px solid var(--accent-color);
+  background: var(--bg-secondary);
+  border-radius: 4px;
+}
+
+.admin-badge {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  color: #fff;
+  background: var(--accent-color);
 }
 
 .no-comments {

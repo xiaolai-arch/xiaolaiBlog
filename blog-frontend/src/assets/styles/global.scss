@@ -1,16 +1,21 @@
 :root {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8f9fa;
-  --text-primary: #1a1a2e;
-  --text-secondary: #495057;
-  --text-muted: #868e96;
-  --border-color: #e9ecef;
-  --accent-color: #4361ee;
-  --accent-hover: #3a56d4;
+  --bg-primary: #f6f9ff;
+  --bg-secondary: #ecf2fd;
+  --text-primary: #17233d;
+  --text-secondary: #46536e;
+  --text-muted: #8492ad;
+  --border-color: #e1e9f7;
+  --accent-color: #2563eb;
+  --accent-hover: #1d4ed8;
   --card-bg: #ffffff;
-  --header-bg: rgba(255, 255, 255, 0.9);
-  --code-bg: #f6f8fa;
+  --header-bg: rgba(246, 249, 255, 0.88);
+  --code-bg: #f1f5fd;
   --max-width: 800px;
+  --layout-width: 1240px;
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --shadow-soft: 0 2px 12px rgba(37, 99, 235, 0.06);
+  --shadow-hover: 0 12px 28px rgba(37, 99, 235, 0.12);
   --content-font-size: 16px;
   --content-line-height: 1.8;
 }
@@ -27,12 +32,8 @@
   --card-bg: #1a1a2e;
   --header-bg: rgba(15, 15, 35, 0.9);
   --code-bg: #161b22;
-}
-
-/* Let highlight.js theme control code text colors, but keep background transparent
-   so the <pre> element's --code-bg shows through */
-.markdown-body .hljs {
-  background: transparent;
+  --shadow-soft: 0 2px 12px rgba(0, 0, 0, 0.25);
+  --shadow-hover: 0 12px 28px rgba(0, 0, 0, 0.4);
 }
 
 /* Inline code in dark mode */
@@ -87,43 +88,157 @@ img {
   padding-top: 80px;
 }
 
-/* Markdown content styling */
+/* ---------- Markdown article content ---------- */
 .markdown-body {
   font-size: var(--content-font-size);
   line-height: var(--content-line-height);
   color: var(--text-primary);
-  background: transparent;
+  word-wrap: break-word;
 }
 
-.markdown-body pre {
-  background-color: var(--code-bg) !important;
+.markdown-body > :first-child {
+  margin-top: 0;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  font-weight: 700;
+  line-height: 1.4;
+  margin: 28px 0 16px;
+}
+
+.markdown-body h1 { font-size: 1.7em; }
+.markdown-body h2 {
+  font-size: 1.4em;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+.markdown-body h3 { font-size: 1.2em; }
+.markdown-body h4 { font-size: 1.05em; }
+
+.markdown-body p {
+  margin: 0 0 16px;
+}
+
+.markdown-body a {
+  color: var(--accent-color);
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  margin: 0 0 16px;
+  padding-left: 1.8em;
+}
+
+.markdown-body li {
+  margin: 4px 0;
+}
+
+.markdown-body li > ul,
+.markdown-body li > ol {
+  margin-bottom: 0;
+}
+
+.markdown-body blockquote {
+  margin: 0 0 16px;
+  padding: 8px 16px;
+  color: var(--text-secondary);
+  border-left: 4px solid var(--accent-color);
+  background: var(--bg-secondary);
+  border-radius: 0 8px 8px 0;
+}
+
+.markdown-body blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body hr {
+  border: 0;
+  border-top: 1px solid var(--border-color);
+  margin: 28px 0;
+}
+
+.markdown-body img {
+  max-width: 100%;
   border-radius: 8px;
-  padding: 16px;
+  margin: 8px 0;
+}
+
+.markdown-body table {
+  border-collapse: collapse;
+  margin: 0 0 16px;
+  display: block;
+  max-width: 100%;
   overflow-x: auto;
+}
+
+.markdown-body th,
+.markdown-body td {
+  border: 1px solid var(--border-color);
+  padding: 7px 13px;
+  text-align: left;
+}
+
+.markdown-body th {
+  background: var(--bg-secondary);
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .markdown-body code {
   font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
-  font-size: 0.9em;
+  font-size: 0.875em;
 }
 
-.markdown-body img {
+.markdown-body :not(pre) > code {
+  background: var(--code-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.markdown-body pre {
+  background-color: var(--code-bg);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
+  padding: 16px;
+  margin: 0 0 16px;
+  overflow-x: auto;
+  line-height: 1.7;
+}
+
+.markdown-body pre code {
+  display: block;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  font-size: 13.5px;
+  color: var(--text-primary);
+  white-space: pre;
+}
+
+.markdown-body .hljs {
+  background: transparent;
 }
 
 /* Article card */
 .article-card {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 24px;
   margin-bottom: 20px;
+  box-shadow: var(--shadow-soft);
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .article-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-hover);
 }
 
 /* Page transition */
