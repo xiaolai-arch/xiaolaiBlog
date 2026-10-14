@@ -4,10 +4,10 @@
       <header class="page-head">
         <div>
           <h1>🧮 算法刷题</h1>
-          <p>按专题整理的力扣题单，点击题目直达原题；勾选记录你的进度（保存在本地）。</p>
+          <p>按原帖章节整理的力扣题单，点击题目直达原题；勾选记录你的进度（保存在本地）。</p>
         </div>
         <div class="overall-progress" v-if="index">
-          <div class="overall-num">{{ doneCount }}<span> / {{ index.uniqueTotal }}</span></div>
+          <div class="overall-num">{{ doneSet.size }}<span> / {{ totalUnique }}</span></div>
           <div class="bar"><div class="bar-fill" :style="{ width: overallPercent + '%' }"></div></div>
         </div>
       </header>
@@ -23,15 +23,11 @@
             @click="selectCategory(cat.key)"
           >
             {{ cat.name }}
-            <span class="cat-count">{{ doneOf(cat.key) }}/{{ cat.total }}</span>
+            <span class="cat-count">{{ doneOf(cat.key) }}/{{ cat.uniqueTotal }}</span>
           </button>
         </div>
 
         <div class="toolbar">
-          <select v-model="chapter" class="chapter-select">
-            <option value="">全部章节</option>
-            <option v-for="c in chapters" :key="c" :value="c">{{ c }}</option>
-          </select>
           <div class="status-filter">
             <button :class="{ on: status === 'all' }" @click="status = 'all'">全部</button>
             <button :class="{ on: status === 'todo' }" @click="status = 'todo'">未做</button>
@@ -40,63 +36,56 @@
           <el-input v-model="search" placeholder="搜索题号或题名…" size="small" clearable class="search-input">
             <template #prefix><el-icon><Search /></el-icon></template>
           </el-input>
-        </div>
-
-        <div class="cat-bar">
-          <span>{{ activeCatName }}：{{ activeDone }} / {{ activeTotal }} 题</span>
-          <span class="cat-bar-right">已加载 {{ problems.length }} 题</span>
+          <span class="toolbar-hint">{{ activeCatName }}：{{ activeDone }} / {{ activeUnique }} 题（{{ activeItems }} 条目）</span>
         </div>
 
         <div v-if="loadingCat" class="loading">加载中...</div>
         <template v-else>
-          <div class="prob-table">
-            <div class="prob-row head">
-              <span class="col-check"></span>
-              <span class="col-id">题号</span>
-              <span class="col-title">题目</span>
-              <span class="col-chapter">章节</span>
+          <details
+            v-for="chapter in visibleChapters"
+            :key="chapter.title"
+            class="chapter"
+            :open="forceOpen || openChapters.has(chapter.title)"
+            @toggle="onToggle($event, chapter.title)"
+          >
+            <summary class="chapter-head">
+              <span class="chapter-title">{{ chapter.title }}</span>
+              <span class="chapter-progress">{{ chapterDone(chapter) }}/{{ chapterTotal(chapter) }}</span>
+            </summary>
+            <div class="chapter-body">
+              <div v-for="section in chapter.sections" :key="chapter.title + section.title" class="section">
+                <h3 v-if="section.title" class="section-title">{{ section.title }}</h3>
+                <div v-if="section.notes.length" class="section-notes">
+                  <a v-for="(n, i) in section.notes" :key="i" :href="n.url" target="_blank" rel="noopener">
+                    📎 {{ n.label }}
+                  </a>
+                </div>
+                <ul class="prob-list">
+                  <li
+                    v-for="p in visibleProblems(section)"
+                    :key="section.title + p.pid + p.label"
+                    :class="{ done: doneSet.has(p.pid) }"
+                  >
+                    <input type="checkbox" :checked="doneSet.has(p.pid)" @change="toggle(p.pid)" />
+                    <a :href="p.url" target="_blank" rel="noopener">{{ p.label }}</a>
+                    <span v-if="p.suffix" class="suffix">{{ p.suffix }}</span>
+                  </li>
+                </ul>
+              </div>
             </div>
-            <div v-for="p in paged" :key="activeKey + p.id" class="prob-row" :class="{ done: isDone(p.id) }">
-              <span class="col-check">
-                <input type="checkbox" :checked="isDone(p.id)" @change="toggle(p.id)" />
-              </span>
-              <span class="col-id">{{ p.id }}</span>
-              <span class="col-title">
-                <a :href="p.url" target="_blank" rel="noopener">{{ p.title }}</a>
-              </span>
-              <span class="col-chapter" :title="p.section">{{ p.chapter }}</span>
-            </div>
-            <div v-if="!filtered.length" class="loading">没有匹配的题目</div>
-          </div>
-
-          <div class="pagination" v-if="filtered.length > pageSize">
-            <el-pagination
-              :current-page="page"
-              :page-size="pageSize"
-              :total="filtered.length"
-              layout="prev, pager, next"
-              @current-change="onPageChange"
-              background
-              small
-            />
-          </div>
+          </details>
+          <div v-if="!visibleChapters.length" class="loading">没有匹配的题目</div>
         </template>
-
-        <div class="guides" v-if="guides.length">
-          <button class="guides-toggle" @click="showGuides = !showGuides">
-            📎 讲解与套路（{{ guides.length }}）{{ showGuides ? ' ▴' : ' ▾' }}
-          </button>
-          <div v-if="showGuides" class="guides-list">
-            <a v-for="(g, i) in guides" :key="i" :href="g.url" target="_blank" rel="noopener">{{ g.label }}</a>
-          </div>
-        </div>
 
         <footer class="attribution">
           题单整理自力扣用户
-          <a :href="activeSource || 'https://leetcode.cn/u/endlesscheng/'" target="_blank" rel="noopener">@灵茶山艾府</a>
-          发布的算法题单（点击查看当前专题原帖），
-          <a href="https://gitee.com/li-dawei10086/leetcode-problem-list" target="_blank" rel="noopener">数据归档仓库</a>。
-          本页仅收录题目索引与链接，讲解请看原帖。
+          <a href="https://leetcode.cn/u/endlesscheng/" target="_blank" rel="noopener">@灵茶山艾府</a>
+          的
+          <a href="https://leetcode.cn/discuss/post/3141566/ru-he-ke-xue-shua-ti-by-endlesscheng-q3yd/" target="_blank" rel="noopener">《如何科学刷题》</a>
+          系列算法题单（
+          <a v-if="activeSource" :href="activeSource" target="_blank" rel="noopener">当前专题原帖</a> ｜
+          <a href="https://gitee.com/li-dawei10086/leetcode-problem-list" target="_blank" rel="noopener">数据归档</a>
+          ）。本页按原帖章节与顺序收录题目链接，讲解请看原帖。
         </footer>
       </template>
     </div>
@@ -108,71 +97,132 @@ import { ref, computed, onMounted } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 
 interface Problem {
-  id: number | string
-  title: string
+  pid: string
+  label: string
   url: string
-  chapter: string
-  section: string
+  suffix: string
+}
+interface Section {
+  title: string
+  notes: { label: string; url: string }[]
+  problems: Problem[]
+}
+interface Chapter {
+  title: string
+  sections: Section[]
 }
 
 const DONE_KEY = 'leetcode:done'
-const pageSize = 50
 
 const index = ref<any>(null)
-// 已加载专题的数据缓存（响应式，供 computed 派生）
-const cache = ref<Record<string, { name: string; source: string; total: number; problems: Problem[]; guides: any[] }>>({})
+const cache = ref<Record<string, { name: string; source: string; itemsTotal: number; uniqueTotal: number; chapters: Chapter[] }>>({})
 
 const activeKey = ref('01')
 const loadingCat = ref(false)
 const search = ref('')
-const chapter = ref('')
 const status = ref<'all' | 'todo' | 'done'>('all')
-const page = ref(1)
-const showGuides = ref(false)
-const doneSet = ref<Set<number | string>>(new Set())
+const doneSet = ref<Set<string>>(new Set())
+const openChapters = ref<Set<string>>(new Set())
 
 const activeData = computed(() => cache.value[activeKey.value])
-const problems = computed<Problem[]>(() => activeData.value?.problems || [])
-const guides = computed(() => activeData.value?.guides || [])
-const activeSource = computed(() => activeData.value?.source || '')
 const activeCatName = computed(() => activeData.value?.name || '')
-const activeTotal = computed(() => activeData.value?.total || 0)
-const activeDone = computed(() => problems.value.filter(p => doneSet.value.has(p.id)).length)
-const doneCount = computed(() => doneSet.value.size)
+const activeSource = computed(() => activeData.value?.source || '')
+const activeItems = computed(() => activeData.value?.itemsTotal || 0)
+const activeUnique = computed(() => activeData.value?.uniqueTotal || 0)
+const totalUnique = computed(() =>
+  index.value ? index.value.categories.reduce((s: number, c: any) => s + c.uniqueTotal, 0) : 0)
 const overallPercent = computed(() =>
-  index.value ? Math.round((doneCount.value / index.value.uniqueTotal) * 1000) / 10 : 0)
+  totalUnique.value ? Math.round((doneSet.value.size / totalUnique.value) * 1000) / 10 : 0)
 
-const chapters = computed(() => {
-  const set = new Set(problems.value.map(p => p.chapter))
-  return [...set]
+const activeDone = computed(() => {
+  const data = activeData.value
+  if (!data) return 0
+  const pids = new Set<string>()
+  for (const c of data.chapters) for (const s of c.sections) for (const p of s.problems) pids.add(p.pid)
+  return [...pids].filter(pid => doneSet.value.has(pid)).length
 })
 
-const filtered = computed(() => {
-  let list = problems.value
-  if (chapter.value) list = list.filter(p => p.chapter === chapter.value)
-  if (status.value !== 'all') {
-    list = list.filter(p => (status.value === 'done') === doneSet.value.has(p.id))
-  }
+const visibleChapters = computed(() => {
+  const data = activeData.value
+  if (!data) return []
   const kw = search.value.trim().toLowerCase()
-  if (kw) {
-    list = list.filter(p =>
-      String(p.id).toLowerCase().includes(kw) || p.title.toLowerCase().includes(kw))
+  let chapters = data.chapters
+  if (kw || status.value !== 'all') {
+    const matchProblem = (p: Problem) => {
+      if (status.value === 'done' && !doneSet.value.has(p.pid)) return false
+      if (status.value === 'todo' && doneSet.value.has(p.pid)) return false
+      if (kw && !p.label.toLowerCase().includes(kw) && !p.pid.toLowerCase().includes(kw)) return false
+      return true
+    }
+    chapters = chapters
+      .map(c => ({
+        ...c,
+        sections: c.sections
+          .map(s => ({ ...s, problems: s.problems.filter(matchProblem) }))
+          .filter(s => s.problems.length),
+      }))
+      .filter(c => c.sections.length)
   }
-  return list
+  return chapters
 })
 
-const paged = computed(() => filtered.value.slice((page.value - 1) * pageSize, page.value * pageSize))
+const forceOpen = computed(() => !!search.value.trim() || status.value !== 'all')
+
+function chapterPids(chapter: Chapter): Set<string> {
+  const pids = new Set<string>()
+  for (const s of chapter.sections) for (const p of s.problems) pids.add(p.pid)
+  return pids
+}
+
+function chapterDone(chapter: Chapter) {
+  return [...chapterPids(chapter)].filter(pid => doneSet.value.has(pid)).length
+}
+
+function chapterTotal(chapter: Chapter) {
+  return chapterPids(chapter).size
+}
+
+function visibleProblems(section: Section) {
+  // 过滤已在 computed 里完成；这里只负责展示（保留原顺序与重复）
+  return section.problems
+}
+
+function doneOf(key: string) {
+  const data = cache.value[key]
+  if (!data) return 0
+  const pids = new Set<string>()
+  for (const c of data.chapters) for (const s of c.sections) for (const p of s.problems) pids.add(p.pid)
+  return [...pids].filter(pid => doneSet.value.has(pid)).length
+}
+
+function onToggle(e: Event, title: string) {
+  const open = (e.target as HTMLDetailsElement).open
+  const next = new Set(openChapters.value)
+  if (open) next.add(title)
+  else next.delete(title)
+  openChapters.value = next
+}
+
+function toggle(pid: string) {
+  const next = new Set(doneSet.value)
+  if (next.has(pid)) next.delete(pid)
+  else next.add(pid)
+  doneSet.value = next
+  localStorage.setItem(DONE_KEY, JSON.stringify([...next]))
+}
 
 onMounted(async () => {
   try {
-    const saved = JSON.parse(localStorage.getItem(DONE_KEY) || '[]')
-    doneSet.value = new Set(saved)
+    doneSet.value = new Set(JSON.parse(localStorage.getItem(DONE_KEY) || '[]'))
   } catch (_) {}
   try {
     const res = await fetch('/data/leetcode/index.json')
     index.value = await res.json()
     if (index.value.categories.length) {
       await loadCategory(index.value.categories[0].key)
+      if (activeData.value?.chapters.length) {
+        openChapters.value = new Set([activeData.value.chapters[0].title])
+      }
     }
   } catch (_) {}
 })
@@ -189,33 +239,11 @@ async function loadCategory(key: string) {
 
 async function selectCategory(key: string) {
   activeKey.value = key
-  page.value = 1
-  chapter.value = ''
-  showGuides.value = false
+  search.value = ''
+  status.value = 'all'
   await loadCategory(key)
-}
-
-function doneOf(key: string) {
-  const data = cache.value[key]
-  if (!data) return 0
-  return data.problems.filter(p => doneSet.value.has(p.id)).length
-}
-
-function isDone(id: number | string) {
-  return doneSet.value.has(id)
-}
-
-function toggle(id: number | string) {
-  const next = new Set(doneSet.value)
-  if (next.has(id)) next.delete(id)
-  else next.add(id)
-  doneSet.value = next
-  localStorage.setItem(DONE_KEY, JSON.stringify([...next]))
-}
-
-function onPageChange(p: number) {
-  page.value = p
-  window.scrollTo({ top: 240, behavior: 'smooth' })
+  const chapters = activeData.value?.chapters || []
+  openChapters.value = new Set(chapters.length ? [chapters[0].title] : [])
 }
 </script>
 
@@ -312,18 +340,7 @@ function onPageChange(p: number) {
   gap: 10px;
   align-items: center;
   flex-wrap: wrap;
-  margin-bottom: 12px;
-}
-
-.chapter-select {
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  background: var(--card-bg);
-  color: var(--text-primary);
-  font-size: 13px;
-  padding: 6px 10px;
-  outline: none;
-  max-width: 220px;
+  margin-bottom: 16px;
 }
 
 .status-filter {
@@ -355,130 +372,135 @@ function onPageChange(p: number) {
   width: 220px;
 }
 
-.cat-bar {
-  display: flex;
-  justify-content: space-between;
+.toolbar-hint {
   font-size: 13px;
   color: var(--text-muted);
-  padding: 8px 2px;
+  margin-left: auto;
 }
 
-.prob-table {
+.chapter {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-soft);
+  margin-bottom: 14px;
   overflow: hidden;
 }
 
-.prob-row {
+.chapter-head {
   display: flex;
+  justify-content: space-between;
   align-items: center;
   gap: 12px;
-  padding: 9px 16px;
+  padding: 14px 18px;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-primary);
+  list-style: none;
+}
+
+.chapter-head::-webkit-details-marker {
+  display: none;
+}
+
+.chapter-head::before {
+  content: '▸';
+  color: var(--text-muted);
+  transition: transform 0.15s;
+}
+
+.chapter[open] > .chapter-head::before {
+  transform: rotate(90deg);
+}
+
+.chapter-progress {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chapter-body {
   border-top: 1px solid var(--border-color);
+  padding: 6px 20px 16px;
+}
+
+.section-title {
+  font-size: 14px;
+  color: var(--text-primary);
+  margin: 14px 0 8px;
+}
+
+.section-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 6px 0 8px;
+}
+
+.section-notes a {
+  font-size: 13px;
+  color: var(--accent-color);
+}
+
+.prob-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.prob-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 4px;
+  border-bottom: 1px dashed var(--border-color);
   font-size: 14px;
 }
 
-.prob-row.head {
-  border-top: 0;
-  background: var(--bg-secondary);
-  font-size: 12px;
-  color: var(--text-muted);
-  font-weight: 600;
+.prob-list li:last-child {
+  border-bottom: 0;
 }
 
-.prob-row:not(.head):hover {
-  background: var(--bg-secondary);
-}
-
-.prob-row.done .col-title a {
-  color: var(--text-muted);
-}
-
-.prob-row.done .col-id,
-.prob-row.done .col-chapter {
-  color: var(--text-muted);
-}
-
-.col-check {
-  flex: none;
-  width: 22px;
-}
-
-.col-check input {
+.prob-list input {
   width: 15px;
   height: 15px;
   accent-color: var(--accent-color);
   cursor: pointer;
-}
-
-.col-id {
   flex: none;
-  width: 74px;
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
 }
 
-.col-title {
-  flex: 1;
-  min-width: 0;
+.prob-list a {
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.col-chapter {
-  flex: none;
-  width: 180px;
+.prob-list a:hover {
+  color: var(--accent-color);
+}
+
+.prob-list li.done a {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.prob-list .suffix {
   font-size: 12px;
   color: var(--text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  flex: none;
 }
 
-.pagination {
-  display: flex;
-  justify-content: center;
-  padding: 24px 0 8px;
-}
-
-.guides {
-  margin-top: 20px;
-}
-
-.guides-toggle {
-  border: 1px dashed var(--border-color);
-  background: var(--card-bg);
-  color: var(--text-secondary);
-  font-size: 13px;
-  padding: 9px 16px;
-  border-radius: 10px;
-  cursor: pointer;
-  width: 100%;
-  text-align: left;
-}
-
-.guides-toggle:hover {
-  color: var(--accent-color);
-  border-color: var(--accent-color);
-}
-
-.guides-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 14px 16px;
-}
-
-.guides-list a {
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.guides-list a:hover {
-  color: var(--accent-color);
+.loading {
+  text-align: center;
+  padding: 60px;
+  color: var(--text-muted);
 }
 
 .attribution {
@@ -488,26 +510,5 @@ function onPageChange(p: number) {
   line-height: 1.8;
   border-top: 1px solid var(--border-color);
   padding: 16px 0 40px;
-}
-
-.loading {
-  text-align: center;
-  padding: 60px;
-  color: var(--text-muted);
-}
-
-@media (max-width: 760px) {
-  .page-head {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .overall-progress {
-    text-align: left;
-  }
-
-  .col-chapter {
-    display: none;
-  }
 }
 </style>
