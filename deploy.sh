@@ -31,7 +31,13 @@ deploy_backend() {
     mv blog-1.0.0.jar.new blog-1.0.0.jar && \
     chown www:www blog-1.0.0.jar && chmod 755 blog-1.0.0.jar && \
     systemctl restart blog && sleep 5 && systemctl is-active blog"
-  curl -sf -o /dev/null -w "RSS: %{http_code}\n" http://www.xiaolai.cyou/api/v1/rss
+  echo -n "RSS: "
+  for i in 1 2 3 4 5 6; do
+    code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/api/v1/rss || true)
+    echo "$code"
+    [ "$code" = "200" ] && break
+    sleep 5
+  done
 }
 
 deploy_frontend() {
