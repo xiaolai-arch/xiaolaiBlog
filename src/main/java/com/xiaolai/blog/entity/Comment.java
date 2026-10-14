@@ -3,6 +3,7 @@ package com.xiaolai.blog.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @TableName("comment")
@@ -22,4 +23,11 @@ public class Comment {
     private LocalDateTime createTime;
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
+
+    /** MD5 of the lower-cased email, for Gravatar; lets the public API omit the raw email. */
+    @TableField(exist = false)
+    private String emailHash;
+
+    @TableField(exist = false)
+    private List<Comment> replies;
 }

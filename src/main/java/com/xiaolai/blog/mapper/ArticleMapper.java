@@ -16,7 +16,7 @@ public interface ArticleMapper extends BaseMapper<Article> {
             "WHERE a.slug = #{slug} AND a.deleted = 0")
     Article selectBySlug(@Param("slug") String slug);
 
-    @Select("SELECT * FROM article WHERE deleted = 0 ORDER BY is_top DESC, create_time DESC")
+    @Select("SELECT * FROM article WHERE deleted = 0 AND status = 1 ORDER BY create_time DESC LIMIT 20")
     List<Article> selectPublished();
 
     @Select("SELECT id, title FROM article WHERE category_id = #{categoryId} AND status = 1 AND deleted = 0 " +

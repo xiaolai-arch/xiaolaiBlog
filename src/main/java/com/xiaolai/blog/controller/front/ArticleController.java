@@ -1,6 +1,7 @@
 package com.xiaolai.blog.controller.front;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.xiaolai.blog.common.constant.BlogConstant;
 import com.xiaolai.blog.common.response.PageResult;
 import com.xiaolai.blog.common.response.Result;
 import com.xiaolai.blog.entity.Article;
@@ -37,25 +38,16 @@ public class ArticleController {
 
     @GetMapping("/articles/{slug}")
     public Result<Article> detail(@PathVariable String slug) {
-        Article article = articleService.getBySlug(slug);
+        Article article = getPublishedBySlug(slug);
         if (article == null) return Result.notFound("Article not found");
 
         articleService.incrementViews(article.getId());
-
-        Article prev = articleService.getPreviousArticle(article.getId(), article.getCategoryId());
-        Article next = articleService.getNextArticle(article.getId(), article.getCategoryId());
-
-        Map<String, Object> data = new HashMap<>();
-        data.put("article", article);
-        data.put("previous", prev);
-        data.put("next", next);
-
         return Result.success(article);
     }
 
     @GetMapping("/articles/{slug}/navigation")
     public Result<Map<String, Object>> navigation(@PathVariable String slug) {
-        Article article = articleService.getBySlug(slug);
+        Article article = getPublishedBySlug(slug);
         if (article == null) return Result.notFound("Article not found");
 
         Article prev = articleService.getPreviousArticle(article.getId(), article.getCategoryId());
@@ -84,5 +76,14 @@ public class ArticleController {
         result.put("years", years);
         result.put("archives", archives);
         return Result.success(result);
+    }
+
+    /** Drafts must not be reachable from the public site, even by guessing the slug. */
+    private Article getPublishedBySlug(String slug) {
+        Article article = articleService.getBySlug(slug);
+        if (article == null || !Objects.equals(article.getStatus(), BlogConstant.ARTICLE_STATUS_PUBLISHED)) {
+            return null;
+        }
+        return article;
     }
 }

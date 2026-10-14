@@ -11,7 +11,9 @@ import org.commonmark.node.Node;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
 import org.springframework.stereotype.Service;
+import org.springframework.util.DigestUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Service
@@ -24,7 +26,11 @@ public class CommentServiceImpl implements CommentService {
     public CommentServiceImpl(CommentMapper commentMapper) {
         this.commentMapper = commentMapper;
         this.parser = Parser.builder().build();
-        this.htmlRenderer = HtmlRenderer.builder().build();
+        // Comments come from anonymous visitors: never pass raw HTML through, and drop javascript:/data: URLs.
+        this.htmlRenderer = HtmlRenderer.builder()
+                .escapeHtml(true)
+                .sanitizeUrls(true)
+                .build();
     }
 
     @Override
@@ -47,12 +53,25 @@ public class CommentServiceImpl implements CommentService {
     public List<Comment> getApprovedByArticleId(Long articleId) {
         List<Comment> comments = commentMapper.selectApprovedByArticleId(articleId);
         for (Comment comment : comments) {
-            comment.setContentHtml(renderHtml(comment.getContentMd()));
+            toPublicView(comment);
             List<Comment> replies = commentMapper.selectRepliesByParentId(comment.getId());
-            replies.forEach(r -> r.setContentHtml(renderHtml(r.getContentMd())));
-            comment.setContentMd(null); // not needed in response
+            replies.forEach(this::toPublicView);
+            comment.setReplies(replies);
         }
         return comments;
+    }
+
+    /** Re-render from Markdown (so the safe renderer also covers old rows) and strip private fields. */
+    private void toPublicView(Comment comment) {
+        comment.setContentHtml(renderHtml(comment.getContentMd()));
+        comment.setContentMd(null);
+        comment.setEmailHash(emailHash(comment.getEmail()));
+        comment.setEmail(null);
+    }
+
+    static String emailHash(String email) {
+        if (email == null || email.isBlank()) return null;
+        return DigestUtils.md5DigestAsHex(email.trim().toLowerCase().getBytes(StandardCharsets.UTF_8));
     }
 
     @Override
@@ -112,7 +131,7 @@ public class CommentServiceImpl implements CommentService {
         commentMapper.insert(reply);
     }
 
-    private String renderHtml(String md) {
+    String renderHtml(String md) {
         if (md == null) return "";
         Node document = parser.parse(md);
         return htmlRenderer.render(document);
