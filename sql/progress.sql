@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS `user_progress` (
   `user_id`    BIGINT      NOT NULL COMMENT '所属用户ID',
   `prog_key`   VARCHAR(64) NOT NULL COMMENT '进度键（如 leetcode / cet4）',
   `value`      MEDIUMTEXT  NULL COMMENT '进度内容（JSON）',
+  `create_time` DATETIME   NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` DATETIME   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_user_key` (`user_id`, `prog_key`)

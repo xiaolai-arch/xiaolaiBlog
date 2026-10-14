@@ -24,8 +24,8 @@ deploy_backend() {
   ssh "$SERVER" "cd $BACKEND_DIR && \
     if command -v mysql >/dev/null 2>&1; then \
       set -a && . ./blog.env && set +a && \
-      mysql -h 127.0.0.1 -u\"\${SPRING_DATASOURCE_USERNAME:-root}\" \"\${SPRING_DATASOURCE_PASSWORD:+-p\$SPRING_DATASOURCE_PASSWORD}\" xiaolai_blog < /tmp/note.sql && echo 'note.sql applied' || echo 'WARN: note.sql failed, apply manually'; \
-      mysql -h 127.0.0.1 -u\"\${SPRING_DATASOURCE_USERNAME:-root}\" \"\${SPRING_DATASOURCE_PASSWORD:+-p\$SPRING_DATASOURCE_PASSWORD}\" xiaolai_blog < /tmp/progress.sql && echo 'progress.sql applied' || echo 'WARN: progress.sql failed, apply manually'; \
+      mysql -h 127.0.0.1 -u\"\${DB_USERNAME:-root}\" \"\${DB_PASSWORD:+-p\$DB_PASSWORD}\" xiaolai_blog < /tmp/note.sql && echo 'note.sql applied' || echo 'WARN: note.sql failed, apply manually'; \
+      mysql -h 127.0.0.1 -u\"\${DB_USERNAME:-root}\" \"\${DB_PASSWORD:+-p\$DB_PASSWORD}\" xiaolai_blog < /tmp/progress.sql && echo 'progress.sql applied' || echo 'WARN: progress.sql failed, apply manually'; \
     else echo 'WARN: no mysql client on server, apply sql/*.sql manually'; fi && \
     cp blog-1.0.0.jar blog-1.0.0.jar.bak-\$(date +%Y%m%d-%H%M) && \
     mv blog-1.0.0.jar.new blog-1.0.0.jar && \
