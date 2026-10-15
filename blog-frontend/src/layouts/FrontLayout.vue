@@ -14,6 +14,7 @@
           <router-link to="/tools" @click="menuOpen = false">工具</router-link>
           <router-link to="/leetcode" @click="menuOpen = false">刷题</router-link>
           <router-link to="/cet4" @click="menuOpen = false">四级</router-link>
+          <router-link to="/agent" @click="menuOpen = false">秋招</router-link>
           <router-link to="/about" @click="menuOpen = false">关于</router-link>
         </nav>
         <div class="header-actions">
@@ -86,6 +87,7 @@
           <router-link to="/tools" active-class="active">工具</router-link>
           <router-link to="/leetcode" active-class="active">刷题</router-link>
           <router-link to="/cet4" active-class="active">四级</router-link>
+          <router-link to="/agent" active-class="active">秋招</router-link>
           <router-link to="/about" active-class="active">关于</router-link>
         </nav>
 

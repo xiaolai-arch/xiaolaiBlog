@@ -19,6 +19,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'tools/markdown', name: 'ToolMarkdown', component: () => import('@/views/front/MarkdownToolPage.vue') },
       { path: 'leetcode', name: 'LeetCode', component: () => import('@/views/front/LeetCodePage.vue') },
       { path: 'cet4', name: 'CET4', component: () => import('@/views/front/CET4Page.vue') },
+      { path: 'agent', name: 'AgentSprint', component: () => import('@/views/front/AgentSprintPage.vue') },
       { path: 'study', name: 'Study', component: () => import('@/views/front/StudyPage.vue') },
       { path: 'about', name: 'About', component: () => import('@/views/front/AboutPage.vue') },
     ]

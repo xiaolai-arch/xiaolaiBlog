@@ -27,6 +27,14 @@
             <div class="bar"><div class="bar-fill" :style="{ width: pct(doneSets.cet4.size, cet4Total) }"></div></div>
           </div>
         </router-link>
+        <router-link to="/agent" class="sum-card">
+          <span class="sum-icon">🎯</span>
+          <div class="sum-body">
+            <h3>秋招冲刺</h3>
+            <div class="sum-num">{{ doneSets.agent.size }}<span> / {{ agentTotal }}</span></div>
+            <div class="bar"><div class="bar-fill" :style="{ width: pct(doneSets.agent.size, agentTotal) }"></div></div>
+          </div>
+        </router-link>
         <router-link to="/tools/markdown" class="sum-card">
           <span class="sum-icon">✍️</span>
           <div class="sum-body">
@@ -81,6 +89,11 @@
             <span class="todo-name">{{ cet4Task.title }}</span>
             <span class="todo-sub">{{ cet4Task.from }} · {{ cet4Task.dur }}</span>
           </a>
+          <a v-if="agentTask" href="/agent" class="todo-item">
+            <span class="todo-tag">秋招</span>
+            <span class="todo-name">{{ agentTask.title }}</span>
+            <span class="todo-sub">{{ agentTask.from }}</span>
+          </a>
           <router-link to="/tools/markdown" class="todo-item">
             <span class="todo-tag">笔记</span>
             <span class="todo-name">打开笔记本</span>
@@ -101,12 +114,14 @@ const loggedIn = ref(false)
 const index = ref<any>(null)
 const cloudLabel = computed(() => (loggedIn.value ? '云端已同步' : '本地记录'))
 const log = ref<{ d: string; k: string; s?: number }[]>([])
-const doneSets = ref({ leetcode: new Set<string>(), cet4: new Set<string>() })
+const doneSets = ref({ leetcode: new Set<string>(), cet4: new Set<string>(), agent: new Set<string>() })
 const lcTotal = ref(0)
 const cet4Total = ref(0)
+const agentTotal = ref(0)
 const noteCount = ref(0)
 const lcTask = ref<{ label: string; url: string; from: string } | null>(null)
 const cet4Task = ref<{ title: string; url: string; from: string; dur: string } | null>(null)
+const agentTask = ref<{ title: string; from: string } | null>(null)
 
 function dateStr(d: Date) {
   const p = (n: number) => String(n).padStart(2, '0')
@@ -208,17 +223,49 @@ async function findCet4Task() {
   } catch (_) {}
 }
 
+// 秋招计划：按阶段一→三顺序找第一个未完成项
+async function findAgentTask() {
+  const phases = [
+    { f: 'phase1.json', label: '阶段一' },
+    { f: 'phase2.json', label: '阶段二' },
+    { f: 'phase3.json', label: '阶段三' },
+  ]
+  for (const { f, label } of phases) {
+    try {
+      const data = await loadJson(`/data/agent/${f}`)
+      const weeks: any[] = data.weeks || (data.projects || []).flatMap((p: any) => p.weeks).concat(data.final ? [data.final] : [])
+      for (const w of weeks) {
+        for (const day of w.days || []) {
+          if (!doneSets.value.agent.has(day.id)) {
+            agentTask.value = {
+              title: day.tasks[0],
+              from: `${label} · ${day.dow} ${day.date}`,
+            }
+            return
+          }
+        }
+      }
+    } catch (_) {}
+  }
+}
+
 onMounted(async () => {
   loggedIn.value = !!localStorage.getItem('token')
   try {
     doneSets.value.leetcode = new Set((JSON.parse(localStorage.getItem('leetcode:done') || '[]') as any[]).map(String))
     doneSets.value.cet4 = new Set((JSON.parse(localStorage.getItem('cet4:done') || '[]') as any[]).map(String))
+    doneSets.value.agent = new Set((JSON.parse(localStorage.getItem('agent:done') || '[]') as any[]).map(String))
   } catch (_) {}
   log.value = getStudyLog()
   try {
-    const [lc, c4] = await Promise.all([loadJson('/data/leetcode/index.json'), loadJson('/data/cet4/index.json')])
+    const [lc, c4, ag] = await Promise.all([
+      loadJson('/data/leetcode/index.json'),
+      loadJson('/data/cet4/index.json'),
+      loadJson('/data/agent/index.json'),
+    ])
     lcTotal.value = lc.categories.reduce((s: number, c: any) => s + c.uniqueTotal, 0)
     cet4Total.value = c4.totalItems
+    agentTotal.value = ag.totalItems
     index.value = lc
   } catch (_) {}
   if (loggedIn.value) {
@@ -229,7 +276,7 @@ onMounted(async () => {
   } else {
     try { noteCount.value = (JSON.parse(localStorage.getItem('tools:notes') || '[]')).length } catch (_) {}
   }
-  await Promise.all([findLcTask(), findCet4Task()])
+  await Promise.all([findLcTask(), findCet4Task(), findAgentTask()])
 })
 </script>
 
@@ -260,7 +307,7 @@ onMounted(async () => {
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
   margin-bottom: 16px;
 }

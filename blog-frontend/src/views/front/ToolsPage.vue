@@ -40,6 +40,12 @@ const tools = [
     desc: '刘晓艳四级课程清单（2064 节），看课打卡、统计已学时长',
     to: '/cet4',
   },
+  {
+    icon: '🎯',
+    name: '秋招冲刺',
+    desc: 'AI Agent 方向 14 周学习计划（原理/框架/项目）+ 资源推荐',
+    to: '/agent',
+  },
 ]
 </script>
 
