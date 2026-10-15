@@ -41,9 +41,9 @@ const tools = [
     to: '/cet4',
   },
   {
-    icon: '🎯',
-    name: '秋招冲刺',
-    desc: 'AI Agent 方向 14 周学习计划（原理/框架/项目）+ 资源推荐',
+    icon: '🤖',
+    name: 'Agent 开发',
+    desc: 'Agent 开发 14 周学习计划（原理/框架/项目）+ 资源推荐',
     to: '/agent',
   },
 ]

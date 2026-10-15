@@ -3,8 +3,8 @@
     <div class="container">
       <header class="page-head">
         <div>
-          <h1>🎯 秋招冲刺</h1>
-          <p>AI Agent 方向 14 周学习计划：原理 → 框架 → 项目，附资源清单。打卡进度保存在本地{{ cloudActive ? '，并已云端同步' : '' }}。</p>
+          <h1>🤖 Agent 开发</h1>
+          <p>Agent 开发 14 周学习计划：原理 → 框架 → 项目，附资源清单。打卡进度保存在本地{{ cloudActive ? '，并已云端同步' : '' }}。</p>
         </div>
         <div class="overall-progress">
           <div class="overall-num">{{ doneSet.size }}<span> / {{ totalItems }}</span></div>

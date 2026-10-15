@@ -28,9 +28,9 @@
           </div>
         </router-link>
         <router-link to="/agent" class="sum-card">
-          <span class="sum-icon">🎯</span>
+          <span class="sum-icon">🤖</span>
           <div class="sum-body">
-            <h3>秋招冲刺</h3>
+            <h3>Agent 开发</h3>
             <div class="sum-num">{{ doneSets.agent.size }}<span> / {{ agentTotal }}</span></div>
             <div class="bar"><div class="bar-fill" :style="{ width: pct(doneSets.agent.size, agentTotal) }"></div></div>
           </div>
@@ -90,7 +90,7 @@
             <span class="todo-sub">{{ cet4Task.from }} · {{ cet4Task.dur }}</span>
           </a>
           <a v-if="agentTask" href="/agent" class="todo-item">
-            <span class="todo-tag">秋招</span>
+            <span class="todo-tag">Agent</span>
             <span class="todo-name">{{ agentTask.title }}</span>
             <span class="todo-sub">{{ agentTask.from }}</span>
           </a>
@@ -223,7 +223,7 @@ async function findCet4Task() {
   } catch (_) {}
 }
 
-// 秋招计划：按阶段一→三顺序找第一个未完成项
+// Agent 开发计划：按阶段一→三顺序找第一个未完成项
 async function findAgentTask() {
   const phases = [
     { f: 'phase1.json', label: '阶段一' },
