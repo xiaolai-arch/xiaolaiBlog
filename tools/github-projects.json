@@ -1,0 +1,53 @@
+{
+  "comment": "GitHub 项目展示整理表：desc/category/tags/highlights 手动维护；运行 tools/build_github_data.py 时与 GitHub API 数据（语言/星标/更新时间/链接）合并后输出到前端。增删项目或调整顺序都改这里。",
+  "projects": [
+    {
+      "repo": "xiaolaiBlog",
+      "featured": true,
+      "badge": "本站",
+      "category": "全栈",
+      "desc": "本站源码：博客 + 学习工具站。Spring Boot 3 后端 + Vue 3 前端，包含文章、评论、云笔记、学习打卡、刷题计划、Agent 学习计划等模块。",
+      "tags": ["Spring Boot 3", "Vue 3", "MyBatis-Plus", "JWT", "MySQL"],
+      "highlights": [
+        "评论安全防护（富文本转义 + IP 限流）",
+        "云笔记 / 学习进度多端同步（JWT 鉴权）",
+        "学习仪表盘：打卡热力图 + 今日推荐"
+      ]
+    },
+    {
+      "repo": "hmall",
+      "featured": true,
+      "badge": "",
+      "category": "微服务",
+      "desc": "微服务电商系统（SpringCloud 学习项目）：商品、购物车、订单、用户等服务拆分，网关统一鉴权，Docker Compose 一键部署。",
+      "tags": ["SpringCloud", "Nacos", "Gateway", "OpenFeign", "Docker"],
+      "highlights": [
+        "Gateway 统一鉴权 + 路由转发",
+        "Nacos 注册中心与配置管理",
+        "docker-compose + Nginx 多服务编排"
+      ]
+    },
+    {
+      "repo": "sky-take-out",
+      "featured": false,
+      "badge": "",
+      "category": "单体后端",
+      "desc": "餐饮外卖系统（Spring Boot 学习项目）：管理端 + 用户端双端接口，含菜品、订单、员工管理，Redis 缓存与 Nginx 部署。",
+      "tags": ["Spring Boot", "MyBatis", "Redis", "Nginx", "MySQL"],
+      "highlights": [
+        "JWT 登录鉴权 + 拦截器链",
+        "AOP 公共字段自动填充",
+        "Redis 缓存优化"
+      ]
+    },
+    {
+      "repo": "blog",
+      "featured": false,
+      "badge": "",
+      "category": "早期实践",
+      "desc": "早期博客系统练习：前后端分离的博客项目，含完整 SQL 建表脚本与管理后台。",
+      "tags": ["Spring Boot", "Vue", "MySQL"],
+      "highlights": []
+    }
+  ]
+}

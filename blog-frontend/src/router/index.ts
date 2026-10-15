@@ -15,6 +15,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'archives', name: 'Archives', component: () => import('@/views/front/ArchivesPage.vue') },
       { path: 'search', name: 'Search', component: () => import('@/views/front/SearchPage.vue') },
       { path: 'gallery', name: 'Gallery', component: () => import('@/views/front/GalleryPage.vue') },
+      { path: 'projects', name: 'Projects', component: () => import('@/views/front/ProjectsPage.vue') },
       { path: 'tools', name: 'Tools', component: () => import('@/views/front/ToolsPage.vue') },
       { path: 'tools/markdown', name: 'ToolMarkdown', component: () => import('@/views/front/MarkdownToolPage.vue') },
       { path: 'leetcode', name: 'LeetCode', component: () => import('@/views/front/LeetCodePage.vue') },

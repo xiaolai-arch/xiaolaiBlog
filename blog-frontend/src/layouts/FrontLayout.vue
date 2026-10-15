@@ -11,6 +11,7 @@
           <router-link to="/categories" @click="menuOpen = false">分类</router-link>
           <router-link to="/tags" @click="menuOpen = false">标签</router-link>
           <router-link to="/gallery" @click="menuOpen = false">图库</router-link>
+          <router-link to="/projects" @click="menuOpen = false">项目</router-link>
           <router-link to="/tools" @click="menuOpen = false">工具</router-link>
           <router-link to="/leetcode" @click="menuOpen = false">刷题</router-link>
           <router-link to="/cet4" @click="menuOpen = false">四级</router-link>
@@ -84,6 +85,7 @@
           <router-link to="/categories" active-class="active">分类</router-link>
           <router-link to="/tags" active-class="active">标签</router-link>
           <router-link to="/gallery" active-class="active">图库</router-link>
+          <router-link to="/projects" active-class="active">项目</router-link>
           <router-link to="/tools" active-class="active">工具</router-link>
           <router-link to="/leetcode" active-class="active">刷题</router-link>
           <router-link to="/cet4" active-class="active">四级</router-link>
