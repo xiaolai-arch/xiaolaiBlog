@@ -65,7 +65,9 @@
         :focused-id="camera.focusedId.value"
         :can-download="canDownload"
         :open-signal="composerOpenSignal"
+        :current-url="imageById[camera.focusedId.value]"
         @download="onDownload"
+        @select="onSelectArtwork"
         @expanded-change="(open: boolean) => (composerExpanded = open)"
       />
     </div>
@@ -208,6 +210,41 @@ function goHome() {
   window.location.assign('/')
 }
 
+/** Hang an artwork picked from the bar onto the currently focused frame. */
+function onSelectArtwork(selection: { label: string; url: string }) {
+  hangArtwork({ label: selection.label, imageUrl: selection.url })
+}
+
+/**
+ * Opening the room should show a gallery, not bare walls. Pre-hang the bundled
+ * public-domain collection across every frame, then the bar lets you swap any
+ * single one (uploads take priority there when the site has any).
+ */
+async function hangOpeningCollection() {
+  if (filledHangCount.value > 0) return
+  try {
+    const res = await fetch('/met-art/manifest.json')
+    const list = (await res.json()) as Array<{
+      file: string
+      title: string
+      artist: string
+    }>
+    if (!Array.isArray(list) || !list.length) return
+    const nextImages: Record<string, string> = { ...imageById.value }
+    const nextSelections: Record<string, PaintingSelection> = { ...selectionById.value }
+    GALLERY_PAINTINGS.forEach((painting, i) => {
+      const art = list[i % list.length]
+      nextImages[painting.id] = '/met-art/' + art.file
+      nextSelections[painting.id] = {
+        label: art.artist ? `${art.title} — ${art.artist}` : art.title,
+        imageUrl: '/met-art/' + art.file,
+      }
+    })
+    imageById.value = nextImages
+    selectionById.value = nextSelections
+  } catch (_) {}
+}
+
 function onKeyDown(e: KeyboardEvent) {
   if (e.key === 'Escape' || e.code === 'Escape') {
     e.preventDefault()
@@ -218,6 +255,7 @@ function onKeyDown(e: KeyboardEvent) {
 onMounted(() => {
   bottomStack.setNode(bottomStackEl.value)
   window.addEventListener('keydown', onKeyDown)
+  void hangOpeningCollection()
 })
 
 onBeforeUnmount(() => {
