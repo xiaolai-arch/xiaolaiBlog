@@ -8,10 +8,8 @@ export const useThemeStore = defineStore('theme', () => {
   const isDark = ref(false)
 
   function init() {
-    const saved = localStorage.getItem('theme')
-    if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      isDark.value = true
-    }
+    // 默认浅色，不跟随系统偏好；仅尊重用户手动切换过的选择
+    isDark.value = localStorage.getItem('theme') === 'dark'
     applyTheme()
   }
 
