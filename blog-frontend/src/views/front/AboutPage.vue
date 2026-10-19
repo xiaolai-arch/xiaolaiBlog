@@ -15,41 +15,41 @@
       </section>
 
       <!-- NOW -->
-      <section class="now-card tint-mint">
+      <section class="now-card tint-paper">
         <h2>现在在做</h2>
         <ul class="now-list">
-          <li><strong>AI Agent 18 周冲刺</strong> — 阶段四补强进行中：评测体系、上下文工程、面试冲刺（<router-link to="/agent">打卡进度 →</router-link>）</li>
-          <li><strong>2026 秋招</strong> — 目标 Agent / LLM 应用开发岗</li>
-          <li><strong>这个博客</strong> — 持续迭代中，改版记录见 <router-link to="/changelog">更新日志</router-link></li>
+          <li><strong>转型进行时</strong> — 从 Java 后端开发工程师转向全栈工程师</li>
+          <li><strong>AI Agent 开发</strong> — 当前在做 Claude / Codex 的 Skills 开发</li>
         </ul>
       </section>
 
-      <!-- 事实卡 -->
-      <section class="facts-grid">
-        <div class="fact-card tint-lavender">
-          <h3>方向</h3>
-          <p>AI Agent · RAG · 多模态<br />CV 底子转化中</p>
-        </div>
-        <div class="fact-card tint-sky">
-          <h3>技术栈</h3>
-          <p>Java / Spring Boot 3<br />Vue 3 · Python · PyTorch</p>
-        </div>
-        <div class="fact-card tint-peach">
-          <h3>爱好</h3>
-          <p>折腾小工具 · 拍照<br />刷题攒成就</p>
-        </div>
-        <div class="fact-card tint-butter">
-          <h3>找到我</h3>
-          <p>
-            <a v-if="github" :href="github" target="_blank" rel="noopener">GitHub</a>
-            <template v-if="github && email"> · </template>
-            <a v-if="email" :href="'mailto:' + email">邮箱</a>
-          </p>
+      <!-- 技术栈：分类 + 图标胶囊（对标 ashishgogula.in 的 Tech Stack） -->
+      <section class="stack-section">
+        <h2>技术栈</h2>
+        <div v-for="group in stackGroups" :key="group.label" class="stack-group">
+          <p class="stack-label">{{ group.label }}</p>
+          <div class="stack-pills">
+            <component
+              :is="t.href ? 'a' : 'span'"
+              v-for="t in group.items"
+              :key="t.name"
+              :href="t.href || undefined"
+              :target="t.href && t.href.startsWith('http') ? '_blank' : undefined"
+              :rel="t.href && t.href.startsWith('http') ? 'noopener' : undefined"
+              class="stack-pill"
+            >
+              <svg v-if="t.icon" viewBox="0 0 24 24" aria-hidden="true"><path :d="techIconPaths[t.icon]" /></svg>
+              {{ t.name }}
+            </component>
+          </div>
         </div>
       </section>
 
-      <!-- 自我介绍（后台可编辑） -->
-      <section class="about-content-wrap">
+      <!-- GitHub 年度贡献热力图 -->
+      <GithubActivity v-if="githubUser" :user="githubUser" />
+
+      <!-- 自我介绍（后台可编辑；无内容时不渲染） -->
+      <section v-if="content" class="about-content-wrap">
         <div v-if="loading" class="loading">加载中...</div>
         <div v-else class="about-content markdown-body" v-html="content"></div>
       </section>
@@ -58,8 +58,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { siteApi } from '@/api'
+import { techIconPaths } from '@/data/techIcons'
+import GithubActivity from '@/components/GithubActivity.vue'
 import avatarUrl from '@/assets/avatar.png'
 
 const content = ref('')
@@ -68,11 +70,74 @@ const description = ref('')
 const github = ref('')
 const email = ref('')
 
+/* 从 GitHub 主页链接解析用户名，供贡献热力图使用 */
+const githubUser = computed(() => {
+  const m = github.value.match(/github\.com\/([A-Za-z0-9-]+)/)
+  return m ? m[1] : ''
+})
+
+interface StackItem { name: string; icon?: string; href?: string }
+const stackGroups = computed<Array<{ label: string; items: StackItem[] }>>(() => [
+  {
+    label: '前端',
+    items: [
+      { name: 'Vue 3', icon: 'vue' },
+      { name: 'Vue Router', },
+      { name: 'Pinia', },
+      { name: 'TypeScript', icon: 'ts' },
+      { name: 'Vite', icon: 'vite' },
+      { name: 'Axios', icon: 'axios' },
+      { name: 'Element Plus' },
+      { name: 'Three.js', icon: 'three' },
+    ],
+  },
+  {
+    label: '后端',
+    items: [
+      { name: 'Java', icon: 'java' },
+      { name: 'Spring Boot', icon: 'spring' },
+      { name: 'Spring Cloud' },
+      { name: 'MyBatis-Plus' },
+      { name: 'MySQL', icon: 'mysql' },
+      { name: 'Redis', icon: 'redis' },
+      { name: 'RabbitMQ', icon: 'rabbitmq' },
+      { name: 'Elasticsearch', icon: 'es' },
+      { name: 'Docker', icon: 'docker' },
+      { name: 'Jenkins', icon: 'jenkins' },
+    ],
+  },
+  {
+    label: 'AI 工具',
+    items: [
+      { name: 'Claude Code', icon: 'claude' },
+      { name: 'Codex', icon: 'openai' },
+      { name: 'Skills 开发' },
+      { name: 'Python', icon: 'python' },
+      { name: 'PyTorch', icon: 'pytorch' },
+    ],
+  },
+  {
+    label: '数据采集',
+    items: [
+      { name: 'Scrapy', icon: 'scrapy' },
+      { name: 'Playwright' },
+      { name: 'XPath / lxml' },
+    ],
+  },
+  {
+    label: '找到我',
+    items: [
+      ...(github.value ? [{ name: 'GitHub', icon: 'github', href: github.value }] : []),
+      ...(email.value ? [{ name: '邮箱', href: `mailto:${email.value}` }] : []),
+    ],
+  },
+])
+
 onMounted(async () => {
   try {
     const [aboutRes, configRes] = await Promise.all([siteApi.getAbout(), siteApi.getConfig()])
     if (aboutRes.data.code === 200) {
-      content.value = aboutRes.data.data.content || '<p>这里还没有介绍，可以在后台的站点设置里补充。</p>'
+      content.value = aboutRes.data.data.content || ''
     }
     if (configRes.data.code === 200) {
       const config = configRes.data.data
@@ -203,35 +268,69 @@ onMounted(async () => {
   color: var(--text-primary);
 }
 
-/* ---------- 事实卡 ---------- */
-.facts-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+/* ---------- 技术栈（胶囊式） ---------- */
+.stack-section {
   margin-bottom: 48px;
 }
 
-.fact-card {
-  border-radius: var(--radius-md);
-  padding: 20px;
-}
-
-.fact-card h3 {
+.stack-section h2 {
   font-family: var(--font-display);
-  font-size: 14.5px;
-  font-weight: 700;
-  margin-bottom: 8px;
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 18px;
 }
 
-.fact-card p {
-  font-size: 13.5px;
-  line-height: 1.7;
-  color: var(--text-secondary);
+.stack-group + .stack-group {
+  margin-top: 22px;
 }
 
-.fact-card a {
-  color: var(--accent-color);
-  font-weight: 600;
+.stack-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.stack-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.stack-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 15px;
+  border-radius: 999px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  color: var(--text-primary);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+a.stack-pill {
+  text-decoration: none;
+}
+
+.stack-pill:hover {
+  transform: translateY(-1px);
+  border-color: #d4d4d8;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.07);
+}
+
+[data-theme='dark'] .stack-pill:hover {
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.stack-pill svg {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+  opacity: 0.72;
+  flex-shrink: 0;
 }
 
 .about-content-wrap {
@@ -249,6 +348,9 @@ onMounted(async () => {
 .tint-mint { background: var(--tint-mint); }
 .tint-sky { background: var(--tint-sky); }
 .tint-butter { background: var(--tint-butter); }
+/* 纸感浅色（NOW 卡）：近白渐变，暗色模式换深灰 */
+.tint-paper { background: linear-gradient(150deg, #fefefe, #f6f7f4); }
+[data-theme='dark'] .tint-paper { background: linear-gradient(150deg, #232326, #26262a); }
 
 @media (max-width: 720px) {
   .about-profile {
@@ -256,8 +358,13 @@ onMounted(async () => {
     text-align: center;
   }
 
-  .facts-grid {
-    grid-template-columns: 1fr 1fr;
+  .stack-pills {
+    gap: 8px;
+  }
+
+  .stack-pill {
+    padding: 6px 12px;
+    font-size: 12px;
   }
 }
 </style>
