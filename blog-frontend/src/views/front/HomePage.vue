@@ -49,7 +49,6 @@
       >
         <div class="media" :class="'grad-' + card.grad">
           <video
-            v-if="card.video"
             class="media-video"
             :src="card.video"
             autoplay
@@ -82,6 +81,32 @@
           <span class="caption-try">↗ Try It Out!</span>
         </div>
       </component>
+
+      <!-- Blog 小组件：与项目卡同规格的一块，媒体区为归档页实时滚动预览 -->
+      <router-link
+        to="/archives"
+        class="project-card"
+        :style="{ animationDelay: '180ms' }"
+        @mouseenter="blogHovered = true"
+        @mouseleave="blogHovered = false"
+      >
+        <div class="media grad-paper">
+          <LivePreview
+            :active="blogLiveReady"
+            src="/archives"
+            title="博客文章实时预览"
+            :paused="blogHovered"
+          />
+          <div class="media-ring" aria-hidden="true"></div>
+        </div>
+        <div class="card-caption">
+          <p class="caption-title">
+            <span>博客文章</span>
+            <span class="tp-year"> • Blog</span>
+          </p>
+          <span class="caption-try">↗ 全部文章</span>
+        </div>
+      </router-link>
     </div>
   </div>
 </template>
@@ -89,8 +114,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { siteApi } from '@/api'
+import LivePreview from '@/components/LivePreview.vue'
 
 const siteTitle = ref('咲来的 Blog')
+
+/* Blog 卡：延迟挂载 iframe，错开三段演示视频的加载；悬停时暂停滚动便于阅读 */
+const blogLiveReady = ref(false)
+const blogHovered = ref(false)
 
 const cards = [
   {
@@ -132,6 +162,9 @@ onMounted(async () => {
       siteTitle.value = res.data.data.site_title
     }
   } catch (_) {}
+  window.setTimeout(() => {
+    blogLiveReady.value = true
+  }, 600)
 })
 </script>
 
@@ -306,10 +339,10 @@ onMounted(async () => {
   background: var(--border-color);
 }
 
-/* ============ 项目网格 ============ */
+/* ============ 项目网格（两个一排） ============ */
 .project-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 24px;
   padding: 10px 64px 8px;
 }
@@ -322,7 +355,7 @@ onMounted(async () => {
   animation: projectCardEnter 450ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 
-/* 媒体区 */
+/* 媒体区：参考站同款——悬停无位移/缩放，动效全部来自循环播放的演示视频 */
 .media {
   position: relative;
   border-radius: 26px;
@@ -331,11 +364,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.3s;
-}
-
-.project-card:hover .media {
-  transform: scale(0.99);
+  isolation: isolate;
 }
 
 /* 卡片内的演示视频：铺满、裁切、圆角随容器 */
@@ -368,6 +397,8 @@ onMounted(async () => {
 .grad-mint { background: linear-gradient(150deg, #e2f4ec, #eaf8f0 55%, #fde9fa); }
 .grad-butter { background: linear-gradient(150deg, #fdf3d7, #fff0e0 60%, #fde9fa); }
 .grad-rose { background: linear-gradient(150deg, #fde9fa, #ffe9f2 55%, #f5e2ff); }
+/* Blog 块：纸感浅色，避免在视频卡中间显得突兀 */
+.grad-paper { background: linear-gradient(150deg, #fefefe, #f8f8f6 55%, #f2f3f0); }
 
 [data-theme='dark'] .grad-lavender { background: linear-gradient(150deg, #26304a, #2c2846 60%, #332a48); }
 [data-theme='dark'] .grad-peach { background: linear-gradient(150deg, #3a2d33, #40303a 55%, #35283a); }
@@ -375,6 +406,7 @@ onMounted(async () => {
 [data-theme='dark'] .grad-mint { background: linear-gradient(150deg, #22352c, #26382f 55%, #2c2846); }
 [data-theme='dark'] .grad-butter { background: linear-gradient(150deg, #38351f, #3a3324 60%, #332a48); }
 [data-theme='dark'] .grad-rose { background: linear-gradient(150deg, #38283a, #3a2c3c 55%, #332a48); }
+[data-theme='dark'] .grad-paper { background: linear-gradient(150deg, #232326, #1f1f22 60%, #26262a); }
 
 /* featured：图片左下角标题胶囊 */
 .title-pill {
@@ -517,7 +549,7 @@ onMounted(async () => {
   }
 
   .media {
-    aspect-ratio: 4 / 3;
+    aspect-ratio: 16 / 10;
   }
 
   .tp-dot,
