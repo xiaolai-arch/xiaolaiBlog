@@ -45,9 +45,20 @@
         :to="card.to"
         class="project-card"
         :class="{ featured: card.featured }"
-        :style="{ animationDelay: Math.min(Math.floor(i / 2) * 60, 300) + 'ms' }"
+        :style="{ animationDelay: Math.min(i * 60, 300) + 'ms' }"
       >
         <div class="media" :class="'grad-' + card.grad">
+          <video
+            v-if="card.video"
+            class="media-video"
+            :src="card.video"
+            autoplay
+            muted
+            loop
+            playsinline
+            preload="auto"
+            disablepictureinpicture
+          ></video>
           <div class="media-ring" aria-hidden="true"></div>
           <div v-if="card.featured" class="title-pill">
             <span class="tp-title">{{ card.title }}</span>
@@ -83,43 +94,12 @@ const siteTitle = ref('咲来的 Blog')
 
 const cards = [
   {
-    title: 'Agent 秋招冲刺',
-    year: '2025-26',
-    desc: '18 周：LLM 原理 → RAG / MCP → LangGraph → 两个完整项目，含评测与上下文工程补强。',
-    to: '/agent',
-    grad: 'lavender',
-    featured: true,
-  },
-  {
-    title: '全栈博客（本站）',
-    year: '2025',
-    desc: 'Spring Boot 3 + Vue 3 + MySQL 自研，从需求文档到部署，文章 / 图库 / 打卡一站式。',
-    to: '/projects',
-    grad: 'peach',
-    featured: true,
-  },
-  {
-    title: 'CV · 多模态',
-    year: '2024-25',
-    desc: '计算机视觉方向打底，正在转化为多模态 RAG 与 Agent 的差异化优势。',
-    to: '/about',
-    grad: 'sky',
-    featured: true,
-  },
-  {
-    title: '备考 & 刷题',
-    year: '2025-26',
-    desc: 'LeetCode 打卡与四级备考进度全部可视化，像玩游戏一样攒经验。',
-    to: '/leetcode',
-    grad: 'mint',
-    featured: true,
-  },
-  {
     title: '3D 美术馆',
     year: 'NEW',
     desc: '',
     to: '/gallery/3d',
     grad: 'sky',
+    video: '/videos/gallery.webm',
     featured: false,
     tryIt: true,
   },
@@ -129,6 +109,7 @@ const cards = [
     desc: '',
     to: '/toys/polaroid',
     grad: 'butter',
+    video: '/videos/polaroid.webm',
     featured: false,
     tryIt: true,
   },
@@ -138,6 +119,7 @@ const cards = [
     desc: '',
     to: '/toys/sketchbook',
     grad: 'rose',
+    video: '/videos/sketchbook.webm',
     featured: false,
     tryIt: true,
   },
@@ -327,7 +309,7 @@ onMounted(async () => {
 /* ============ 项目网格 ============ */
 .project-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 24px;
   padding: 10px 64px 8px;
 }
@@ -354,6 +336,17 @@ onMounted(async () => {
 
 .project-card:hover .media {
   transform: scale(0.99);
+}
+
+/* 卡片内的演示视频：铺满、裁切、圆角随容器 */
+.media-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: inherit;
 }
 
 .media-ring {
