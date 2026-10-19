@@ -11,6 +11,17 @@ export const useThemeStore = defineStore('theme', () => {
     // 默认浅色，不跟随系统偏好；仅尊重用户手动切换过的选择
     isDark.value = localStorage.getItem('theme') === 'dark'
     applyTheme()
+    // 同源其他窗口（工具箱的 iframe 实时预览、其他标签页）跟随主题变化
+    window.addEventListener('storage', onStorageTheme)
+  }
+
+  function onStorageTheme(e: StorageEvent) {
+    if (e.key !== 'theme' || !e.newValue) return
+    const dark = e.newValue === 'dark'
+    if (dark !== isDark.value) {
+      isDark.value = dark
+      applyTheme()
+    }
   }
 
   function toggle() {
