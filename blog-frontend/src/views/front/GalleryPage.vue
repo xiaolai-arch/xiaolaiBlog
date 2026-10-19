@@ -2,7 +2,7 @@
   <div class="gallery-page">
     <header class="gallery-header">
       <h1>我的图库</h1>
-      <p class="gallery-subtitle">用镜头记录生活中的美好瞬间</p>
+      <p class="gallery-subtitle">看什么看快给我点赞！！！！</p>
       <router-link to="/gallery/3d" class="g3d-entry">步入式 3D 画廊</router-link>
     </header>
 
@@ -291,10 +291,10 @@ function nextImage() {
   opacity: 0.7;
 }
 
-/* Gallery grid */
+/* Gallery grid：两个一排 */
 .gallery-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 20px;
 }
 
