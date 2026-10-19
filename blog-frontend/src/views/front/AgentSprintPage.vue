@@ -4,7 +4,7 @@
       <header class="page-head">
         <div>
           <h1>🤖 Agent 开发</h1>
-          <p>Agent 开发 14 周学习计划：原理 → 框架 → 项目，附资源清单。打卡进度保存在本地{{ cloudActive ? '，并已云端同步' : '' }}。</p>
+          <p>Agent 开发 18 周学习计划：原理 → 框架 → 项目 → 查缺补强（2026-10 修订），附资源清单。打卡进度保存在本地{{ cloudActive ? '，并已云端同步' : '' }}。</p>
         </div>
         <div class="overall-progress">
           <div class="overall-num">{{ doneSet.size }}<span> / {{ totalItems }}</span></div>
@@ -28,7 +28,7 @@
       <div v-if="loading" class="loading">加载中...</div>
 
       <!-- ============ 阶段一 / 阶段二 ============ -->
-      <template v-else-if="(tab === 'p1' || tab === 'p2') && phase">
+      <template v-else-if="phaseTab && phase">
         <details
           v-for="week in phase.weeks"
           :key="week.key"
@@ -229,13 +229,16 @@ let pushTimer: number | undefined
 const phase = ref<Phase | null>(null)
 const phase3 = ref<Phase3 | null>(null)
 const resources = ref<Resources | null>(null)
-const totals = ref<Record<string, number>>({ p1: 0, p2: 0, p3: 0, res: 0 })
+const totals = ref<Record<string, number>>({ p1: 0, p2: 0, p3: 0, p4: 0, res: 0 })
 const totalItems = ref(0)
+
+const PHASE_TABS = ['p1', 'p2', 'p4']
 
 const tabs = computed(() => [
   { key: 'p1', name: '阶段一 · 速成基础', total: totals.value.p1 },
   { key: 'p2', name: '阶段二 · 框架实操', total: totals.value.p2 },
   { key: 'p3', name: '阶段三 · 项目冲刺', total: totals.value.p3 },
+  { key: 'p4', name: '阶段四 · 查缺补强', total: totals.value.p4 },
   { key: 'res', name: '资源推荐', total: totals.value.res },
 ])
 const overallPercent = computed(() =>
@@ -309,8 +312,10 @@ function countPhase(prefix: string) {
   return data.weeks.reduce((s, w) => s + weekDone(w), 0)
 }
 
+const phaseTab = computed(() => PHASE_TABS.includes(tab.value))
+
 function doneOf(key: string) {
-  if (key === 'p1' || key === 'p2') return countPhase(key)
+  if (PHASE_TABS.includes(key)) return countPhase(key)
   if (key === 'p3') {
     const p = phase3.value
     if (!p) return 0
@@ -346,7 +351,7 @@ async function selectTab(key: string) {
   tab.value = key
   status.value = 'all'
   await ensureLoaded(key)
-  if (key === 'p1' || key === 'p2') {
+  if (PHASE_TABS.includes(key)) {
     const data = phaseCache.value[key]
     openWeeks.value = new Set(data?.weeks.length ? [data.weeks[0].key] : [])
   }
@@ -359,13 +364,14 @@ async function fetchJson(path: string) {
 }
 
 async function ensureLoaded(key: string) {
-  if (key === 'p1' || key === 'p2') {
+  if (PHASE_TABS.includes(key)) {
     if (phaseCache.value[key]) {
       phase.value = phaseCache.value[key]
       return
     }
+    const num = key.slice(1)
     const [data, index] = await Promise.all([
-      fetchJson(`/data/agent/phase${key === 'p1' ? 1 : 2}.json`),
+      fetchJson(`/data/agent/phase${num}.json`),
       fetchJson('/data/agent/index.json'),
     ])
     phaseCache.value[key] = data
