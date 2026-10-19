@@ -13,19 +13,9 @@
       <div class="hero-block">
         <p class="hero-name">咲来</p>
         <div class="hero-desc">
-          <span>把学习与项目做成好玩的东西。</span>
+          <span>你好！我是阿咲，一名喜欢通过创造学习的软件工程师。</span>
           <span><br aria-hidden="true" /></span>
-          <span>
-            正在冲刺
-            <router-link class="hero-link" to="/agent">AI Agent 方向</router-link>
-            <span> · </span>
-            <span>此前打底 </span>
-            <router-link class="hero-link" to="/about">CV 与多模态</router-link>
-            <span> · </span>
-            <span>也在 </span>
-            <router-link class="hero-link" to="/archives">写博客</router-link>
-            <span> 记录一切。</span>
-          </span>
+          <span>最近我一直在深入学习 Agent 智能体开发和大型语言模型。这个网站上面有我的学习仪表盘，可以看到我每天学到什么！</span>
         </div>
       </div>
 

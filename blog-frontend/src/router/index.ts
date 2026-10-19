@@ -15,7 +15,6 @@ const routes: RouteRecordRaw[] = [
       { path: 'archives', name: 'Archives', component: () => import('@/views/front/ArchivesPage.vue') },
       { path: 'search', name: 'Search', component: () => import('@/views/front/SearchPage.vue') },
       { path: 'gallery', name: 'Gallery', component: () => import('@/views/front/GalleryPage.vue') },
-      { path: 'gallery/3d', name: 'Gallery3D', component: () => import('@/views/front/Gallery3DPage.vue') },
       { path: 'projects', name: 'Projects', component: () => import('@/views/front/ProjectsPage.vue') },
       { path: 'tools', name: 'Tools', component: () => import('@/views/front/ToolsPage.vue') },
       { path: 'tools/markdown', name: 'ToolMarkdown', component: () => import('@/views/front/MarkdownToolPage.vue') },
@@ -28,6 +27,13 @@ const routes: RouteRecordRaw[] = [
       { path: 'toys/polaroid', name: 'ToyPolaroid', component: () => import('@/views/front/toys/PolaroidStudioPage.vue') },
       { path: 'toys/sketchbook', name: 'ToySketchbook', component: () => import('@/views/front/toys/SketchbookPage.vue') },
     ]
+  },
+  {
+    // Fully immersive: the room is its own fullscreen shell, so it sits outside
+    // FrontLayout rather than fighting the site header's stacking order.
+    path: '/gallery/3d',
+    name: 'Gallery3D',
+    component: () => import('@/views/front/GalleryRoomPage.vue'),
   },
   {
     path: '/admin',
