@@ -2,7 +2,7 @@
   <div class="markdown-tool">
     <div class="tool-header">
       <div class="tool-title">
-        <h1>📓 我的笔记</h1>
+        <h1>我的笔记</h1>
         <p>Typora 式即时渲染 · {{ mode === 'cloud' ? '云端同步，多设备可用' : '自动保存到本地浏览器' }}</p>
       </div>
       <div class="header-actions">
@@ -12,7 +12,7 @@
     </div>
 
     <div v-if="mode === 'local'" class="mode-banner">
-      <span>📍 当前为本地模式，笔记只存在这台浏览器里。</span>
+      <span>当前为本地模式，笔记只存在这台浏览器里。</span>
       <router-link to="/admin/login">登录后开启云端同步 →</router-link>
     </div>
     <div v-else-if="pendingLocalCount > 0" class="mode-banner">
@@ -51,7 +51,7 @@
         </div>
         <div class="note-count">
           {{ notes.length }} 篇笔记 ·
-          {{ mode === 'cloud' ? `☁ ${savedLabel}` : '📁 本地保存' }}
+          {{ mode === 'cloud' ? savedLabel : '本地保存' }}
         </div>
       </aside>
 

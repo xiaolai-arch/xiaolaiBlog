@@ -3,13 +3,13 @@
     <div class="container">
       <header class="page-head">
         <div>
-          <h1>📖 四级备考</h1>
+          <h1>四级备考</h1>
           <p>刘晓艳四级课程清单，看完一节勾一节，进度保存在本地浏览器。</p>
         </div>
         <div class="overall-progress" v-if="index">
           <div class="overall-num">{{ doneSet.size }}<span> / {{ totalItems }}</span></div>
           <div class="bar"><div class="bar-fill" :style="{ width: overallPercent + '%' }"></div></div>
-          <div class="overall-extra">本书已学 {{ doneDuration }}<template v-if="cloudActive"> · ☁</template></div>
+          <div class="overall-extra">本书已学 {{ doneDuration }}<template v-if="cloudActive"> · 已云同步</template></div>
         </div>
       </header>
 

@@ -43,7 +43,7 @@ const PHASE1_META = [
   { num: 'W2', title: 'LangGPT · Few-shot/CoT · 系统提示词 · 结构化输出', dates: '7/14 — 7/20', tag: 'Prompt → 上下文工程', tagClass: 'orange', sub: '7/14 (周二) → 7/20 (周一) · 目标：写出 3 套可复用的结构化 Prompt 模板；2026-10 提示：面试话术已从 Prompt Engineering 升级为 Context Engineering（管理整个上下文窗口），老知识保留、表述升级，详见阶段四 W16', checkTitle: 'W2 验收自检' },
   { num: 'W3', title: 'Embedding · 向量数据库 · Chunking · 混合检索 · Rerank · RAGAS', dates: '7/21 — 7/27', tag: 'RAG 检索增强生成', tagClass: 'green', sub: '7/21 (周二) → 7/27 (周一) · 目标：用 ChromaDB 跑通一个最小 RAG demo', checkTitle: 'W3 验收自检' },
   { num: 'W4', title: 'ReAct · FC · MCP 协议 · MCP Server · Agent 四大模式', dates: '7/28 — 8/2', tag: 'Agent 原理 + Function Calling + MCP', tagClass: 'red', sub: '7/28 (周二) → 8/2 (周日) · 目标：能口述 ReAct 流程，写出一个 MCP Server', checkTitle: 'W4 验收自检' },
-  { num: '复习', title: '阶段一总复习 · 知识点串联 · 代码复现 · 口述演练', dates: '8/3 — 8/7', tag: '查漏补缺', tagClass: 'purple', sub: '8/3 (周一) → 8/7 (周五) · 目标：整理笔记 + 代码归档 + 口述练习', checkTitle: '🏁 阶段一 最终验收清单' },
+  { num: '复习', title: '阶段一总复习 · 知识点串联 · 代码复现 · 口述演练', dates: '8/3 — 8/7', tag: '查漏补缺', tagClass: 'purple', sub: '8/3 (周一) → 8/7 (周五) · 目标：整理笔记 + 代码归档 + 口述练习', checkTitle: '阶段一 最终验收清单' },
 ];
 
 const PHASE2_META = [
@@ -52,7 +52,7 @@ const PHASE2_META = [
   { num: 'W7', title: '子图 · Plan-and-Execute · Multi-Agent · Reflection · A2A', dates: '8/22 — 8/28', tag: 'LangGraph 进阶 + Multi-Agent', tagClass: 'orange', sub: '8/22 (周六) → 8/28 (周五) · 目标：实现子图/Multi-Agent/Reflection 模式', checkTitle: 'W7 验收自检' },
   { num: 'W8', title: 'Dify/Coze 选型对比 + MVP 演示（压缩至 2-3 天）· 省下时间预习 Agent 评测', dates: '8/29 — 9/4', tag: '低代码选型（降权）', tagClass: 'green', sub: '8/29 (周六) → 9/4 (周五) · 2026-10 修订：低代码平台不是招聘 JD 硬性要求（Coze 无私有化部署、企业场景受限），会演示 + 能口述选型即可；周中腾出的时间预习 Agent 评测（2026 JD 新增硬性要求，对应阶段四 W15）', checkTitle: 'W8 验收自检' },
   { num: 'W9', title: 'FastAPI · SSE · WebSocket · Agent API · Docker · Compose', dates: '9/5 — 9/11', tag: 'FastAPI 后端 + Docker 部署', tagClass: 'red', sub: '9/5 (周六) → 9/11 (周五) · 目标：把 Agent 封装成 API 服务并 Docker 部署', checkTitle: 'W9 验收自检' },
-  { num: 'W10', title: 'LangGraph 精修 · API 封装 · 代码归档 · 面试笔记整理', dates: '9/12 — 9/19', tag: '阶段二综合冲刺', tagClass: 'purple', sub: '9/12 (周六) → 9/19 (周五) · 目标：代码精修 + 完整归档 + 评估能否独立搭建 Agent 应用', checkTitle: '🏁 阶段二 最终验收清单' },
+  { num: 'W10', title: 'LangGraph 精修 · API 封装 · 代码归档 · 面试笔记整理', dates: '9/12 — 9/19', tag: '阶段二综合冲刺', tagClass: 'purple', sub: '9/12 (周六) → 9/19 (周五) · 目标：代码精修 + 完整归档 + 评估能否独立搭建 Agent 应用', checkTitle: '阶段二 最终验收清单' },
 ];
 
 // ---------------- 2026-10 修订：就地替换每日任务/验收文本 ----------------
@@ -166,11 +166,11 @@ function buildPhase3() {
     {
       title: '项目① 多模态 RAG 问答系统',
       sub: 'W11-W12 · 9/20 → 10/3 · 把 CV 底子转化为 Agent 方向的独特优势',
-      tech: '🛠 LangChain + Chroma/Qdrant + BGE-Rerank + FastAPI + SSE + DeepSeek/GPT-4o API',
+      tech: 'LangChain + Chroma/Qdrant + BGE-Rerank + FastAPI + SSE + DeepSeek/GPT-4o API',
       arch: arch[0] || '',
       weeks: [
-        { key: 'p3-p1w11', header: '📅 W11：项目① 核心链路开发（9/20 — 9/27）', days: mkDays(arr('proj1W11'), 'p3-p1w11') },
-        { key: 'p3-p1w12', header: '📅 W12：项目① 集成 + 优化 + 部署（9/28 — 10/3）', days: mkDays(arr('proj1W12'), 'p3-p1w12') },
+        { key: 'p3-p1w11', header: 'W11：项目① 核心链路开发（9/20 — 9/27）', days: mkDays(arr('proj1W11'), 'p3-p1w11') },
+        { key: 'p3-p1w12', header: 'W12：项目① 集成 + 优化 + 部署（9/28 — 10/3）', days: mkDays(arr('proj1W12'), 'p3-p1w12') },
       ],
       resume: [
         '【多模态RAG系统】针对纯文本RAG无法理解视觉信息的问题，搭建图文混合检索链路，融合向量检索+BM25稀疏检索+BGE-Rerank重排序，实现图片+文字双模态输入的精准问答，top-5召回准确率达XX%。',
@@ -182,10 +182,10 @@ function buildPhase3() {
     {
       title: '项目② AI 研究助手 Agent',
       sub: 'W13 · 10/4 → 10/10 · 展示 Multi-Agent 编排能力',
-      tech: '🛠 LangGraph + Multi-Agent + WebSocket + FastAPI + Docker',
+      tech: 'LangGraph + Multi-Agent + WebSocket + FastAPI + Docker',
       arch: arch[1] || '',
       weeks: [
-        { key: 'p3-p2w13', header: '📅 W13：项目② 完整开发（10/4 — 10/10）', days: mkDays(arr('proj2W13'), 'p3-p2w13') },
+        { key: 'p3-p2w13', header: 'W13：项目② 完整开发（10/4 — 10/10）', days: mkDays(arr('proj2W13'), 'p3-p2w13') },
       ],
       resume: [
         '【Multi-Agent编排】针对复杂研究任务难以一步完成的问题，用LangGraph子图机制设计多Agent协作架构（规划→执行→汇总→反思），支持并行子任务和自动重试，任务完成率达XX%。',
@@ -200,8 +200,8 @@ function buildPhase3() {
     name: '阶段三 · 项目冲刺',
     sub: '9/20 — 10/18 · 2 个完整 Agent 项目 → 简历',
     projects,
-    final: { key: 'p3-p2w14', header: '📅 W14：最终冲刺（10/11 — 10/18）', days: mkDays(arr('proj2W14'), 'p3-p2w14') },
-    finalCheckTitle: '🏁 最终验收清单',
+    final: { key: 'p3-p2w14', header: 'W14：最终冲刺（10/11 — 10/18）', days: mkDays(arr('proj2W14'), 'p3-p2w14') },
+    finalCheckTitle: '最终验收清单',
     finalChecklist: arr('checkFinal').map((t, i) => ({ id: `p3-final-chk${i}`, text: t })),
   };
 }
@@ -300,8 +300,8 @@ const FRONTIER_ITEMS = [
 
 // 旧条目降级标注（按名称匹配，改 desc 原文）
 const RES_DOWNGRADE = [
-  { match: '大模型-教程', note: ' ⚠️ 2026-10 降级：若内容仍是 1.0 之前的链式 API，旧写法部分跳过，以官方 1.0 文档为准' },
-  { match: 'BV1U1TS6gE5P', note: ' ⚠️ 2026-10 降级：入门扫盲可看，注意甄别旧版 LangChain 写法，勿照抄' },
+  { match: '大模型-教程', note: ' 2026-10 降级：若内容仍是 1.0 之前的链式 API，旧写法部分跳过，以官方 1.0 文档为准' },
+  { match: 'BV1U1TS6gE5P', note: ' 2026-10 降级：入门扫盲可看，注意甄别旧版 LangChain 写法，勿照抄' },
 ];
 
 function buildResources() {
@@ -325,15 +325,15 @@ function buildResources() {
     groups: [
       {
         key: 'res-frontier',
-        title: '🆕 2026-10 前沿补充',
-        stars: '⭐⭐⭐⭐⭐',
+        title: '2026-10 前沿补充',
+        stars: '★★★★★',
         sub: '评测 · 上下文工程 · 协议生态 · Coding Agent —— 秋招差异化弹药（阶段四配套）',
         items: FRONTIER_ITEMS.map((it, i) => ({ id: `res-frontier-${i}`, name: it.name, link: it.url, note: '', desc: it.desc, tags: ['2026-10', '官方一手'] })),
       },
-      { key: 'res-core', title: '🔥 核心推荐', stars: '⭐⭐⭐⭐⭐', sub: '必看 · 面试答原理就靠这些', items: downgrade(map('res-core', arr('core'))) },
-      { key: 'res-focus', title: '🌟 重点关注', stars: '⭐⭐⭐⭐', sub: '框架实操补充 · 建议重点跟练', items: downgrade(map('res-focus', arr('focus'))) },
-      { key: 'res-aux', title: '📺 辅助推荐', stars: '⭐⭐⭐', sub: '扩展视野 · 行业趋势', items: downgrade(map('res-aux', arr('aux'))) },
-      { key: 'res-online', title: '📖 非 B 站必看在线资源', stars: '', sub: '官方文档 + 开源课程 + 在线教程', items: downgrade(arr('online').map((it, i) => ({ id: `res-online-${i}`, name: it.name, link: it.url, note: '', desc: it.desc, tags: [] }))) },
+      { key: 'res-core', title: '核心推荐', stars: '★★★★★', sub: '必看 · 面试答原理就靠这些', items: downgrade(map('res-core', arr('core'))) },
+      { key: 'res-focus', title: '重点关注', stars: '★★★★', sub: '框架实操补充 · 建议重点跟练', items: downgrade(map('res-focus', arr('focus'))) },
+      { key: 'res-aux', title: '辅助推荐', stars: '★★★', sub: '扩展视野 · 行业趋势', items: downgrade(map('res-aux', arr('aux'))) },
+      { key: 'res-online', title: '非 B 站必看在线资源', stars: '', sub: '官方文档 + 开源课程 + 在线教程', items: downgrade(arr('online').map((it, i) => ({ id: `res-online-${i}`, name: it.name, link: it.url, note: '', desc: it.desc, tags: [] }))) },
     ],
   };
 }

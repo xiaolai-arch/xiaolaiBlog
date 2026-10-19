@@ -14,13 +14,13 @@
             <span class="more-trigger" :class="{ active: moreActive }">More</span>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item command="/study">📈 学习</el-dropdown-item>
-                <el-dropdown-item command="/categories">🗂️ 分类</el-dropdown-item>
-                <el-dropdown-item command="/tags">🏷️ 标签</el-dropdown-item>
-                <el-dropdown-item command="/leetcode">💻 刷题</el-dropdown-item>
-                <el-dropdown-item command="/cet4">📘 四级</el-dropdown-item>
-                <el-dropdown-item command="/agent">🤖 Agent</el-dropdown-item>
-                <el-dropdown-item command="/tools">🧰 工具箱</el-dropdown-item>
+                <el-dropdown-item command="/study">学习</el-dropdown-item>
+                <el-dropdown-item command="/categories">分类</el-dropdown-item>
+                <el-dropdown-item command="/tags">标签</el-dropdown-item>
+                <el-dropdown-item command="/leetcode">刷题</el-dropdown-item>
+                <el-dropdown-item command="/cet4">四级</el-dropdown-item>
+                <el-dropdown-item command="/agent">Agent</el-dropdown-item>
+                <el-dropdown-item command="/tools">工具箱</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -115,7 +115,7 @@
         <div class="footer-bottom">
           <p>
             <span>Built with Vue 3 &amp; </span>
-            <span class="matcha">🍵 一杯好茶</span>
+            <span class="matcha">一杯好茶</span>
             <span> · © {{ year }} {{ siteTitle }}</span>
           </p>
           <router-link to="/changelog" class="changelog-link">CHANGELOG: {{ changelogDate }}</router-link>

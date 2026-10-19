@@ -48,7 +48,6 @@
         :style="{ animationDelay: Math.min(Math.floor(i / 2) * 60, 300) + 'ms' }"
       >
         <div class="media" :class="'grad-' + card.grad">
-          <span class="media-emoji">{{ card.emoji }}</span>
           <div class="media-ring" aria-hidden="true"></div>
           <div v-if="card.featured" class="title-pill">
             <span class="tp-title">{{ card.title }}</span>
@@ -84,7 +83,6 @@ const siteTitle = ref('咲来的 Blog')
 
 const cards = [
   {
-    emoji: '🤖',
     title: 'Agent 秋招冲刺',
     year: '2025-26',
     desc: '18 周：LLM 原理 → RAG / MCP → LangGraph → 两个完整项目，含评测与上下文工程补强。',
@@ -93,7 +91,6 @@ const cards = [
     featured: true,
   },
   {
-    emoji: '🛠️',
     title: '全栈博客（本站）',
     year: '2025',
     desc: 'Spring Boot 3 + Vue 3 + MySQL 自研，从需求文档到部署，文章 / 图库 / 打卡一站式。',
@@ -102,7 +99,6 @@ const cards = [
     featured: true,
   },
   {
-    emoji: '🔭',
     title: 'CV · 多模态',
     year: '2024-25',
     desc: '计算机视觉方向打底，正在转化为多模态 RAG 与 Agent 的差异化优势。',
@@ -111,7 +107,6 @@ const cards = [
     featured: true,
   },
   {
-    emoji: '🎮',
     title: '备考 & 刷题',
     year: '2025-26',
     desc: 'LeetCode 打卡与四级备考进度全部可视化，像玩游戏一样攒经验。',
@@ -120,7 +115,6 @@ const cards = [
     featured: true,
   },
   {
-    emoji: '🖼️',
     title: '3D 美术馆',
     year: 'NEW',
     desc: '',
@@ -130,7 +124,6 @@ const cards = [
     tryIt: true,
   },
   {
-    emoji: '📷',
     title: '拍立得工作室',
     year: 'NEW',
     desc: '',
@@ -140,7 +133,6 @@ const cards = [
     tryIt: true,
   },
   {
-    emoji: '✏️',
     title: '数字速写本',
     year: 'NEW',
     desc: '',
@@ -374,15 +366,6 @@ onMounted(async () => {
 
 [data-theme='dark'] .media-ring {
   border-color: rgba(255, 255, 255, 0.08);
-}
-
-.media-emoji {
-  font-size: 60px;
-  transition: transform 0.3s;
-}
-
-.project-card:hover .media-emoji {
-  transform: scale(1.08);
 }
 
 /* 渐变底（取自原站 header-gradient 色系） */

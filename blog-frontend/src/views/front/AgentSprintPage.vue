@@ -3,7 +3,7 @@
     <div class="container">
       <header class="page-head">
         <div>
-          <h1>🤖 Agent 开发</h1>
+          <h1>Agent 开发</h1>
           <p>Agent 开发 18 周学习计划：原理 → 框架 → 项目 → 查缺补强（2026-10 修订），附资源清单。打卡进度保存在本地{{ cloudActive ? '，并已云端同步' : '' }}。</p>
         </div>
         <div class="overall-progress">
@@ -38,7 +38,7 @@
         >
           <summary class="chapter-head">
             <span class="chapter-title">
-              📅 {{ week.num === '复习' ? '综合复习周' : '第 ' + week.num.slice(1) + ' 周' }}
+              {{ week.num === '复习' ? '综合复习周' : '第 ' + week.num.slice(1) + ' 周' }}
               <span class="tag" :class="'tag-' + week.tagClass">{{ week.tag }}</span>
             </span>
             <span class="chapter-progress">{{ weekDone(week) }}/{{ weekTotal(week) }}</span>
@@ -97,7 +97,7 @@
           </div>
 
           <div class="resume-box">
-            <strong>📄 简历 Bullet 示例（完成后填入具体数字）：</strong>
+            <strong>简历 Bullet 示例（完成后填入具体数字）：</strong>
             <p v-for="(r, i) in proj.resume" :key="i">{{ r }}</p>
           </div>
 
@@ -116,7 +116,7 @@
         </section>
 
         <section class="proj-card">
-          <h2 class="proj-title">🎯 最终冲刺</h2>
+          <h2 class="proj-title">最终冲刺</h2>
           <div class="week-block">
             <div class="week-head">{{ phase3.final.header }}</div>
             <div class="day-row" v-for="day in phase3.final.days" :key="day.id" :class="{ done: isDone(day.id) }">
@@ -172,8 +172,8 @@
               <div class="res-body">
                 <div class="res-name">
                   {{ item.name }}
-                  <a v-if="item.link" :href="item.link" target="_blank" rel="noopener">🔗 直达</a>
-                  <span v-else-if="item.note" class="res-note">📺 {{ item.note }}</span>
+                  <a v-if="item.link" :href="item.link" target="_blank" rel="noopener">直达</a>
+                  <span v-else-if="item.note" class="res-note">{{ item.note }}</span>
                 </div>
                 <div class="res-desc">{{ item.desc }}</div>
                 <div v-if="item.tags.length" class="res-tags">

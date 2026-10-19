@@ -18,8 +18,8 @@
 
     <!-- 底部操作条 -->
     <div class="gx-action-bar">
-      <button class="gx-btn" @click="reshuffle">🎨 换一批画作</button>
-      <button class="gx-btn" @click="infoOpen = !infoOpen">ℹ️</button>
+      <button class="gx-btn" @click="reshuffle">换一批画作</button>
+      <button class="gx-btn" @click="infoOpen = !infoOpen">说明</button>
     </div>
 
     <!-- 说明气泡 -->

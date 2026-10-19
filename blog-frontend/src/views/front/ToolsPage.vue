@@ -2,13 +2,12 @@
   <div class="tools-page">
     <div class="container">
       <header class="page-head">
-        <h1>🧰 工具箱</h1>
+        <h1>工具箱</h1>
         <p>一些常用的小工具，全部在浏览器本地运行，内容不会上传。</p>
       </header>
 
       <div class="tool-grid">
         <router-link v-for="tool in tools" :key="tool.to" :to="tool.to" class="tool-card">
-          <span class="tool-icon">{{ tool.icon }}</span>
           <div class="tool-info">
             <h3>{{ tool.name }}</h3>
             <p>{{ tool.desc }}</p>
@@ -23,25 +22,21 @@
 <script setup lang="ts">
 const tools = [
   {
-    icon: '✍️',
     name: 'Markdown 笔记本',
     desc: 'Typora 式即时渲染，多篇笔记管理；登录后云端同步，未登录本地保存',
     to: '/tools/markdown',
   },
   {
-    icon: '🧮',
     name: '算法刷题',
     desc: '12 个专题的力扣题单（原帖章节顺序），支持打卡记录进度',
     to: '/leetcode',
   },
   {
-    icon: '📖',
     name: '四级备考',
     desc: '刘晓艳四级课程清单（2064 节），看课打卡、统计已学时长',
     to: '/cet4',
   },
   {
-    icon: '🤖',
     name: 'Agent 开发',
     desc: 'Agent 开发 14 周学习计划（原理/框架/项目）+ 资源推荐',
     to: '/agent',
@@ -87,11 +82,6 @@ const tools = [
   transform: translateY(-3px);
   box-shadow: var(--shadow-hover);
   border-color: var(--accent-color);
-}
-
-.tool-icon {
-  font-size: 28px;
-  flex: none;
 }
 
 .tool-info {

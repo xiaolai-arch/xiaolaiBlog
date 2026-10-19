@@ -3,7 +3,7 @@
     <div class="container">
       <header class="page-head">
         <div>
-          <h1>🧮 算法刷题</h1>
+          <h1>算法刷题</h1>
           <p>按原帖章节整理的力扣题单，点击题目直达原题；勾选记录你的进度（保存在本地）。</p>
         </div>
         <div class="overall-progress" v-if="index">
@@ -36,7 +36,7 @@
           <el-input v-model="search" placeholder="搜索题号或题名…" size="small" clearable class="search-input">
             <template #prefix><el-icon><Search /></el-icon></template>
           </el-input>
-          <span class="toolbar-hint">{{ activeCatName }}：{{ activeDone }} / {{ activeUnique }} 题（{{ activeItems }} 条目）<template v-if="cloudActive"> · ☁ 已云同步</template></span>
+          <span class="toolbar-hint">{{ activeCatName }}：{{ activeDone }} / {{ activeUnique }} 题（{{ activeItems }} 条目）<template v-if="cloudActive"> · 已云同步</template></span>
         </div>
 
         <div v-if="loadingCat" class="loading">加载中...</div>
@@ -57,7 +57,7 @@
                 <h3 v-if="section.title" class="section-title">{{ section.title }}</h3>
                 <div v-if="section.notes.length" class="section-notes">
                   <a v-for="(n, i) in section.notes" :key="i" :href="n.url" target="_blank" rel="noopener">
-                    📎 {{ n.label }}
+                    {{ n.label }}
                   </a>
                 </div>
                 <ul class="prob-list">

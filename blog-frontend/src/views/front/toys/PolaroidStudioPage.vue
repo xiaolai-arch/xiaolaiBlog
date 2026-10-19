@@ -3,7 +3,7 @@
     <div class="container">
       <header class="toy-head">
         <router-link to="/" class="back">← 返回</router-link>
-        <h1>📷 拍立得工作室</h1>
+        <h1>拍立得工作室</h1>
         <p>上传一张照片，选个滤镜，写句话 —— 一张拍立得就冲印好啦。</p>
       </header>
 
@@ -11,7 +11,7 @@
         <!-- 左：控制台 -->
         <div class="controls">
           <label class="upload-btn">
-            {{ img ? '换一张照片' : '📤 上传照片' }}
+            {{ img ? '换一张照片' : '上传照片' }}
             <input type="file" accept="image/*" @change="onFile" hidden />
           </label>
 
@@ -49,14 +49,13 @@
             </div>
           </div>
 
-          <button class="print-btn" :disabled="!img" @click="download">🖨️ 冲印并下载</button>
+          <button class="print-btn" :disabled="!img" @click="download">冲印并下载</button>
         </div>
 
         <!-- 右：相纸预览 -->
         <div class="stage" :class="{ empty: !img }">
           <canvas v-show="img" ref="canvasRef" class="polaroid" :style="{ transform: `rotate(${angle}deg)` }"></canvas>
           <div v-if="!img" class="stage-hint">
-            <span class="big-emoji">🖼️</span>
             <p>照片会冲印在这里</p>
           </div>
         </div>
@@ -145,15 +144,11 @@ function render() {
     ctx.fillText(text, W / 2, pad + photo + 58)
   }
 
-  // 日期 + 小爱心
+  // 日期
   ctx.fillStyle = '#9a9a9a'
   ctx.font = '22px "DM Mono", "JetBrains Mono", Consolas, monospace'
   ctx.textAlign = 'left'
   ctx.fillText(date.value || '', pad + 4, H - 34)
-  ctx.textAlign = 'right'
-  ctx.fillStyle = '#e0708a'
-  ctx.font = '20px sans-serif'
-  ctx.fillText('♥', W - pad - 4, H - 34)
 }
 
 watch([filter, caption, date], render)
@@ -333,12 +328,6 @@ function download() {
 .stage-hint {
   text-align: center;
   color: var(--text-muted);
-}
-
-.big-emoji {
-  font-size: 56px;
-  display: block;
-  margin-bottom: 10px;
 }
 
 .polaroid {

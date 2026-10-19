@@ -3,7 +3,7 @@
     <header class="gallery-header">
       <h1>我的图库</h1>
       <p class="gallery-subtitle">用镜头记录生活中的美好瞬间</p>
-      <router-link to="/gallery/3d" class="g3d-entry">🚶 步入式 3D 画廊</router-link>
+      <router-link to="/gallery/3d" class="g3d-entry">步入式 3D 画廊</router-link>
     </header>
 
     <!-- Category filter pills -->

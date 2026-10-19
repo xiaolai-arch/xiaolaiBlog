@@ -3,7 +3,7 @@
     <div class="container">
       <header class="page-head">
         <div>
-          <h1>🧩 我的项目</h1>
+          <h1>我的项目</h1>
           <p>
             学习路上写过的一些东西，
             <a v-if="user" :href="user.html_url" target="_blank" rel="noopener">@{{ user.login }}</a>

@@ -3,7 +3,7 @@
     <div class="container">
       <header class="toy-head">
         <router-link to="/" class="back">← 返回</router-link>
-        <h1>✏️ 数字速写本</h1>
+        <h1>数字速写本</h1>
         <p>想到什么画什么，画完可以导出带走。</p>
       </header>
 
@@ -31,10 +31,10 @@
           />
         </div>
         <div class="tool-row">
-          <button class="tool-btn" :class="{ on: erasing }" @click="erasing = !erasing">🧽 橡皮</button>
+          <button class="tool-btn" :class="{ on: erasing }" @click="erasing = !erasing">橡皮</button>
           <button class="tool-btn" @click="undo">↩︎ 撤销</button>
-          <button class="tool-btn danger" @click="clear">🗑 清空</button>
-          <button class="tool-btn primary" @click="download">⬇️ 导出 PNG</button>
+          <button class="tool-btn danger" @click="clear">清空</button>
+          <button class="tool-btn primary" @click="download">导出 PNG</button>
         </div>
       </div>
 

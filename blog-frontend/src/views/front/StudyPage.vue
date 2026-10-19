@@ -3,7 +3,7 @@
     <div class="container">
       <header class="page-head">
         <div>
-          <h1>📊 学习概览</h1>
+          <h1>学习概览</h1>
           <p>刷题、看课、笔记的进度总览（{{ cloudLabel }}）。</p>
         </div>
         <router-link v-if="!loggedIn" to="/admin/login" class="login-hint">登录后进度云端同步 →</router-link>
@@ -12,7 +12,6 @@
       <!-- 三项进度摘要 -->
       <div class="summary-grid" v-if="index">
         <router-link to="/leetcode" class="sum-card">
-          <span class="sum-icon">🧮</span>
           <div class="sum-body">
             <h3>算法刷题</h3>
             <div class="sum-num">{{ doneSets.leetcode.size }}<span> / {{ lcTotal }}</span></div>
@@ -20,7 +19,6 @@
           </div>
         </router-link>
         <router-link to="/cet4" class="sum-card">
-          <span class="sum-icon">📖</span>
           <div class="sum-body">
             <h3>四级备考</h3>
             <div class="sum-num">{{ doneSets.cet4.size }}<span> / {{ cet4Total }}</span></div>
@@ -28,7 +26,6 @@
           </div>
         </router-link>
         <router-link to="/agent" class="sum-card">
-          <span class="sum-icon">🤖</span>
           <div class="sum-body">
             <h3>Agent 开发</h3>
             <div class="sum-num">{{ doneSets.agent.size }}<span> / {{ agentTotal }}</span></div>
@@ -36,7 +33,6 @@
           </div>
         </router-link>
         <router-link to="/tools/markdown" class="sum-card">
-          <span class="sum-icon">✍️</span>
           <div class="sum-body">
             <h3>笔记</h3>
             <div class="sum-num">{{ noteCount }}<span> 篇</span></div>
@@ -47,14 +43,14 @@
 
       <!-- 连续打卡 + 今日 -->
       <div class="stat-row" v-if="log.length">
-        <div class="stat-card">🔥 连续打卡 <strong>{{ streak }}</strong> 天</div>
+        <div class="stat-card">连续打卡 <strong>{{ streak }}</strong> 天</div>
         <div class="stat-card">今日已完成 <strong>{{ todayCount }}</strong> 项</div>
         <div class="stat-card">四级已学 <strong>{{ doneDurationLabel }}</strong></div>
       </div>
 
       <!-- 热力图 -->
       <section class="heatmap-card" v-if="log.length">
-        <h3>📅 最近 20 周</h3>
+        <h3>最近 20 周</h3>
         <div class="heatmap">
           <div class="hm-col" v-for="(week, wi) in heatmap" :key="wi">
             <div
@@ -71,13 +67,13 @@
         </div>
       </section>
       <section class="heatmap-card empty" v-else>
-        <h3>📅 打卡记录</h3>
+        <h3>打卡记录</h3>
         <p>还没有打卡记录：去<a href="/leetcode">刷题</a>或<a href="/cet4">看课</a>勾选第一项吧，这里会生成你的学习热力图。</p>
       </section>
 
       <!-- 今日任务 -->
       <section class="todo-card">
-        <h3>🎯 接下来学什么</h3>
+        <h3>接下来学什么</h3>
         <div class="todo-grid">
           <a v-if="lcTask" :href="lcTask.url" target="_blank" rel="noopener" class="todo-item">
             <span class="todo-tag">算法</span>
@@ -327,10 +323,6 @@ onMounted(async () => {
 .sum-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-hover);
-}
-
-.sum-icon {
-  font-size: 26px;
 }
 
 .sum-body {

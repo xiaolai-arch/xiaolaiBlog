@@ -16,7 +16,7 @@
 
       <!-- NOW -->
       <section class="now-card tint-mint">
-        <h2>🌱 现在在做</h2>
+        <h2>现在在做</h2>
         <ul class="now-list">
           <li><strong>AI Agent 18 周冲刺</strong> — 阶段四补强进行中：评测体系、上下文工程、面试冲刺（<router-link to="/agent">打卡进度 →</router-link>）</li>
           <li><strong>2026 秋招</strong> — 目标 Agent / LLM 应用开发岗</li>
@@ -27,19 +27,19 @@
       <!-- 事实卡 -->
       <section class="facts-grid">
         <div class="fact-card tint-lavender">
-          <h3>🔭 方向</h3>
+          <h3>方向</h3>
           <p>AI Agent · RAG · 多模态<br />CV 底子转化中</p>
         </div>
         <div class="fact-card tint-sky">
-          <h3>🛠️ 技术栈</h3>
+          <h3>技术栈</h3>
           <p>Java / Spring Boot 3<br />Vue 3 · Python · PyTorch</p>
         </div>
         <div class="fact-card tint-peach">
-          <h3>🎲 爱好</h3>
+          <h3>爱好</h3>
           <p>折腾小工具 · 拍照<br />刷题攒成就</p>
         </div>
         <div class="fact-card tint-butter">
-          <h3>📬 找到我</h3>
+          <h3>找到我</h3>
           <p>
             <a v-if="github" :href="github" target="_blank" rel="noopener">GitHub</a>
             <template v-if="github && email"> · </template>
