@@ -365,6 +365,9 @@ onBeforeUnmount(() => {
 
 .stick-base {
   position: relative;
+  /* wrap 是 pointer-events: none 的穿透层，.pad 自己必须恢复接收事件，
+     否则 hideOnMobile=false（选画器收起）时整个摇杆继承 none 而失灵 */
+  pointer-events: auto;
   touch-action: none;
   user-select: none;
   border-radius: 9999px;

@@ -13,30 +13,17 @@
     -->
     <div aria-hidden="true" class="gallery-vignette" />
 
-    <div data-gallery-no-drag class="chrome-seal">
-      <a
-        href="/"
-        class="seal"
-        aria-label="返回首页"
-        @click.prevent="goHome"
-      >咲</a>
-    </div>
-
     <div data-gallery-no-drag class="chrome-top-right">
       <button
-        v-if="canSave"
-        ref="shareButtonEl"
+        v-if="canDownload"
         type="button"
         class="ghost-btn"
-        :class="{ 'is-open': saveOpen }"
-        aria-label="分享"
-        aria-haspopup="dialog"
-        :aria-expanded="saveOpen"
-        @click="saveOpen = !saveOpen"
+        aria-label="下载当前画作"
+        @click="onDownload"
       >
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path
-            d="M4 12L20 4L13 20L11 13L4 12Z"
+            d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 19h14"
             stroke="currentColor"
             stroke-width="1.5"
             stroke-linecap="round"
@@ -53,38 +40,13 @@
       :focused-id="camera.focusedId.value"
       :paintings="paintings"
       @select-painting="camera.selectPainting"
-      @open-composer="openComposer"
     />
-
-    <!--
-      Ignores pointer events itself so the room stays draggable through the gaps
-      either side of the bar.
-    -->
-    <div ref="bottomStackEl" class="bottom-stack">
-      <GalleryArtworkBar
-        :focused-id="camera.focusedId.value"
-        :can-download="canDownload"
-        :open-signal="composerOpenSignal"
-        :current-url="imageById[camera.focusedId.value]"
-        @download="onDownload"
-        @select="onSelectArtwork"
-        @expanded-change="(open: boolean) => (composerExpanded = open)"
-      />
-    </div>
 
     <GalleryThumbstick
       :focused-id="camera.focusedId.value"
       :on-select="camera.selectPainting"
       :on-zoom-by="camera.zoomBy"
-      :hide-on-mobile="composerExpanded"
       :paintings="paintings"
-    />
-
-    <GallerySaveDialog
-      :open="saveOpen"
-      :hangs="saveHangs"
-      :anchor="shareButtonEl"
-      @close="saveOpen = false"
     />
   </div>
 </template>
@@ -101,19 +63,15 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import GalleryRoom from '@/components/gallery/GalleryRoom.vue'
 import GalleryThumbstick from '@/components/gallery/GalleryThumbstick.vue'
 import GalleryInfoButton from '@/components/gallery/GalleryInfoButton.vue'
-import GalleryArtworkBar from '@/components/gallery/GalleryArtworkBar.vue'
-import GallerySaveDialog from '@/components/gallery/GallerySaveDialog.vue'
-import {
-  useGalleryCamera,
-  useMeasuredHeight,
-} from '@/gallery/useGalleryCamera'
+import { useGalleryCamera } from '@/gallery/useGalleryCamera'
 import {
   GALLERY_PAINTINGS,
   type GalleryPainting,
 } from '@/gallery/galleryPaintings'
 import { downloadImage, generatedImageFilename } from '@/gallery/downloadImage'
+import { galleryApi } from '@/api'
 
-/** Last chosen artwork per canvas — restored when the bar reopens. */
+/** Artwork hung on a frame — label feeds the download filename. */
 export type PaintingSelection = {
   label: string
   imageUrl: string
@@ -121,43 +79,18 @@ export type PaintingSelection = {
 
 const props = withDefaults(
   defineProps<{
-    mode?: 'edit' | 'view'
     /** Preloaded hang images keyed by painting id. */
     initialImageById?: Record<string, string>
-    /** Shared gallery display name (view mode). */
-    galleryName?: string
-    /** Who made the shared gallery (view mode attribution). */
-    galleryCreator?: string
   }>(),
   {
-    mode: 'edit',
     initialImageById: undefined,
-    galleryName: undefined,
-    galleryCreator: undefined,
   },
 )
 
-const isView = computed(() => props.mode === 'view')
-
-/*
- * The bottom stack covers the foot of the room, and the action bar inside it
- * changes height as it opens, so how much of the focused frame is hidden is
- * something only the rendered bar can answer. The camera drops by whatever this
- * measures rather than by a number picked for one of its states.
- */
-const bottomStackEl = ref<HTMLElement | null>(null)
-const bottomStack = useMeasuredHeight()
-
-const camera = useGalleryCamera({
-  bottomOcclusionPx: () => bottomStack.height.value,
-})
+const camera = useGalleryCamera()
 
 const imageById = ref<Record<string, string>>({ ...(props.initialImageById ?? {}) })
 const selectionById = ref<Record<string, PaintingSelection>>({})
-const composerOpenSignal = ref(0)
-const composerExpanded = ref(!isView.value)
-const saveOpen = ref(false)
-const shareButtonEl = ref<HTMLButtonElement | null>(null)
 
 const paintings = computed<GalleryPainting[]>(() =>
   GALLERY_PAINTINGS.map((painting) => ({
@@ -167,28 +100,8 @@ const paintings = computed<GalleryPainting[]>(() =>
 )
 
 const filledHangCount = computed(() => Object.keys(imageById.value).length)
-const canSave = computed(() => !isView.value && filledHangCount.value >= 1)
-
-const saveHangs = computed(() =>
-  Object.entries(imageById.value).map(([paintingId, imageUrl]) => ({
-    paintingId,
-    imageUrl,
-    label: selectionById.value[paintingId]?.label,
-  })),
-)
 
 const canDownload = computed(() => Boolean(imageById.value[camera.focusedId.value]))
-
-/** Hang an image chosen from this site's own uploads on the focused canvas. */
-function hangArtwork(selection: PaintingSelection) {
-  const paintingId = camera.focusedId.value
-  imageById.value = { ...imageById.value, [paintingId]: selection.imageUrl }
-  selectionById.value = { ...selectionById.value, [paintingId]: selection }
-}
-
-function openComposer() {
-  composerOpenSignal.value += 1
-}
 
 function onDownload() {
   const imageUrl = imageById.value[camera.focusedId.value]
@@ -210,18 +123,37 @@ function goHome() {
   window.location.assign('/')
 }
 
-/** Hang an artwork picked from the bar onto the currently focused frame. */
-function onSelectArtwork(selection: { label: string; url: string }) {
-  hangArtwork({ label: selection.label, imageUrl: selection.url })
+/**
+ * The exhibition is curated from the backend only: images this site's admin
+ * has uploaded hang first (newest first), then the bundled public-domain
+ * collection fills the frames the uploads don't cover. Visitors browse and
+ * download — nothing on the front end can swap a painting.
+ */
+interface UploadMedia {
+  url: string
+  title?: string | null
+  originalName?: string | null
 }
 
-/**
- * Opening the room should show a gallery, not bare walls. Pre-hang the bundled
- * public-domain collection across every frame, then the bar lets you swap any
- * single one (uploads take priority there when the site has any).
- */
-async function hangOpeningCollection() {
-  if (filledHangCount.value > 0) return
+async function loadUploads(): Promise<PaintingSelection[]> {
+  try {
+    const res = await galleryApi.getImages({ page: 1, size: GALLERY_PAINTINGS.length })
+    if (res.data.code === 200) {
+      const page = res.data.data
+      // PageResult 的列表字段是 list（兼容 records 形态）
+      const list = Array.isArray(page) ? page : (page?.list ?? page?.records ?? [])
+      if (Array.isArray(list) && list.length) {
+        return (list as UploadMedia[]).map((it) => ({
+          label: it.title || it.originalName || '未命名',
+          imageUrl: it.url,
+        }))
+      }
+    }
+  } catch (_) {}
+  return []
+}
+
+async function loadMetCollection(): Promise<PaintingSelection[]> {
   try {
     const res = await fetch('/met-art/manifest.json')
     const list = (await res.json()) as Array<{
@@ -229,20 +161,29 @@ async function hangOpeningCollection() {
       title: string
       artist: string
     }>
-    if (!Array.isArray(list) || !list.length) return
-    const nextImages: Record<string, string> = { ...imageById.value }
-    const nextSelections: Record<string, PaintingSelection> = { ...selectionById.value }
-    GALLERY_PAINTINGS.forEach((painting, i) => {
-      const art = list[i % list.length]
-      nextImages[painting.id] = '/met-art/' + art.file
-      nextSelections[painting.id] = {
-        label: art.artist ? `${art.title} — ${art.artist}` : art.title,
-        imageUrl: '/met-art/' + art.file,
-      }
-    })
-    imageById.value = nextImages
-    selectionById.value = nextSelections
-  } catch (_) {}
+    return list.map((art) => ({
+      label: art.artist ? `${art.title} — ${art.artist}` : art.title,
+      imageUrl: '/met-art/' + art.file,
+    }))
+  } catch (_) {
+    return []
+  }
+}
+
+async function hangOpeningCollection() {
+  if (filledHangCount.value > 0) return
+  const [uploads, met] = await Promise.all([loadUploads(), loadMetCollection()])
+  const arts = [...uploads, ...met]
+  if (!arts.length) return
+  const nextImages: Record<string, string> = { ...imageById.value }
+  const nextSelections: Record<string, PaintingSelection> = { ...selectionById.value }
+  GALLERY_PAINTINGS.forEach((painting, i) => {
+    const art = arts[i % arts.length]
+    nextImages[painting.id] = art.imageUrl
+    nextSelections[painting.id] = art
+  })
+  imageById.value = nextImages
+  selectionById.value = nextSelections
 }
 
 function onKeyDown(e: KeyboardEvent) {
@@ -253,7 +194,6 @@ function onKeyDown(e: KeyboardEvent) {
 }
 
 onMounted(() => {
-  bottomStack.setNode(bottomStackEl.value)
   window.addEventListener('keydown', onKeyDown)
   void hangOpeningCollection()
 })
@@ -261,8 +201,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeyDown)
 })
-
-defineExpose({ hangArtwork })
 </script>
 
 <style scoped>
@@ -309,44 +247,6 @@ defineExpose({ hangArtwork })
   }
 }
 
-.chrome-seal {
-  position: relative;
-  z-index: 50;
-}
-
-.seal {
-  position: fixed;
-  top: 32px;
-  left: 24px;
-  z-index: 50;
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 4px;
-  background: #c8322b;
-  color: #fff;
-  font-family: var(--font-display, serif);
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1;
-  text-decoration: none;
-  cursor: pointer;
-  transition: opacity 300ms ease-out, transform 300ms ease-out;
-}
-
-.seal:hover {
-  opacity: 0.8;
-}
-
-@media (min-width: 768px) {
-  .seal {
-    left: 64px;
-    width: 44px;
-    height: 44px;
-    font-size: 22px;
-  }
-}
 
 .chrome-top-right {
   position: fixed;
@@ -396,28 +296,4 @@ defineExpose({ hangArtwork })
   box-shadow: 0 0 0 2px #d4d4d8;
 }
 
-/*
- * Desktop: lift the composer so its vertical center matches the thumbstick
- * (md:bottom-16 + 106px disc → center at 117px). Expanded single-line bar is
- * ~62px tall, so pb = 117 − 31 = 86. Mobile keeps pb-6 — the stick sits above
- * the bar there on purpose.
- */
-.bottom-stack {
-  pointer-events: none;
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 40;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 0 16px 24px;
-}
-
-@media (min-width: 768px) {
-  .bottom-stack {
-    padding-bottom: 86px;
-  }
-}
 </style>
