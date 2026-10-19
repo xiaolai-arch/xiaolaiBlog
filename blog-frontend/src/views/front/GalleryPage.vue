@@ -3,6 +3,7 @@
     <header class="gallery-header">
       <h1>我的图库</h1>
       <p class="gallery-subtitle">用镜头记录生活中的美好瞬间</p>
+      <router-link to="/gallery/3d" class="g3d-entry">🚶 步入式 3D 画廊</router-link>
     </header>
 
     <!-- Category filter pills -->
@@ -232,6 +233,23 @@ function nextImage() {
   font-size: 15px;
   color: var(--text-muted);
   margin: 0;
+}
+
+.g3d-entry {
+  display: inline-block;
+  margin-top: 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border-radius: 999px;
+  padding: 8px 16px;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.g3d-entry:hover {
+  background: var(--tint-lavender);
+  transform: translateY(-2px);
 }
 
 /* Category filter */

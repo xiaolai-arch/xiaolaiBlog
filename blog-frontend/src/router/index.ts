@@ -6,7 +6,7 @@ const routes: RouteRecordRaw[] = [
     path: '/',
     component: () => import('@/layouts/FrontLayout.vue'),
     children: [
-      { path: '', name: 'Home', component: () => import('@/views/front/HomePage.vue') },
+      { path: '', name: 'Home', component: () => import('@/views/front/HomePage.vue'), meta: { bare: true } },
       { path: 'articles/:slug', name: 'ArticleDetail', component: () => import('@/views/front/ArticleDetail.vue') },
       { path: 'categories', name: 'Categories', component: () => import('@/views/front/CategoriesPage.vue') },
       { path: 'categories/:slug', name: 'CategoryDetail', component: () => import('@/views/front/CategoryDetail.vue') },
@@ -15,6 +15,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'archives', name: 'Archives', component: () => import('@/views/front/ArchivesPage.vue') },
       { path: 'search', name: 'Search', component: () => import('@/views/front/SearchPage.vue') },
       { path: 'gallery', name: 'Gallery', component: () => import('@/views/front/GalleryPage.vue') },
+      { path: 'gallery/3d', name: 'Gallery3D', component: () => import('@/views/front/Gallery3DPage.vue') },
       { path: 'projects', name: 'Projects', component: () => import('@/views/front/ProjectsPage.vue') },
       { path: 'tools', name: 'Tools', component: () => import('@/views/front/ToolsPage.vue') },
       { path: 'tools/markdown', name: 'ToolMarkdown', component: () => import('@/views/front/MarkdownToolPage.vue') },
@@ -23,6 +24,9 @@ const routes: RouteRecordRaw[] = [
       { path: 'agent', name: 'AgentSprint', component: () => import('@/views/front/AgentSprintPage.vue') },
       { path: 'study', name: 'Study', component: () => import('@/views/front/StudyPage.vue') },
       { path: 'about', name: 'About', component: () => import('@/views/front/AboutPage.vue') },
+      { path: 'changelog', name: 'Changelog', component: () => import('@/views/front/ChangelogPage.vue') },
+      { path: 'toys/polaroid', name: 'ToyPolaroid', component: () => import('@/views/front/toys/PolaroidStudioPage.vue') },
+      { path: 'toys/sketchbook', name: 'ToySketchbook', component: () => import('@/views/front/toys/SketchbookPage.vue') },
     ]
   },
   {

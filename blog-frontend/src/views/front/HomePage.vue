@@ -1,436 +1,563 @@
 <template>
-  <div class="home-page">
-    <div class="container">
-      <section class="hero">
-        <div class="hero-deco hero-deco-1"></div>
-        <div class="hero-deco hero-deco-2"></div>
-        <div class="hero-text">
-          <p class="hero-eyebrow">👋 欢迎来到</p>
-          <h1 class="hero-title">{{ siteTitle }}</h1>
-          <p class="hero-subtitle">{{ siteSubtitle || siteDescription || '记录学习、项目和生活里值得留下来的东西' }}</p>
-          <div class="hero-actions">
-            <button class="hero-cta" @click="scrollToList">开始阅读 →</button>
-            <span class="hero-stats">
-              {{ total }} 篇文章 · {{ categories.length }} 个分类 · {{ tags.length }} 个标签
-            </span>
+  <div class="ml-home">
+    <!-- ============ PageHeader：渐变 + logo + hero 文案 ============ -->
+    <div class="page-header">
+      <div class="grain" aria-hidden="true"></div>
+
+      <!-- Logo 行 -->
+      <div class="logo-row">
+        <router-link to="/" class="site-logo">{{ siteTitle }}</router-link>
+      </div>
+
+      <!-- Hero 文案 -->
+      <div class="hero-block">
+        <p class="hero-name">咲来</p>
+        <div class="hero-desc">
+          <span>把学习与项目做成好玩的东西。</span>
+          <span><br aria-hidden="true" /></span>
+          <span>
+            正在冲刺
+            <router-link class="hero-link" to="/agent">AI Agent 方向</router-link>
+            <span> · </span>
+            <span>此前打底 </span>
+            <router-link class="hero-link" to="/about">CV 与多模态</router-link>
+            <span> · </span>
+            <span>也在 </span>
+            <router-link class="hero-link" to="/archives">写博客</router-link>
+            <span> 记录一切。</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- ============ NavigationTabs：Work / Art / About ============ -->
+      <nav class="tabs">
+        <div class="tabs-inner">
+          <router-link to="/" class="tab active">
+            <span>Work</span>
+          </router-link>
+          <router-link to="/gallery" class="tab">
+            <span>Art</span>
+          </router-link>
+          <router-link to="/about" class="tab">
+            <span>About</span>
+          </router-link>
+        </div>
+        <div class="tabs-divider"></div>
+      </nav>
+    </div>
+
+    <!-- ============ 项目网格（2 列） ============ -->
+    <div class="project-grid">
+      <component
+        :is="card.to ? 'router-link' : 'div'"
+        v-for="(card, i) in cards"
+        :key="card.title"
+        :to="card.to"
+        class="project-card"
+        :class="{ featured: card.featured }"
+        :style="{ animationDelay: Math.min(Math.floor(i / 2) * 60, 300) + 'ms' }"
+      >
+        <div class="media" :class="'grad-' + card.grad">
+          <span class="media-emoji">{{ card.emoji }}</span>
+          <div class="media-ring" aria-hidden="true"></div>
+          <div v-if="card.featured" class="title-pill">
+            <span class="tp-title">{{ card.title }}</span>
+            <span v-if="!card.tryIt" class="tp-year"> • {{ card.year }}</span>
+            <template v-if="card.tryIt">
+              <span class="tp-dot"> • </span>
+              <span class="tp-try">↗ Try It Out!</span>
+            </template>
           </div>
         </div>
-      </section>
 
-      <section class="tools-strip">
-        <router-link to="/tools" class="tools-entry">
-          <span class="tools-icon">🧰</span>
-          <div class="tools-info">
-            <h3>工具箱</h3>
-            <p>Markdown 笔记本 · 算法刷题打卡 · 四级备考进度</p>
-          </div>
-          <span class="tools-arrow">→</span>
-        </router-link>
-      </section>
+        <!-- featured：图片下方一行描述 -->
+        <div v-if="card.featured" class="card-desc">{{ card.desc }}</div>
 
-      <section id="articles" class="article-list">
-        <div v-if="loading" class="loading">加载中...</div>
-        <template v-else>
-          <article v-for="article in articles" :key="article.id" class="article-card">
-            <div class="card-content">
-              <div class="card-meta">
-                <span v-if="article.isTop" class="top-badge">置顶</span>
-                <router-link
-                  v-if="article.categoryName"
-                  class="category-link"
-                  :to="`/categories/${article.categorySlug}`"
-                >
-                  {{ article.categoryName }}
-                </router-link>
-                <span class="date">{{ formatDate(article.createTime) }}</span>
-                <span>{{ readingTime(article) }} 分钟</span>
-                <span>{{ article.views || 0 }} 阅读</span>
-              </div>
-              <h2 class="card-title">
-                <router-link :to="`/articles/${article.slug}`">{{ article.title }}</router-link>
-              </h2>
-              <p class="card-summary">{{ excerpt(article) }}</p>
-              <div class="card-tags" v-if="article.tags?.length">
-                <router-link
-                  v-for="tag in article.tags"
-                  :key="tag.id"
-                  :to="`/tags/${tag.slug}`"
-                  class="tag-chip"
-                >
-                  #{{ tag.name }}
-                </router-link>
-              </div>
-            </div>
-            <router-link
-              v-if="article.coverUrl && !hiddenCovers.has(article.id)"
-              :to="`/articles/${article.slug}`"
-              class="card-cover"
-            >
-              <img :src="article.coverUrl" :alt="article.title" loading="lazy" @error="hideCover(article.id)" />
-            </router-link>
-          </article>
-
-          <div v-if="!articles.length" class="loading">还没有文章</div>
-
-          <div v-if="total > size" class="pagination">
-            <el-pagination
-              :current-page="page"
-              :page-size="size"
-              :total="total"
-              layout="prev, pager, next"
-              @current-change="onPageChange"
-              background
-              small
-            />
-          </div>
-        </template>
-      </section>
+        <!-- 非 featured：标题行 + Try It Out -->
+        <div v-else class="card-caption">
+          <p class="caption-title">
+            <span>{{ card.title }}</span>
+            <span class="tp-year"> • {{ card.year }}</span>
+          </p>
+          <span class="caption-try">↗ Try It Out!</span>
+        </div>
+      </component>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
-import { articleApi, categoryApi, siteApi, tagApi } from '@/api'
-import dayjs from 'dayjs'
+import { ref, onMounted } from 'vue'
+import { siteApi } from '@/api'
 
-const route = useRoute()
+const siteTitle = ref('咲来的 Blog')
 
-const articles = ref<any[]>([])
-const categories = ref<any[]>([])
-const tags = ref<any[]>([])
-const hiddenCovers = ref(new Set<number>())
-const loading = ref(true)
-const page = ref(1)
-const size = ref(10)
-const total = ref(0)
-const siteTitle = ref('咲来的博客')
-const siteSubtitle = ref('')
-const siteDescription = ref('')
+const cards = [
+  {
+    emoji: '🤖',
+    title: 'Agent 秋招冲刺',
+    year: '2025-26',
+    desc: '18 周：LLM 原理 → RAG / MCP → LangGraph → 两个完整项目，含评测与上下文工程补强。',
+    to: '/agent',
+    grad: 'lavender',
+    featured: true,
+  },
+  {
+    emoji: '🛠️',
+    title: '全栈博客（本站）',
+    year: '2025',
+    desc: 'Spring Boot 3 + Vue 3 + MySQL 自研，从需求文档到部署，文章 / 图库 / 打卡一站式。',
+    to: '/projects',
+    grad: 'peach',
+    featured: true,
+  },
+  {
+    emoji: '🔭',
+    title: 'CV · 多模态',
+    year: '2024-25',
+    desc: '计算机视觉方向打底，正在转化为多模态 RAG 与 Agent 的差异化优势。',
+    to: '/about',
+    grad: 'sky',
+    featured: true,
+  },
+  {
+    emoji: '🎮',
+    title: '备考 & 刷题',
+    year: '2025-26',
+    desc: 'LeetCode 打卡与四级备考进度全部可视化，像玩游戏一样攒经验。',
+    to: '/leetcode',
+    grad: 'mint',
+    featured: true,
+  },
+  {
+    emoji: '🖼️',
+    title: '3D 美术馆',
+    year: 'NEW',
+    desc: '',
+    to: '/gallery/3d',
+    grad: 'sky',
+    featured: false,
+    tryIt: true,
+  },
+  {
+    emoji: '📷',
+    title: '拍立得工作室',
+    year: 'NEW',
+    desc: '',
+    to: '/toys/polaroid',
+    grad: 'butter',
+    featured: false,
+    tryIt: true,
+  },
+  {
+    emoji: '✏️',
+    title: '数字速写本',
+    year: 'NEW',
+    desc: '',
+    to: '/toys/sketchbook',
+    grad: 'rose',
+    featured: false,
+    tryIt: true,
+  },
+]
 
 onMounted(async () => {
-  await Promise.all([loadConfig(), loadArticles(), loadCounts()])
-})
-
-watch(() => route.query, () => { page.value = 1; loadArticles() })
-
-async function loadConfig() {
   try {
     const res = await siteApi.getConfig()
-    if (res.data.code === 200) {
-      const config = res.data.data
-      if (config.site_title) siteTitle.value = config.site_title
-      if (config.site_subtitle) siteSubtitle.value = config.site_subtitle
-      siteDescription.value = config.site_description || ''
+    if (res.data.code === 200 && res.data.data.site_title) {
+      siteTitle.value = res.data.data.site_title
     }
   } catch (_) {}
-}
-
-async function loadCounts() {
-  try {
-    const [categoryRes, tagRes] = await Promise.all([categoryApi.getList(), tagApi.getList()])
-    if (categoryRes.data.code === 200) categories.value = categoryRes.data.data || []
-    if (tagRes.data.code === 200) tags.value = tagRes.data.data || []
-  } catch (_) {}
-}
-
-async function loadArticles() {
-  loading.value = true
-  try {
-    const res = await articleApi.getList({ page: page.value, size: size.value })
-    if (res.data.code === 200) {
-      articles.value = res.data.data.list
-      total.value = res.data.data.total
-    }
-  } catch (_) { articles.value = [] }
-  loading.value = false
-}
-
-function scrollToList() {
-  document.getElementById('articles')?.scrollIntoView({ behavior: 'smooth' })
-}
-
-function onPageChange(p: number) {
-  page.value = p
-  loadArticles()
-  window.scrollTo(0, 0)
-}
-
-function formatDate(d: string) {
-  return dayjs(d).format('YYYY-MM-DD')
-}
-
-function plainText(html: string) {
-  if (!html) return ''
-  const div = document.createElement('div')
-  div.innerHTML = html
-  return div.textContent || ''
-}
-
-function excerpt(article: any) {
-  const text = article.summary || plainText(article.contentHtml)
-  return text.length > 160 ? text.slice(0, 160) + '…' : text
-}
-
-function readingTime(article: any) {
-  const text = plainText(article.contentHtml) || article.summary || ''
-  return Math.max(1, Math.round(text.length / 400))
-}
-
-function hideCover(id: number) {
-  hiddenCovers.value.add(id)
-}
+})
 </script>
 
 <style scoped>
-/* ---------- Hero 横幅 ---------- */
-.hero {
+/* ============ PageHeader ============ */
+.page-header {
   position: relative;
+  background: linear-gradient(
+    190deg,
+    #d5e0ff 0%,
+    #d5e0ff 8%,
+    #e2eaff 15%,
+    #f5e2ff 22%,
+    #fde9fa 28%,
+    #fff5fc 35%,
+    #fffeff 42%,
+    var(--bg-primary) 55%,
+    var(--bg-primary) 100%
+  );
   overflow: hidden;
-  margin: 28px 0 28px;
-  padding: 48px 44px;
-  border-radius: 20px;
-  background: linear-gradient(130deg, #1d4ed8 0%, #2563eb 50%, #38bdf8 100%);
-  color: #fff;
-  box-shadow: var(--shadow-hover);
 }
 
-.hero-deco {
+[data-theme='dark'] .page-header {
+  background: linear-gradient(
+    190deg,
+    #1c2333 0%,
+    #1c2333 10%,
+    #232036 20%,
+    #2a2138 28%,
+    var(--bg-primary) 55%,
+    var(--bg-primary) 100%
+  );
+}
+
+/* 噪点纹理（对标原站 grain overlay） */
+.grain {
   position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.05'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.logo-row {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  padding: 32px 64px 32px;
+}
+
+.site-logo {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.0125em;
+  color: var(--text-primary) !important;
+}
+
+.hero-block {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 56px 64px 0;
+  min-height: 176px;
+}
+
+.hero-name {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: 0.0125em;
+  color: #3f3f46;
+  animation: heroFadeUp 450ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+[data-theme='dark'] .hero-name {
+  color: var(--text-primary);
+}
+
+.hero-desc {
+  font-family: var(--font-body);
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: 0.025em;
+  line-height: 1.5;
+  color: #a1a1aa;
+  margin-top: 4px;
+  white-space: pre-wrap;
+  animation: heroFadeUp 450ms cubic-bezier(0.25, 0.46, 0.45, 0.94) 120ms both;
+}
+
+[data-theme='dark'] .hero-desc {
+  color: #8d8a96;
+}
+
+.hero-link {
+  color: #71717a !important;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: #d4d4d8;
+  text-underline-offset: 3px;
+  transition: color 0.2s;
+}
+
+.hero-link:hover {
+  color: #3f3f46 !important;
+}
+
+[data-theme='dark'] .hero-link:hover {
+  color: var(--text-primary) !important;
+}
+
+/* ============ NavigationTabs ============ */
+.tabs {
+  position: relative;
+  z-index: 2;
+  padding: 16px 64px 16px;
+}
+
+.tabs-inner {
+  display: flex;
+  gap: 4px;
+  align-items: flex-start;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 14px 4px;
+  border-radius: 999px;
+  position: relative;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+  color: #a1a1aa;
+  white-space: nowrap;
+  transition: color 0.2s ease-out;
+}
+
+.tab:hover {
+  color: #52525b;
+}
+
+.tab.active {
+  color: #52525b;
+}
+
+.tab.active::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(228, 228, 234, 0.6);
+  backdrop-filter: blur(8px);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.03),
+    0 4px 14px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  z-index: -1;
+}
+
+.tabs-divider {
+  margin-top: 12px;
+  height: 1px;
+  background: var(--border-color);
+}
+
+/* ============ 项目网格 ============ */
+.project-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  padding: 10px 64px 8px;
+}
+
+.project-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  cursor: pointer;
+  animation: projectCardEnter 450ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* 媒体区 */
+.media {
+  position: relative;
+  border-radius: 26px;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s;
+}
+
+.project-card:hover .media {
+  transform: scale(0.99);
+}
+
+.media-ring {
+  position: absolute;
+  inset: 0;
+  border: 1px solid #f4f4f5;
+  border-radius: 26px;
   pointer-events: none;
 }
 
-.hero-deco-1 {
-  width: 300px;
-  height: 300px;
-  right: -70px;
-  top: -110px;
+[data-theme='dark'] .media-ring {
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
-.hero-deco-2 {
-  width: 170px;
-  height: 170px;
-  right: 190px;
-  bottom: -80px;
-  background: rgba(255, 255, 255, 0.08);
+.media-emoji {
+  font-size: 60px;
+  transition: transform 0.3s;
 }
 
-.hero-eyebrow {
-  font-size: 14px;
-  opacity: 0.85;
-  margin-bottom: 10px;
+.project-card:hover .media-emoji {
+  transform: scale(1.08);
 }
 
-.hero-title {
-  font-size: 38px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-  margin-bottom: 12px;
-  line-height: 1.25;
-}
+/* 渐变底（取自原站 header-gradient 色系） */
+.grad-lavender { background: linear-gradient(150deg, #d5e0ff, #ece8ff 60%, #f5e2ff); }
+.grad-peach { background: linear-gradient(150deg, #fde9fa, #ffe6d8 55%, #fff5fc); }
+.grad-sky { background: linear-gradient(150deg, #d5e0ff, #dff0ff 60%, #e2eaff); }
+.grad-mint { background: linear-gradient(150deg, #e2f4ec, #eaf8f0 55%, #fde9fa); }
+.grad-butter { background: linear-gradient(150deg, #fdf3d7, #fff0e0 60%, #fde9fa); }
+.grad-rose { background: linear-gradient(150deg, #fde9fa, #ffe9f2 55%, #f5e2ff); }
 
-.hero-subtitle {
-  font-size: 15px;
-  opacity: 0.88;
-  max-width: 560px;
-  margin-bottom: 24px;
-  line-height: 1.7;
-}
+[data-theme='dark'] .grad-lavender { background: linear-gradient(150deg, #26304a, #2c2846 60%, #332a48); }
+[data-theme='dark'] .grad-peach { background: linear-gradient(150deg, #3a2d33, #40303a 55%, #35283a); }
+[data-theme='dark'] .grad-sky { background: linear-gradient(150deg, #25324a, #233149 60%, #26304a); }
+[data-theme='dark'] .grad-mint { background: linear-gradient(150deg, #22352c, #26382f 55%, #2c2846); }
+[data-theme='dark'] .grad-butter { background: linear-gradient(150deg, #38351f, #3a3324 60%, #332a48); }
+[data-theme='dark'] .grad-rose { background: linear-gradient(150deg, #38283a, #3a2c3c 55%, #332a48); }
 
-.hero-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.hero-cta {
-  border: 0;
-  cursor: pointer;
+/* featured：图片左下角标题胶囊 */
+.title-pill {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
   background: #fff;
-  color: #1d4ed8;
-  font-size: 14px;
-  font-weight: 700;
-  padding: 11px 24px;
+  border: 1px solid #f4f4f5;
   border-radius: 999px;
-  transition: transform 0.2s, box-shadow 0.2s;
+  padding: 5px 12px 4.8px;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+  line-height: 1.375;
+  color: #18181b;
 }
 
-.hero-cta:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.22);
+.tp-year {
+  color: #a1a1aa;
 }
 
-.hero-stats {
-  font-size: 13px;
-  opacity: 0.85;
+.tp-dot {
+  color: #a1a1aa;
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
 }
 
-/* ---------- 工具箱入口 ---------- */
-.tools-strip {
-  margin-bottom: 24px;
+.tp-try {
+  color: #60a5fa;
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
 }
 
-.tools-entry {
+.project-card:hover .tp-dot,
+.project-card:hover .tp-try {
+  opacity: 1;
+}
+
+/* featured：图片下方描述 */
+.card-desc {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.375;
+  letter-spacing: 0.005em;
+  color: #a1a1aa;
+  padding: 0 13px;
+  margin: -6px 0 2px;
+}
+
+/* 非 featured：标题行 + Try It Out */
+.card-caption {
   display: flex;
-  align-items: center;
-  gap: 14px;
-  background: var(--card-bg);
-  border: 1px dashed var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 14px 20px;
-  box-shadow: var(--shadow-soft);
-  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  align-items: flex-start;
+  width: 100%;
+  padding: 0 13px;
+  margin: -6px 0 2px;
+  font-size: 16px;
+  line-height: 1.375;
+  letter-spacing: 0.005em;
 }
 
-.tools-entry:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-hover);
-  border-color: var(--accent-color);
+.caption-title {
+  color: #18181b;
+  font-weight: 500;
 }
 
-.tools-icon {
-  font-size: 24px;
-  flex: none;
-}
-
-.tools-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.tools-info h3 {
-  font-size: 15px;
-  color: var(--text-primary);
-  margin-bottom: 2px;
-}
-
-.tools-info p {
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.tools-arrow {
-  color: var(--text-muted);
-  transition: transform 0.2s, color 0.2s;
-}
-
-.tools-entry:hover .tools-arrow {
-  transform: translateX(3px);
-  color: var(--accent-color);
-}
-
-/* ---------- 文章流 ---------- */
-.article-list {
-  min-height: 300px;
-}
-
-.article-card {
-  display: flex;
-  gap: 18px;
-  align-items: stretch;
-}
-
-.card-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.card-cover {
-  flex: 0 0 168px;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  align-self: center;
-}
-
-.card-cover img {
-  width: 168px;
-  height: 112px;
-  object-fit: cover;
-  display: block;
-}
-
-.top-badge {
-  background: #e74c3c;
-  color: white;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.card-meta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 10px;
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.category-link {
-  color: var(--accent-color);
-}
-
-.card-title {
-  font-size: 20px;
-  margin-bottom: 8px;
-  line-height: 1.4;
-}
-
-.card-title a {
+[data-theme='dark'] .caption-title {
   color: var(--text-primary);
 }
 
-.card-title a:hover {
-  color: var(--accent-color);
+.caption-try {
+  margin-left: auto;
+  color: #60a5fa;
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+  flex-shrink: 0;
 }
 
-.card-summary {
-  color: var(--text-secondary);
-  font-size: 14px;
-  line-height: 1.7;
-  margin-bottom: 12px;
+.project-card:hover .caption-try {
+  opacity: 1;
 }
 
-.card-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+/* ============ 动画 ============ */
+@keyframes projectCardEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
 }
 
-.tag-chip {
-  color: var(--accent-color);
-  font-size: 13px;
+@keyframes heroFadeUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
 }
 
-.pagination {
-  display: flex;
-  justify-content: center;
-  padding: 28px 0 8px;
+@media (prefers-reduced-motion: reduce) {
+  .project-card,
+  .hero-name,
+  .hero-desc {
+    animation: none;
+  }
 }
 
-.loading {
-  text-align: center;
-  padding: 80px;
-  color: var(--text-muted);
-}
-
-@media (max-width: 640px) {
-  .hero {
-    padding: 34px 24px;
+/* ============ 移动端 ============ */
+@media (max-width: 768px) {
+  .logo-row,
+  .hero-block,
+  .tabs {
+    padding-left: 24px;
+    padding-right: 24px;
   }
 
-  .hero-title {
-    font-size: 28px;
+  .hero-block {
+    padding-top: 80px;
+    min-height: 210px;
   }
 
-  .card-cover {
-    display: none;
+  .hero-name {
+    font-size: 32px;
+  }
+
+  .hero-desc {
+    font-size: 16px;
+  }
+
+  .project-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding: 16px 24px;
+  }
+
+  .media {
+    aspect-ratio: 4 / 3;
+  }
+
+  .tp-dot,
+  .tp-try,
+  .caption-try {
+    opacity: 1;
   }
 }
 </style>
