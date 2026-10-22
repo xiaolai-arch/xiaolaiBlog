@@ -120,6 +120,28 @@ export const progressApi = {
   put: (key: string, value: string) => api.put(`/progress/${key}`, { value }),
 }
 
+export const musicApi = {
+  getCurrent: () => api.get('/music/current'),
+  getAdminList: () => api.get('/admin/music'),
+  upload: (payload: { audio: File; cover?: File; title: string; artist?: string; album?: string; lyrics?: string; duration?: number }) => {
+    const formData = new FormData()
+    formData.append('audio', payload.audio)
+    if (payload.cover) formData.append('cover', payload.cover)
+    formData.append('title', payload.title)
+    if (payload.artist) formData.append('artist', payload.artist)
+    if (payload.album) formData.append('album', payload.album)
+    if (payload.lyrics) formData.append('lyrics', payload.lyrics)
+    if (payload.duration) formData.append('duration', String(payload.duration))
+    return api.post('/admin/music/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120000,
+    })
+  },
+  update: (id: number, data: { title?: string; artist?: string; album?: string; lyrics?: string }) =>
+    api.put(`/admin/music/${id}`, data),
+  delete: (id: number) => api.delete(`/admin/music/${id}`),
+}
+
 export const authApi = {
   login: (data: any) => api.post('/admin/auth/login', data),
   logout: () => api.post('/admin/auth/logout'),

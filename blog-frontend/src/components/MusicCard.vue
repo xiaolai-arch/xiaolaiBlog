@@ -3,7 +3,7 @@
     <!-- 深色播放面：参考 liumichelle/library 的底部播放条，浓缩成一张卡 -->
     <div class="player" @click="togglePlay">
       <div class="disc" :class="{ spinning: playing }" aria-hidden="true">
-        <img class="disc-cover" :src="meta.cover" alt="" />
+        <img v-if="meta.cover" class="disc-cover" :src="meta.cover" alt="" />
         <span class="disc-hole"></span>
       </div>
 
@@ -206,15 +206,48 @@ function frame() {
 }
 
 onMounted(async () => {
+  // 优先读后台"音乐管理"最新上传的一首；没有数据时回退到内置静态歌
   try {
-    const res = await fetch('/music/memory.json')
-    meta.value = await res.json()
+    const res = await fetch('/api/v1/music/current')
+    const body = await res.json()
+    const m = body?.data
+    if (body?.code === 200 && m?.audioUrl) {
+      meta.value = {
+        title: m.title || '未命名',
+        artist: m.artist || '',
+        album: m.album || '',
+        audio: m.audioUrl,
+        cover: m.coverUrl || '',
+        duration: m.duration || 0,
+        lyrics: parseLrc(m.lyrics || ''),
+      }
+    } else {
+      meta.value = await fetch('/music/memory.json').then(r => r.json())
+    }
   } catch (_) {
-    meta.value.lyrics = []
+    try {
+      meta.value = await fetch('/music/memory.json').then(r => r.json())
+    } catch (_) {
+      meta.value.lyrics = []
+    }
   }
   if (audioEl.value) audioEl.value.volume = volume.value
   rafId = requestAnimationFrame(frame)
 })
+
+/* 解析 LRC 文本为时间轴；过滤空行与超长广告行（如 99:00 标记） */
+function parseLrc(text: string): Lyric[] {
+  const lines: Lyric[] = []
+  for (const raw of text.split('\n')) {
+    const m = raw.match(/^\s*\[(\d+):(\d+(?:\.\d+)?)\](.*)$/)
+    if (!m) continue
+    const t = parseInt(m[1]) * 60 + parseFloat(m[2])
+    const textPart = m[3].trim()
+    if (!textPart || t > 3600) continue
+    lines.push({ t, text: textPart })
+  }
+  return lines.sort((a, b) => a.t - b.t)
+}
 
 onBeforeUnmount(() => {
   if (rafId !== null) cancelAnimationFrame(rafId)

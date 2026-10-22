@@ -1,0 +1,16 @@
+-- 音乐管理：首页"我喜欢的音乐"播放卡数据源（管理员上传，前台取最新一首）
+CREATE TABLE IF NOT EXISTS `music` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `title` VARCHAR(100) NOT NULL COMMENT '歌名',
+  `artist` VARCHAR(100) DEFAULT '' COMMENT '歌手',
+  `album` VARCHAR(100) DEFAULT '' COMMENT '专辑',
+  `audio_url` VARCHAR(255) NOT NULL COMMENT '音频地址',
+  `cover_url` VARCHAR(255) DEFAULT NULL COMMENT '封面地址',
+  `lyrics` MEDIUMTEXT COMMENT 'LRC 歌词原文',
+  `duration` INT DEFAULT NULL COMMENT '时长（秒）',
+  `file_size` BIGINT DEFAULT NULL COMMENT '音频文件大小（字节）',
+  `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted` INT DEFAULT 0,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='音乐';

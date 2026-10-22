@@ -42,6 +42,10 @@
               <el-icon><Picture /></el-icon>
               <span>媒体</span>
             </el-menu-item>
+            <el-menu-item index="/admin/music">
+              <el-icon><Headset /></el-icon>
+              <span>音乐</span>
+            </el-menu-item>
             <el-menu-item index="/admin/settings">
               <el-icon><Setting /></el-icon>
               <span>设置</span>
