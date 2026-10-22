@@ -48,6 +48,13 @@
       <!-- GitHub 年度贡献热力图 -->
       <GithubActivity v-if="githubUser" :user="githubUser" />
 
+      <!-- 力扣打卡活跃度（数据来自打卡日志 lc-log） -->
+      <GithubActivity
+        title="刷题活跃度"
+        unit="submissions"
+        url="/api/v1/github/leetcode"
+      />
+
       <!-- 自我介绍（后台可编辑；无内容时不渲染） -->
       <section v-if="content" class="about-content-wrap">
         <div v-if="loading" class="loading">加载中...</div>

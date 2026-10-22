@@ -1,10 +1,10 @@
 <template>
   <section v-if="visible" class="gh-section">
-    <h2>活跃度</h2>
+    <h2>{{ title }}</h2>
     <div class="gh-card">
       <div v-if="loading" class="gh-loading">加载中…</div>
       <template v-else>
-        <div class="gh-grid" role="img" aria-label="GitHub 年度贡献热力图">
+        <div class="gh-grid" role="img" aria-label="GitHub 年度贡献热力图" @mouseleave="hovered = null">
           <div v-for="(week, wi) in weeks" :key="wi" class="gh-col">
             <span class="gh-month">{{ monthLabels[wi] || '' }}</span>
             <span
@@ -12,17 +12,22 @@
               :key="d.date"
               class="gh-cell"
               :data-level="d.level"
-              :title="`${d.count} 次贡献 · ${d.date}`"
+              :aria-label="`${d.count} 次贡献 · ${d.date}`"
+              @mouseenter="showTip($event, d)"
             />
           </div>
         </div>
         <div class="gh-foot">
-          <span>{{ total }} contributions in the last year</span>
+          <span>{{ total }} {{ unit }} in the last year</span>
           <span class="gh-legend">
             Less
             <i v-for="l in 5" :key="l" class="gh-cell gh-legend-cell" :data-level="l - 1" />
             More
           </span>
+        </div>
+        <!-- 悬停浮层：跟随格子出现在其上方 -->
+        <div v-if="hovered" class="gh-tip" :style="{ left: hovered.left + 'px', top: hovered.top + 'px' }">
+          {{ hovered.text }}
         </div>
       </template>
     </div>
@@ -32,9 +37,23 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 
-interface DayData { date: string; count: number; level: number }
+interface DayData { date: string; count: number; level?: number }
 
-const props = defineProps<{ user: string }>()
+const props = withDefaults(defineProps<{
+  /** 数据接口地址（返回 {code,data:[{date,count,level?}]}） */
+  url?: string
+  /** 卡片标题 */
+  title?: string
+  /** 悬停与页脚的数量单位 */
+  unit?: string
+  /** GitHub 用户名（与 url 二选一） */
+  user?: string
+}>(), {
+  url: '',
+  title: '活跃度',
+  unit: 'contributions',
+  user: '',
+})
 
 const loading = ref(true)
 const days = ref<DayData[]>([])
@@ -81,13 +100,41 @@ const monthLabels = computed(() => {
 
 const total = computed(() => days.value.reduce((s, d) => s + d.count, 0))
 
+/* 悬停浮层：定位在格子正上方（相对卡片定位，左右防溢出） */
+const hovered = ref<{ text: string; left: number; top: number } | null>(null)
+
+function showTip(e: MouseEvent, d: DayData) {
+  const cell = e.currentTarget as HTMLElement
+  const card = cell.closest('.gh-card') as HTMLElement
+  const c = cell.getBoundingClientRect()
+  const k = card.getBoundingClientRect()
+  const text = d.count > 0
+    ? `${d.count} ${props.unit} on ${d.date}`
+    : `No ${props.unit} on ${d.date}`
+  hovered.value = {
+    text,
+    left: Math.min(Math.max(c.left - k.left + c.width / 2, 70), k.width - 70),
+    top: c.top - k.top,
+  }
+}
+
+function levelOf(count: number): number {
+  if (count <= 0) return 0
+  if (count <= 2) return 1
+  if (count <= 4) return 2
+  if (count <= 7) return 3
+  return 4
+}
+
 async function load() {
   loading.value = true
   try {
-    const res = await fetch(`/api/v1/github/contributions?user=${encodeURIComponent(props.user)}`)
+    const url = props.url ||
+      `/api/v1/github/contributions?user=${encodeURIComponent(props.user)}`
+    const res = await fetch(url)
     const json = await res.json()
     if (json.code === 200 && Array.isArray(json.data)) {
-      days.value = json.data
+      days.value = json.data.map((d: DayData) => ({ ...d, level: d.level ?? levelOf(d.count) }))
     }
   } catch (_) {} finally {
     loading.value = false
@@ -110,6 +157,7 @@ onMounted(load)
 }
 
 .gh-card {
+  position: relative;
   border: 1px solid var(--border-color);
   background: var(--card-bg);
   border-radius: 20px;
@@ -185,5 +233,41 @@ onMounted(load)
   width: 10px;
   height: 10px;
   flex-shrink: 0;
+}
+
+/* 悬停浮层 */
+.gh-tip {
+  position: absolute;
+  z-index: 20;
+  transform: translate(-50%, calc(-100% - 8px));
+  background: #18181b;
+  color: #fafafa;
+  font-size: 12px;
+  line-height: 1;
+  padding: 7px 10px;
+  border-radius: 8px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+.gh-tip::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 8px;
+  height: 8px;
+  background: #18181b;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+[data-theme='dark'] .gh-tip {
+  background: #f4f4f5;
+  color: #18181b;
+}
+
+[data-theme='dark'] .gh-tip::after {
+  background: #f4f4f5;
 }
 </style>
