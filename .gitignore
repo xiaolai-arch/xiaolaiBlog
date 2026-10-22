@@ -45,3 +45,5 @@ uploads/
 
 ### Mac OS ###
 .DS_Store
+# 后端运行时缓存（GitHub 贡献数据磁盘兜底）
+github-cache-*.json
