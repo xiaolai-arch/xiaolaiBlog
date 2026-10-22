@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/music")
 public class MusicController {
@@ -23,5 +25,15 @@ public class MusicController {
     public Result<Music> current() {
         return Result.success(musicMapper.selectOne(
                 new LambdaQueryWrapper<Music>().orderByDesc(Music::getId).last("LIMIT 1")));
+    }
+
+    /// 首页播放卡歌单：全部音乐，按上传时间新→旧
+    @GetMapping("/list")
+    public Result<List<Music>> list() {
+        return Result.success(musicMapper.selectList(
+                new LambdaQueryWrapper<Music>()
+                        .select(Music::getId, Music::getTitle, Music::getArtist, Music::getAlbum,
+                                Music::getAudioUrl, Music::getCoverUrl, Music::getLyrics, Music::getDuration)
+                        .orderByDesc(Music::getId)));
     }
 }

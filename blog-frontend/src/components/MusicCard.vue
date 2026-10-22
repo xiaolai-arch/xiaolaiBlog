@@ -12,13 +12,19 @@
           <span class="song-title">{{ meta.title }}</span>
           <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
         </p>
-        <p class="artist">{{ meta.artist }} • {{ meta.album }}</p>
+        <p class="artist">{{ meta.artist }}<template v-if="meta.album"> • {{ meta.album }}</template></p>
         <Transition name="lyric" mode="out-in">
-          <p class="lyric" :key="lyricIndex">{{ currentLyric }}</p>
+          <p class="lyric" :key="lyricIndex + '-' + songIndex">{{ currentLyric }}</p>
         </Transition>
       </div>
 
       <div class="ctrl" @click.stop>
+        <button class="skip-btn" aria-label="上一首" :disabled="songs.length < 2" @click="skip(-1)">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M7 6c0-.55.45-1 1-1s1 .45 1 1v12c0 .55-.45 1-1 1s-1-.45-1-1V6Zm3.6 6.5 8.1-5.6c.66-.46 1.57.01 1.57.82v11.13c0 .8-.9 1.28-1.57.82l-8.1-5.6a1 1 0 0 1 0-1.57Z" />
+          </svg>
+        </button>
+
         <button
           class="play-btn"
           :aria-label="playing ? '暂停' : '播放'"
@@ -30,6 +36,12 @@
           <svg v-else viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <rect x="6" y="4" width="4" height="16" rx="1.4" />
             <rect x="14" y="4" width="4" height="16" rx="1.4" />
+          </svg>
+        </button>
+
+        <button class="skip-btn" aria-label="下一首" :disabled="songs.length < 2" @click="skip(1)">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M17 6c0-.55-.45-1-1-1s-1 .45-1 1v12c0 .55.45 1 1 1s1-.45 1-1V6Zm-11.27 5.9 8.1 5.6c.66.46 1.57-.01 1.57-.82V5.55c0-.8-.9-1.28-1.57-.82l-8.1 5.6a1 1 0 0 0 0 1.57Z" />
           </svg>
         </button>
 
@@ -72,17 +84,16 @@
     <div class="card-caption">
       <p class="caption-title">
         <span>我喜欢的音乐</span>
-        <span class="tp-year"> • Now Playing</span>
+        <span class="tp-year"> • Now Playing<template v-if="songs.length > 1"> {{ songIndex + 1 }}/{{ songs.length }}</template></span>
       </p>
-      <span class="caption-song">♪ {{ meta.title }} — {{ meta.artist }}</span>
+      <span class="caption-song">♪ {{ meta.title }} — {{ meta.artist || meta.album || '未知歌手' }}</span>
     </div>
 
     <audio
       ref="audioEl"
-      :src="meta.audio"
       preload="none"
       @loadedmetadata="onMeta"
-      @ended="playing = false"
+      @ended="onEnded"
     ></audio>
   </div>
 </template>
@@ -104,15 +115,21 @@ interface MusicMeta {
   lyrics: Lyric[]
 }
 
-const meta = ref<MusicMeta>({
-  title: '…',
-  artist: '…',
-  album: '',
-  audio: '',
-  cover: '',
-  duration: 0,
-  lyrics: [],
-})
+/* 歌单：默认占位，onMounted 里被后台数据或内置静态歌替换 */
+const songs = ref<MusicMeta[]>([])
+const songIndex = ref(0)
+const meta = computed<MusicMeta>(
+  () =>
+    songs.value[songIndex.value] || {
+      title: '…',
+      artist: '',
+      album: '',
+      audio: '',
+      cover: '',
+      duration: 0,
+      lyrics: [],
+    },
+)
 
 const audioEl = ref<HTMLAudioElement | null>(null)
 const playing = ref(false)
@@ -138,17 +155,44 @@ function fmt(s: number) {
 }
 
 /* ================= 播放控制 ================= */
+function resetProgress() {
+  cur.value = 0
+  duration.value = meta.value.duration || 0
+  lyricIndex.value = -1
+}
+
+function loadSong(index: number, autoplay: boolean) {
+  const a = audioEl.value
+  if (!a) return
+  songIndex.value = (index + songs.value.length) % songs.value.length
+  resetProgress()
+  a.src = meta.value.audio
+  if (autoplay) {
+    a.play()
+      .then(() => {
+        playing.value = true
+      })
+      .catch(() => {
+        playing.value = false
+      })
+  }
+}
+
+function skip(dir: 1 | -1) {
+  if (songs.value.length < 2) return
+  loadSong(songIndex.value + dir, playing.value)
+}
+
 async function togglePlay() {
   const a = audioEl.value
   if (!a || !a.src) return
   if (a.paused) {
     try {
       await a.play()
+      playing.value = true
     } catch (_) {
       playing.value = false
-      return
     }
-    playing.value = true
   } else {
     a.pause()
     playing.value = false
@@ -158,7 +202,12 @@ async function togglePlay() {
 function onMeta() {
   const d = audioEl.value?.duration
   if (d && isFinite(d)) duration.value = d
-  else duration.value = meta.value.duration
+}
+
+function onEnded() {
+  // 单曲结束自动下一首，循环整个歌单
+  playing.value = false
+  loadSong(songIndex.value + 1, true)
 }
 
 function onVolume() {
@@ -205,36 +254,6 @@ function frame() {
   syncLyric()
 }
 
-onMounted(async () => {
-  // 优先读后台"音乐管理"最新上传的一首；没有数据时回退到内置静态歌
-  try {
-    const res = await fetch('/api/v1/music/current')
-    const body = await res.json()
-    const m = body?.data
-    if (body?.code === 200 && m?.audioUrl) {
-      meta.value = {
-        title: m.title || '未命名',
-        artist: m.artist || '',
-        album: m.album || '',
-        audio: m.audioUrl,
-        cover: m.coverUrl || '',
-        duration: m.duration || 0,
-        lyrics: parseLrc(m.lyrics || ''),
-      }
-    } else {
-      meta.value = await fetch('/music/memory.json').then(r => r.json())
-    }
-  } catch (_) {
-    try {
-      meta.value = await fetch('/music/memory.json').then(r => r.json())
-    } catch (_) {
-      meta.value.lyrics = []
-    }
-  }
-  if (audioEl.value) audioEl.value.volume = volume.value
-  rafId = requestAnimationFrame(frame)
-})
-
 /* 解析 LRC 文本为时间轴；过滤空行与超长广告行（如 99:00 标记） */
 function parseLrc(text: string): Lyric[] {
   const lines: Lyric[] = []
@@ -248,6 +267,53 @@ function parseLrc(text: string): Lyric[] {
   }
   return lines.sort((a, b) => a.t - b.t)
 }
+
+interface ApiMusic {
+  title: string
+  artist?: string
+  album?: string
+  audioUrl: string
+  coverUrl?: string
+  lyrics?: string
+  duration?: number
+}
+
+function toMeta(m: ApiMusic): MusicMeta {
+  return {
+    title: m.title || '未命名',
+    artist: m.artist || '',
+    album: m.album || '',
+    audio: m.audioUrl,
+    cover: m.coverUrl || '',
+    duration: m.duration || 0,
+    lyrics: parseLrc(m.lyrics || ''),
+  }
+}
+
+const FALLBACK_JSON = '/music/memory.json'
+
+onMounted(async () => {
+  // 优先读后台"音乐管理"的歌单；没有数据时回退到内置静态歌
+  try {
+    const res = await fetch('/api/v1/music/list')
+    const body = await res.json()
+    const list: ApiMusic[] = body?.data || []
+    if (body?.code === 200 && list.length) {
+      songs.value = list.map(toMeta)
+    } else {
+      songs.value = [await fetch(FALLBACK_JSON).then(r => r.json())]
+    }
+  } catch (_) {
+    try {
+      songs.value = [await fetch(FALLBACK_JSON).then(r => r.json())]
+    } catch (_) {
+      songs.value = []
+    }
+  }
+  loadSong(0, false)
+  if (audioEl.value) audioEl.value.volume = volume.value
+  rafId = requestAnimationFrame(frame)
+})
 
 onBeforeUnmount(() => {
   if (rafId !== null) cancelAnimationFrame(rafId)
@@ -435,6 +501,36 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 14px;
   cursor: default;
+}
+
+.skip-btn {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #a1a1aa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.2s, transform 0.2s;
+}
+
+.skip-btn:hover:not(:disabled) {
+  color: #f4f4f5;
+  transform: scale(1.1);
+}
+
+.skip-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.skip-btn svg {
+  width: 18px;
+  height: 18px;
 }
 
 .play-btn {
