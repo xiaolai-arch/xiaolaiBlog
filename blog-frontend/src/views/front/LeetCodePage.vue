@@ -115,6 +115,8 @@ interface Chapter {
 }
 
 const DONE_KEY = 'leetcode:done'
+/* 打卡提交日志：[{pid, date}]，带日期，供 About 页刷题活跃度热力图使用 */
+const LC_LOG_KEY = 'lc-log'
 
 const index = ref<any>(null)
 const cache = ref<Record<string, { name: string; source: string; itemsTotal: number; uniqueTotal: number; chapters: Chapter[] }>>({})
@@ -127,6 +129,42 @@ const doneSet = ref<Set<string>>(new Set())
 const openChapters = ref<Set<string>>(new Set())
 const cloudActive = ref(false)
 let pushTimer: number | undefined
+let logTimer: number | undefined
+
+interface LcLogEntry { pid: string; date: string }
+const lcLog = ref<LcLogEntry[]>([])
+
+function todayStr(): string {
+  const d = new Date()
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}
+
+function getLcLog(): LcLogEntry[] {
+  try {
+    const a = JSON.parse(localStorage.getItem(LC_LOG_KEY) || '[]')
+    return Array.isArray(a) ? a : []
+  } catch (_) {
+    return []
+  }
+}
+
+function saveLcLog(l: LcLogEntry[]) {
+  lcLog.value = l
+  localStorage.setItem(LC_LOG_KEY, JSON.stringify(l))
+}
+
+function logLcSubmission(pid: string) {
+  const log = getLcLog()
+  log.push({ pid, date: todayStr() })
+  saveLcLog(log)
+  if (cloudActive.value) {
+    window.clearTimeout(logTimer)
+    logTimer = window.setTimeout(() => {
+      progressApi.put('lc-log', JSON.stringify(lcLog.value)).catch(() => { cloudActive.value = false })
+    }, 1500)
+  }
+}
 
 const activeData = computed(() => cache.value[activeKey.value])
 const activeCatName = computed(() => activeData.value?.name || '')
@@ -215,6 +253,7 @@ function toggle(pid: string) {
   } else {
     next.add(pid)
     logStudy(`lc:${pid}`)
+    logLcSubmission(pid)
   }
   doneSet.value = next
   localStorage.setItem(DONE_KEY, JSON.stringify([...next]))
@@ -249,6 +288,22 @@ async function loadDone() {
       }
     } catch (_) {}
   }
+  if (localStorage.getItem('token')) {
+    try {
+      const res = await progressApi.get('lc-log')
+        if (res.data.code === 200) {
+          const cloud = JSON.parse(res.data.data.value || '[]')
+          if (Array.isArray(cloud)) {
+            const seen = new Set(getLcLog().map(e => e.pid + '@' + e.date))
+            const mergedLog = [...getLcLog(), ...cloud.filter((e: LcLogEntry) => e && e.pid && e.date && !seen.has(e.pid + '@' + e.date))]
+            saveLcLog(mergedLog)
+            if (mergedLog.length !== getLcLog().length) {
+              progressApi.put('lc-log', JSON.stringify(mergedLog)).catch(() => { cloudActive.value = false })
+            }
+          }
+        }
+      } catch (_) {}
+    }
   doneSet.value = merged
 }
 
