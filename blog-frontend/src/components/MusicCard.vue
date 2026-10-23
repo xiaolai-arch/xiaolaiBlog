@@ -30,7 +30,7 @@
         <span>我喜欢的音乐</span>
         <span class="tp-year"> • {{ songs.length }} 首</span>
       </p>
-      <span class="caption-more">进入 Library →</span>
+      <span class="caption-more">进入音乐书架 →</span>
     </div>
   </div>
 </template>

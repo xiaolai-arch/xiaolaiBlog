@@ -27,7 +27,7 @@
         <span>我的图集</span>
         <span class="tp-year"> • {{ count }} 张</span>
       </p>
-      <span class="caption-more">进入 Film →</span>
+      <span class="caption-more">进入图集 →</span>
     </div>
   </div>
 </template>
