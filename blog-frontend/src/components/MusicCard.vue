@@ -99,7 +99,7 @@ onBeforeUnmount(() => {
   animation: musicCardEnter 450ms cubic-bezier(0.25, 0.46, 0.45, 0.94) 240ms both;
 }
 
-/* 深色展示面（与 /music 书架页呼应） */
+/* 浅色展示面（与胶片图集卡同系的纸感浅底） */
 .showcase {
   position: relative;
   flex: 1;
@@ -112,23 +112,29 @@ onBeforeUnmount(() => {
   border-radius: 26px;
   overflow: hidden;
   isolation: isolate;
-  color: #f4f4f5;
-  background:
-    radial-gradient(120% 160% at 12% -10%, rgba(96, 165, 250, 0.14), transparent 46%),
-    radial-gradient(120% 150% at 88% 120%, rgba(244, 114, 182, 0.1), transparent 44%),
-    linear-gradient(150deg, #27272a, #18181b 62%, #1c1c20);
+  color: #18181b;
+  background: linear-gradient(175deg, #fbfbfa, #f6f6f4 55%, #f2f2ef);
   box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.06),
-    0 12px 34px rgba(24, 24, 27, 0.16);
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 12px 34px rgba(24, 24, 27, 0.08);
+}
+
+[data-theme='dark'] .showcase {
+  color: #f4f4f5;
+  background: linear-gradient(175deg, #232326, #1f1f22 55%, #26262a);
 }
 
 .showcase::after {
   content: '';
   position: absolute;
   inset: 0;
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(24, 24, 27, 0.06);
   border-radius: 26px;
   pointer-events: none;
+}
+
+[data-theme='dark'] .showcase::after {
+  border-color: rgba(255, 255, 255, 0.07);
 }
 
 /* ============ 迷你书架：4×2 小书封（同 /music 书架的密集感） ============ */
@@ -144,14 +150,19 @@ onBeforeUnmount(() => {
   aspect-ratio: 2 / 3;
   border-radius: 2.5px;
   overflow: hidden;
-  background: linear-gradient(150deg, #3f3f46, #2c2c31 60%, #26262b);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
-  opacity: 0.72;
+  background: linear-gradient(150deg, #e4e4e7, #d4d4d8 60%, #c9c9ce);
+  box-shadow: 0 3px 10px rgba(24, 24, 27, 0.14);
+  opacity: 0.82;
   transform: translateY(0);
   transition:
     opacity 0.6s ease,
     transform 0.6s cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 0.6s ease;
+}
+
+[data-theme='dark'] .mini-book {
+  background: linear-gradient(150deg, #2c2c31, #26262b 60%, #202024);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
 }
 
 .mini-book img {
@@ -171,15 +182,23 @@ onBeforeUnmount(() => {
   font-family: var(--font-display);
   font-size: 15px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(24, 24, 27, 0.35);
 }
 
-/* 聚光灯：上提、放大、点亮 */
+/* 聚光灯：上提、放大、点亮（浅色下靠白描边+更深投影突出） */
 .mini-book.featured {
   opacity: 1;
   transform: translateY(-7px) scale(1.05);
-  box-shadow: 0 9px 22px rgba(0, 0, 0, 0.5);
+  box-shadow:
+    0 0 0 3px #fff,
+    0 8px 20px rgba(24, 24, 27, 0.22);
   z-index: 2;
+}
+
+[data-theme='dark'] .mini-book.featured {
+  box-shadow:
+    0 0 0 3px #1c1c20,
+    0 9px 22px rgba(0, 0, 0, 0.5);
 }
 
 /* 封面右下角均衡器角标 */
@@ -225,9 +244,14 @@ onBeforeUnmount(() => {
   font-family: var(--font-display);
   font-size: 16px;
   font-weight: 600;
+  color: #18181b;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+[data-theme='dark'] .f-title {
+  color: #f4f4f5;
 }
 
 .f-artist {
@@ -253,7 +277,7 @@ onBeforeUnmount(() => {
   transform: translateY(-5px);
 }
 
-/* 进入提示（悬停浮现） */
+/* 进入提示（悬停浮现，浅色胶囊） */
 .enter-hint {
   position: absolute;
   right: 16px;
@@ -263,14 +287,20 @@ onBeforeUnmount(() => {
   border-radius: 999px;
   font-size: 12px;
   font-weight: 500;
-  color: #f4f4f5;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #3f3f46;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(24, 24, 27, 0.08);
   backdrop-filter: blur(6px);
   opacity: 0;
   transform: translateY(-3px);
   transition: opacity 0.3s ease, transform 0.3s ease;
   pointer-events: none;
+}
+
+[data-theme='dark'] .enter-hint {
+  color: #e4e4e7;
+  background: rgba(39, 39, 46, 0.85);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .music-card:hover .enter-hint,
