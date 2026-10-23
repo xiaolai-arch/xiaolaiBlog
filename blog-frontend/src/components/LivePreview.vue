@@ -57,16 +57,16 @@ const loaded = ref(false)
 const hiddenForOffscreen = ref(false)
 
 /* ================= 展厅导览脚本（tour 模式） ================= */
-/** sel 为预览页内的按钮选择器，holdMs 为按下后的停留时长 */
+/** sel 为预览页内的按钮选择器，holdMs 为按下后的停留时长（运镜动画本身约 0.78s） */
 const GALLERY_TOUR_SCRIPT: Array<{ sel: string; holdMs: number }> = [
-  { sel: '[aria-label="Next painting"]', holdMs: 2300 },
-  { sel: '[aria-label="Next painting"]', holdMs: 2300 },
-  { sel: '[aria-label="Zoom in"]', holdMs: 1900 },
-  { sel: '[aria-label="Zoom in"]', holdMs: 2300 },
-  { sel: '[aria-label="Next painting"]', holdMs: 2300 },
-  { sel: '[aria-label="Zoom out"]', holdMs: 1900 },
-  { sel: '[aria-label="Zoom out"]', holdMs: 2300 },
-  { sel: '[aria-label="Next painting"]', holdMs: 2300 },
+  { sel: '[aria-label="Next painting"]', holdMs: 1000 },
+  { sel: '[aria-label="Next painting"]', holdMs: 1000 },
+  { sel: '[aria-label="Zoom in"]', holdMs: 1000 },
+  { sel: '[aria-label="Zoom in"]', holdMs: 1000 },
+  { sel: '[aria-label="Next painting"]', holdMs: 1000 },
+  { sel: '[aria-label="Zoom out"]', holdMs: 1000 },
+  { sel: '[aria-label="Zoom out"]', holdMs: 1000 },
+  { sel: '[aria-label="Next painting"]', holdMs: 1000 },
 ]
 let tourStep = 0
 
