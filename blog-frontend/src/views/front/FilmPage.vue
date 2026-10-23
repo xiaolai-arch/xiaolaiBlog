@@ -20,11 +20,8 @@
       </button>
     </div>
 
-    <!-- 开场：冲洗底片中 -->
-    <div class="fp-develop" ref="developEl" aria-hidden="true">
-      <span>rolling the negatives…</span>
-      <span class="fp-develop-hint">滚动或按 ↓ 开始翻看</span>
-    </div>
+    <!-- 暗房状态文案：加载时与每次切换过渡中浮现 -->
+    <div class="fp-status" ref="statusEl" aria-hidden="true">{{ statusText }}</div>
 
     <!-- 文字层：标题 / 刻度 / 月份 -->
     <div class="fp-text" ref="textEl" v-if="photos.length">
@@ -43,9 +40,9 @@
       <p class="fp-year">{{ currentYear }}</p>
     </div>
 
-    <!-- 空态 -->
-    <div v-if="!photos.length" class="fp-empty">
-      <p>{{ loading ? '加载中…' : '图库还没有照片' }}</p>
+    <!-- 空态（加载中由暗房文案承担） -->
+    <div v-if="!photos.length && !loading" class="fp-empty">
+      <p>图库还没有照片</p>
       <p class="sub">后台「媒体」上传后展示在这里</p>
     </div>
   </div>
@@ -65,9 +62,22 @@ interface Photo {
 
 const photos = ref<Photo[]>([])
 const loading = ref(true)
-/* 连续进度：-1 = 开场屏，0..n-1 = 照片（可有小数，scrub 插值） */
-const progress = ref(-1)
+/* 连续进度：0..n-1 = 照片（可有小数，scrub 插值），第一屏直接展示照片 */
+const progress = ref(0)
 const idx = computed(() => Math.round(progress.value))
+
+/* 暗房文案：加载与切换过渡时轮换（取自参考站） */
+const DARKROOM = [
+  'rolling the negatives…',
+  'mixing the chemicals…',
+  'checking the light meter…',
+  'hanging prints to dry…',
+  'developing photos…',
+  'film reel loading…',
+]
+const statusText = ref(DARKROOM[0])
+let phraseIdx = 0
+let inTransition = false
 
 const currentTitle = computed(
   () => photos.value[idx.value]?.title || photos.value[idx.value]?.originalName || '',
@@ -80,7 +90,7 @@ const currentYear = computed(() => photos.value[idx.value]?.createTime?.slice(0,
 
 /* ================= DOM refs（渲染循环直写样式） ================= */
 const stripEl = ref<HTMLElement | null>(null)
-const developEl = ref<HTMLElement | null>(null)
+const statusEl = ref<HTMLElement | null>(null)
 const textEl = ref<HTMLElement | null>(null)
 const frameEls: Array<HTMLElement | null> = []
 function setFrame(i: number, el: HTMLElement | null) {
@@ -155,14 +165,24 @@ function layout() {
     el.style.zIndex = String(100 - Math.round(d * 10))
   }
 
-  // 开场遮罩与文字层透明度
-  if (developEl.value) {
-    developEl.value.style.opacity = String(Math.max(0, Math.min(1, -p)))
-    developEl.value.style.pointerEvents = p < -0.5 ? 'auto' : 'none'
+  // 暗房文案：加载中常显；切换过渡按偏离程度淡入淡出，并轮换短语
+  if (statusEl.value) {
+    const dev = Math.abs(p - Math.round(p))
+    const op = loading.value ? 1 : Math.max(0, Math.min(1, dev * 3.4 - 0.12))
+    statusEl.value.style.opacity = String(op)
+    if (dev > 0.22 && !inTransition) {
+      inTransition = true
+      phraseIdx = (phraseIdx + 1) % DARKROOM.length
+      statusText.value = DARKROOM[phraseIdx]
+    } else if (dev < 0.04) {
+      inTransition = false
+    }
   }
+
+  // 文字层：过渡中淡出
   if (textEl.value) {
     const settled = 1 - Math.min(1, Math.abs(p - Math.round(p)) * 2.4)
-    textEl.value.style.opacity = String(Math.max(0, Math.min(1, settled)) * (p < -0.4 ? 0 : 1))
+    textEl.value.style.opacity = String(Math.max(0, Math.min(1, settled)))
   }
 }
 
@@ -179,7 +199,7 @@ function frameLoop() {
 
 /* ================= 交互：滚轮 / 触摸 / 键盘 / 点击 ================= */
 function clampP(v: number) {
-  return Math.max(-1, Math.min(photos.value.length - 1, v))
+  return Math.max(0, Math.min(photos.value.length - 1, v))
 }
 
 let tweenTarget: number | null = null
@@ -376,35 +396,25 @@ onBeforeUnmount(() => {
   user-select: none;
 }
 
-/* ============ 开场 ============ */
-.fp-develop {
+/* ============ 暗房状态文案（同参考站：加载与过渡时居中浮现） ============ */
+.fp-status {
   position: absolute;
-  inset: 0;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  background: inherit;
-}
-
-.fp-develop span:first-child {
+  left: 0;
+  right: 0;
+  top: 49vh;
+  z-index: 9;
+  margin: 0;
   font-family: var(--font-display);
   font-size: 14px;
   letter-spacing: 0.04em;
   color: #71717a;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
 }
 
-.fp-develop-hint {
-  font-size: 12px;
-  color: #a1a1aa;
-  animation: fpFloatY 2.2s ease-in-out infinite;
-}
-
-@keyframes fpFloatY {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(5px); }
+[data-theme='dark'] .fp-status {
+  color: #8d8a96;
 }
 
 /* ============ 文字层（量自参考站：标题 15/500，刻度 1.5×28，月份两行） ============ */
@@ -530,8 +540,8 @@ onBeforeUnmount(() => {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fp-develop-hint {
-    animation: none;
+  .fp-tick {
+    transition: none;
   }
 }
 
