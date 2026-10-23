@@ -1,5 +1,5 @@
 <template>
-  <div class="film-card">
+  <div class="film-card" @click="enter" role="link" aria-label="进入胶片图集页" tabindex="0" @keydown.enter="enter">
     <div class="stage">
       <!-- 开场：冲洗底片中 -->
       <Transition name="develop">
@@ -7,7 +7,7 @@
       </Transition>
 
       <template v-if="!developing">
-        <!-- 照片层叠带：主图居中偏左 + 右侧等距渐远 -->
+        <!-- 照片层叠带：入口预览，点击整卡进入胶片页 -->
         <div v-if="photos.length" class="strip">
           <div
             v-for="(p, i) in photos"
@@ -15,7 +15,6 @@
             class="frame"
             :class="'pos-' + posOf(i)"
             v-show="posOf(i) <= 3"
-            @click="posOf(i) === 0 ? next(1) : go(i)"
           >
             <img :src="p.url" :alt="p.title || p.originalName" loading="lazy" />
           </div>
@@ -31,8 +30,8 @@
         <!-- 当前照片标题 -->
         <p class="photo-title">{{ currentTitle }}</p>
 
-        <!-- 刻度轴 -->
-        <div class="ticks" role="tablist" aria-label="切换照片">
+        <!-- 刻度轴（仅做预览切换） -->
+        <div class="ticks" role="tablist" aria-label="切换照片" @click.stop>
           <button
             v-for="(p, i) in photos"
             :key="p.id"
@@ -46,6 +45,9 @@
           <span class="d-month">{{ currentMonth }}</span>
           <span class="d-year">{{ currentYear }}</span>
         </div>
+
+        <!-- 进入提示 -->
+        <span class="enter-hint">进入 Film ↗</span>
       </template>
     </div>
 
@@ -54,13 +56,14 @@
         <span>我的图集</span>
         <span class="tp-year"> • {{ photos.length }} 张</span>
       </p>
-      <span class="caption-more">Film</span>
+      <span class="caption-more">进入 Film →</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useRouter } from 'vue-router'
 
 interface Photo {
   id: number
@@ -70,10 +73,15 @@ interface Photo {
   createTime?: string
 }
 
+const router = useRouter()
 const photos = ref<Photo[]>([])
 const loading = ref(true)
 const index = ref(0)
 const developing = ref(true)
+
+function enter() {
+  router.push('/film')
+}
 
 const currentTitle = computed(() => {
   const p = photos.value[index.value]
@@ -151,6 +159,7 @@ onBeforeUnmount(stopAuto)
   display: flex;
   flex-direction: column;
   gap: 12px;
+  cursor: pointer;
   animation: filmCardEnter 450ms cubic-bezier(0.25, 0.46, 0.45, 0.94) 300ms both;
 }
 
@@ -380,6 +389,38 @@ onBeforeUnmount(stopAuto)
 .photo-date .d-year {
   font-size: 11.5px;
   color: #a1a1aa;
+}
+
+/* 进入提示（悬停浮现） */
+.enter-hint {
+  position: absolute;
+  right: 16px;
+  top: 14px;
+  z-index: 6;
+  padding: 4px 12px 3.5px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #3f3f46;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(24, 24, 27, 0.08);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  transform: translateY(-3px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+
+[data-theme='dark'] .enter-hint {
+  color: #e4e4e7;
+  background: rgba(39, 39, 46, 0.85);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.film-card:hover .enter-hint,
+.film-card:focus-visible .enter-hint {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* ============ 空态 ============ */

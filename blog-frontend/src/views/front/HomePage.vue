@@ -361,9 +361,8 @@ onMounted(async () => {
   animation: projectCardEnter 450ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 
-/* 小组件行（音乐/图集）：与项目卡同规格的半宽卡 */
-.music-card,
-.film-card {
+/* 小组件行：音乐卡是播放器（默认光标），图集卡是入口（可点） */
+.music-card {
   cursor: default;
 }
 

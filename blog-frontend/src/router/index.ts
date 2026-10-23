@@ -29,6 +29,12 @@ const routes: RouteRecordRaw[] = [
     ]
   },
   {
+    // 沉浸式胶片页：整页滚动驱动换片，独立于站点布局（同 3D 画廊模式）
+    path: '/film',
+    name: 'Film',
+    component: () => import('@/views/front/FilmPage.vue'),
+  },
+  {
     // Fully immersive: the room is its own fullscreen shell, so it sits outside
     // FrontLayout rather than fighting the site header's stacking order.
     path: '/gallery/3d',
