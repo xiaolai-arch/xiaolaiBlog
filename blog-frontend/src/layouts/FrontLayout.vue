@@ -70,7 +70,7 @@
         <div class="footer-grid">
           <!-- 列 1：logo + 当地时间 -->
           <div class="footer-col footer-brand">
-            <router-link to="/" class="footer-logo">{{ siteTitle }}</router-link>
+            <router-link to="/" class="footer-logo">阿咲</router-link>
             <p class="footer-time">
               {{ localTime }} <span class="blink">•</span> {{ city }}
             </p>
