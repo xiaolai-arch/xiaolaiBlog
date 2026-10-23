@@ -6,57 +6,47 @@
       <span class="fp-brand">Film</span>
     </header>
 
-    <!-- 固定舞台：滚轮/触摸/键盘驱动换片 -->
-    <div class="fp-stage">
-      <!-- 开场：冲洗底片中 -->
-      <div class="fp-develop" :class="{ gone: !atIntro }" aria-hidden="true">
-        <span>rolling the negatives…</span>
-        <span class="fp-develop-hint">滚动或按 ↓ 开始翻看</span>
+    <!-- 照片带（scrub 渲染循环直接写样式） -->
+    <div class="fp-strip" ref="stripEl">
+      <button
+        v-for="(ph, i) in photos"
+        :key="ph.id"
+        :ref="el => setFrame(i, el as HTMLElement | null)"
+        class="fp-frame"
+        :aria-label="`查看 ${ph.title || ph.originalName || '照片'}`"
+        @click="onFrameClick(i)"
+      >
+        <img :src="ph.url" :alt="ph.title || ph.originalName" draggable="false" />
+      </button>
+    </div>
+
+    <!-- 开场：冲洗底片中 -->
+    <div class="fp-develop" ref="developEl" aria-hidden="true">
+      <span>rolling the negatives…</span>
+      <span class="fp-develop-hint">滚动或按 ↓ 开始翻看</span>
+    </div>
+
+    <!-- 文字层：标题 / 刻度 / 月份 -->
+    <div class="fp-text" ref="textEl" v-if="photos.length">
+      <p class="fp-title">{{ currentTitle }}</p>
+      <div class="fp-ticks" role="tablist" aria-label="切换照片">
+        <button
+          v-for="(ph, i) in photos"
+          :key="ph.id"
+          class="fp-tick"
+          :class="{ on: i === idx }"
+          :aria-label="`第 ${i + 1} 张`"
+          @click="tweenTo(i)"
+        ></button>
       </div>
+      <p class="fp-month">{{ currentMonth }}</p>
+      <p class="fp-year">{{ currentYear }}</p>
+    </div>
 
-      <template v-if="photos.length">
-        <div class="fp-strip" :class="{ 'fp-dim': atIntro }">
-          <div
-            v-for="(p, i) in photos"
-            :key="p.id"
-            class="fp-frame"
-            :class="'pos-' + posOf(i)"
-            v-show="posOf(i) <= 3"
-            @click="posOf(i) === 0 ? step(1) : go(i)"
-          >
-            <img :src="p.url" :alt="p.title || p.originalName" />
-          </div>
-        </div>
-
-        <p class="fp-title">{{ currentTitle }}</p>
-
-        <div class="fp-ticks" role="tablist" aria-label="切换照片">
-          <button
-            v-for="(p, i) in photos"
-            :key="p.id"
-            class="fp-tick"
-            :class="{ on: i === index }"
-            :aria-label="`第 ${i + 1} 张`"
-            @click="go(i)"
-          ></button>
-        </div>
-        <div class="fp-month">
-          <span>{{ currentMonth }}</span>
-          <span class="fp-year">{{ currentYear }}</span>
-        </div>
-
-        <!-- 左右切换 -->
-        <button class="fp-nav prev" aria-label="上一张" :disabled="atIntro" @click="step(-1)">‹</button>
-        <button class="fp-nav next" aria-label="下一张" @click="step(1)">›</button>
-
-        <div v-if="index === 0" class="fp-hint">继续滚动翻看照片</div>
-        <button v-if="atLast" class="fp-restart" @click="go(0)">↑ 回到第一张</button>
-      </template>
-
-      <div v-else class="fp-empty">
-        <p>{{ loading ? '加载中…' : '图库还没有照片' }}</p>
-        <p class="sub">后台「媒体」上传后展示在这里</p>
-      </div>
+    <!-- 空态 -->
+    <div v-if="!photos.length" class="fp-empty">
+      <p>{{ loading ? '加载中…' : '图库还没有照片' }}</p>
+      <p class="sub">后台「媒体」上传后展示在这里</p>
     </div>
   </div>
 </template>
@@ -70,109 +60,227 @@ interface Photo {
   title?: string
   originalName?: string
   createTime?: string
+  aspect: number
 }
 
 const photos = ref<Photo[]>([])
 const loading = ref(true)
-/* -1 = 开场"冲洗底片"屏，0..n-1 = 照片 */
-const index = ref(-1)
+/* 连续进度：-1 = 开场屏，0..n-1 = 照片（可有小数，scrub 插值） */
+const progress = ref(-1)
+const idx = computed(() => Math.round(progress.value))
 
-const atIntro = computed(() => index.value < 0)
-const atLast = computed(() => photos.value.length > 0 && index.value === photos.value.length - 1)
-
-const currentTitle = computed(() => photos.value[index.value]?.title || photos.value[index.value]?.originalName || '')
-
+const currentTitle = computed(
+  () => photos.value[idx.value]?.title || photos.value[idx.value]?.originalName || '',
+)
 const currentMonth = computed(() => {
-  const t = photos.value[index.value]?.createTime
-  if (!t) return ''
-  return `${parseInt(t.slice(5, 7), 10)} 月`
+  const t = photos.value[idx.value]?.createTime
+  return t ? `${parseInt(t.slice(5, 7), 10)} 月` : ''
 })
+const currentYear = computed(() => photos.value[idx.value]?.createTime?.slice(0, 4) || '')
 
-const currentYear = computed(() => photos.value[index.value]?.createTime?.slice(0, 4) || '')
-
-function posOf(i: number) {
-  const n = photos.value.length
-  if (!n) return 0
-  return (i - index.value + n) % n
+/* ================= DOM refs（渲染循环直写样式） ================= */
+const stripEl = ref<HTMLElement | null>(null)
+const developEl = ref<HTMLElement | null>(null)
+const textEl = ref<HTMLElement | null>(null)
+const frameEls: Array<HTMLElement | null> = []
+function setFrame(i: number, el: HTMLElement | null) {
+  frameEls[i] = el
 }
 
-/* ================= 换片（带过渡锁） ================= */
-const LOCK_MS = 850
-let lockedUntil = 0
+/* ================= 几何模型（量自参考站 1440 宽） =================
+   宽度曲线：焦点 480(=vw/3) → 邻位 293 → 76 → 72；透明度 1 → .771 → .505 → .5
+   照片等差横排 4px 间隙，焦点左缘固定 vw/3，垂直中线 46% */
+const W_PROFILE: Array<[number, number]> = [[0, 480], [1, 293], [2, 76], [3, 72]]
+const O_PROFILE: Array<[number, number]> = [[0, 1], [1, 0.771], [2, 0.505], [3, 0.5]]
 
-function go(i: number) {
+function profileValue(profile: Array<[number, number]>, d: number): number {
+  const x = Math.abs(d)
+  if (x >= profile[profile.length - 1][0]) return profile[profile.length - 1][1]
+  for (let k = 0; k < profile.length - 1; k++) {
+    const [x0, v0] = profile[k]
+    const [x1, v1] = profile[k + 1]
+    if (x >= x0 && x <= x1) return v0 + ((v1 - v0) * (x - x0)) / (x1 - x0)
+  }
+  return profile[profile.length - 1][1]
+}
+
+/* ================= scrub 渲染循环 ================= */
+let rafId: number | null = null
+
+function layout() {
   const n = photos.value.length
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const scale = vw / 1440
+  const gap = 4 * scale
+  const focusLeft = vw / 3
+  const midline = vh * 0.46
+  const p = progress.value
+
   if (!n) return
-  const target = Math.min(n - 1, Math.max(-1, i))
-  if (target !== index.value) {
-    index.value = target
-    lockedUntil = performance.now() + LOCK_MS
+
+  // 各照片宽度与累计 left
+  const widths: number[] = []
+  const lefts: number[] = []
+  let acc = 0
+  for (let i = 0; i < n; i++) {
+    const w = profileValue(W_PROFILE, i - p) * scale
+    widths.push(w)
+    lefts.push(acc)
+    acc += w + gap
+  }
+
+  // 轨道平移：把"虚拟焦点位置"（floor 与 ceil 照片 left 的插值）对齐到 vw/3
+  const i0 = Math.max(0, Math.min(n - 1, Math.floor(p)))
+  const i1 = Math.max(0, Math.min(n - 1, Math.ceil(p)))
+  const frac = Math.abs(p - Math.floor(p))
+  const virtualFocus = lefts[i0] + (lefts[i1] - lefts[i0]) * frac
+  const trackOffset = focusLeft - virtualFocus
+
+  for (let i = 0; i < n; i++) {
+    const el = frameEls[i]
+    if (!el) continue
+    const d = Math.abs(i - p)
+    if (d > 6) {
+      el.style.visibility = 'hidden'
+      continue
+    }
+    el.style.visibility = 'visible'
+    const w = widths[i]
+    const h = w / (photos.value[i].aspect || 1.5)
+    el.style.width = w + 'px'
+    el.style.height = h + 'px'
+    el.style.transform = `translate3d(${lefts[i] + trackOffset}px, ${midline - h / 2}px, 0)`
+    el.style.opacity = String(profileValue(O_PROFILE, i - p))
+    el.style.zIndex = String(100 - Math.round(d * 10))
+  }
+
+  // 开场遮罩与文字层透明度
+  if (developEl.value) {
+    developEl.value.style.opacity = String(Math.max(0, Math.min(1, -p)))
+    developEl.value.style.pointerEvents = p < -0.5 ? 'auto' : 'none'
+  }
+  if (textEl.value) {
+    const settled = 1 - Math.min(1, Math.abs(p - Math.round(p)) * 2.4)
+    textEl.value.style.opacity = String(Math.max(0, Math.min(1, settled)) * (p < -0.4 ? 0 : 1))
   }
 }
 
-function step(dir: 1 | -1) {
-  go(index.value + dir)
+function frameLoop() {
+  rafId = requestAnimationFrame(frameLoop)
+  if (tweenTarget !== null) {
+    const t = Math.min(1, (performance.now() - tweenStart) / 450)
+    const e = 1 - Math.pow(1 - t, 3)
+    progress.value = tweenFrom + (tweenTarget - tweenFrom) * e
+    if (t >= 1) tweenTarget = null
+  }
+  layout()
 }
 
-/* ================= 滚轮 / 触摸 / 键盘 ================= */
+/* ================= 交互：滚轮 / 触摸 / 键盘 / 点击 ================= */
+function clampP(v: number) {
+  return Math.max(-1, Math.min(photos.value.length - 1, v))
+}
+
+let tweenTarget: number | null = null
+let tweenFrom = 0
+let tweenStart = 0
+let snapTimer: number | null = null
+
+function tweenTo(t: number) {
+  tweenTarget = clampP(t)
+  tweenFrom = progress.value
+  tweenStart = performance.now()
+}
+
+function scheduleSnap() {
+  if (snapTimer !== null) window.clearTimeout(snapTimer)
+  snapTimer = window.setTimeout(() => tweenTo(Math.round(progress.value)), 260)
+}
+
 function onWheel(e: WheelEvent) {
-  if (Math.abs(e.deltaY) < 18) return
   e.preventDefault()
-  if (performance.now() < lockedUntil) return
-  step(e.deltaY > 0 ? 1 : -1)
+  if (Math.abs(e.deltaY) < 2) return
+  tweenTarget = null
+  progress.value = clampP(progress.value + e.deltaY / 890)
+  scheduleSnap()
 }
 
-let touchStartY = 0
-let touchStartX = 0
-
+let touchY = 0
+let touchX = 0
 function onTouchStart(e: TouchEvent) {
-  touchStartY = e.touches[0].clientY
-  touchStartX = e.touches[0].clientX
+  touchY = e.touches[0].clientY
+  touchX = e.touches[0].clientX
+  tweenTarget = null
 }
-
-function onTouchEnd(e: TouchEvent) {
-  const dy = touchStartY - e.changedTouches[0].clientY
-  const dx = touchStartX - e.changedTouches[0].clientX
-  if (Math.abs(dy) > 55 && Math.abs(dy) > Math.abs(dx)) {
-    if (performance.now() >= lockedUntil) step(dy > 0 ? 1 : -1)
+function onTouchMove(e: TouchEvent) {
+  const dy = touchY - e.touches[0].clientY
+  const dx = touchX - e.touches[0].clientX
+  if (Math.abs(dy) > Math.abs(dx)) {
+    progress.value = clampP(progress.value + dy / 890)
   }
+}
+function onTouchEnd() {
+  scheduleSnap()
 }
 
 function onKey(e: KeyboardEvent) {
   const k = e.key
   if (k === 'ArrowDown' || k === 'PageDown' || k === ' ' || k === 'ArrowRight') {
     e.preventDefault()
-    if (performance.now() >= lockedUntil) step(1)
+    tweenTo(Math.round(progress.value) + 1)
   } else if (k === 'ArrowUp' || k === 'PageUp' || k === 'ArrowLeft') {
     e.preventDefault()
-    if (performance.now() >= lockedUntil) step(-1)
+    tweenTo(Math.round(progress.value) - 1)
   } else if (k === 'Home') {
-    go(0)
+    tweenTo(0)
   } else if (k === 'End') {
-    go(photos.value.length - 1)
+    tweenTo(photos.value.length - 1)
   }
+}
+
+function onFrameClick(i: number) {
+  if (i === idx.value && Math.abs(progress.value - i) < 0.2) tweenTo(i + 1)
+  else tweenTo(i)
 }
 
 onMounted(async () => {
   try {
-    const res = await fetch('/api/v1/gallery/images?page=1&size=12')
+    const res = await fetch('/api/v1/gallery/images?page=1&size=24')
     const body = await res.json()
     if (body?.code === 200 && Array.isArray(body.data?.list)) {
-      photos.value = body.data.list
+      photos.value = body.data.list.map((p: Photo) => ({ ...p, aspect: 1.5 }))
+      // 读自然宽高比（未读到前按 3:2 兜底）
+      photos.value.forEach((p, i) => {
+        const img = new Image()
+        img.onload = () => {
+          if (img.naturalWidth && img.naturalHeight) {
+            photos.value[i].aspect = img.naturalWidth / img.naturalHeight
+          }
+        }
+        img.src = p.url
+      })
     }
   } catch (_) {}
   loading.value = false
   window.addEventListener('wheel', onWheel, { passive: false })
   window.addEventListener('touchstart', onTouchStart, { passive: true })
+  window.addEventListener('touchmove', onTouchMove, { passive: true })
   window.addEventListener('touchend', onTouchEnd, { passive: true })
   window.addEventListener('keydown', onKey)
+  window.addEventListener('resize', layout)
+  rafId = requestAnimationFrame(frameLoop)
 })
 
 onBeforeUnmount(() => {
+  if (rafId !== null) cancelAnimationFrame(rafId)
+  if (snapTimer !== null) window.clearTimeout(snapTimer)
   window.removeEventListener('wheel', onWheel)
   window.removeEventListener('touchstart', onTouchStart)
+  window.removeEventListener('touchmove', onTouchMove)
   window.removeEventListener('touchend', onTouchEnd)
   window.removeEventListener('keydown', onKey)
+  window.removeEventListener('resize', layout)
 })
 </script>
 
@@ -183,11 +291,11 @@ onBeforeUnmount(() => {
   height: 100dvh;
   overflow: hidden;
   overscroll-behavior: none;
-  background: linear-gradient(175deg, #fbfbfa, #f6f6f4 55%, #f2f2ef);
+  background: #fff;
 }
 
 [data-theme='dark'] .film-page {
-  background: linear-gradient(175deg, #202024, #1d1d21 55%, #232327);
+  background: #1c1c20;
 }
 
 /* ============ 顶栏 ============ */
@@ -235,75 +343,28 @@ onBeforeUnmount(() => {
   color: #e4e4e7;
 }
 
-/* ============ 舞台 ============ */
-.fp-stage {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-}
-
-/* 开场 */
-.fp-develop {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  z-index: 10;
-  transition: opacity 0.7s ease;
-}
-
-.fp-develop.gone {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.fp-develop span:first-child {
-  font-family: var(--font-display);
-  font-size: 17px;
-  letter-spacing: 0.1em;
-  color: #a1a1aa;
-}
-
-.fp-develop-hint {
-  font-size: 12px;
-  color: #c4c4ca;
-  animation: fpFloatY 2.2s ease-in-out infinite;
-}
-
-@keyframes fpFloatY {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(6px); }
-}
-
-/* ============ 照片层叠带 ============ */
+/* ============ 照片带 ============ */
 .fp-strip {
   position: absolute;
-  inset: 0 0 110px 0;
-  transition: opacity 0.7s ease;
-}
-
-.fp-strip.fp-dim {
-  opacity: 0;
+  inset: 0;
+  z-index: 5;
 }
 
 .fp-frame {
   position: absolute;
-  top: 50%;
-  left: 12vw;
-  width: 42vw;
-  aspect-ratio: 4 / 3;
-  border-radius: 8px;
+  top: 0;
+  left: 0;
+  padding: 0;
+  border: 1px solid rgba(24, 24, 27, 0.08);
+  border-radius: 4px;
   overflow: hidden;
-  box-shadow: 0 24px 60px rgba(24, 24, 27, 0.18);
+  background: transparent;
   cursor: pointer;
-  transition:
-    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.8s ease,
-    left 0.8s cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: transform, left, opacity;
+  will-change: transform, width, height, opacity;
+}
+
+[data-theme='dark'] .fp-frame {
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .fp-frame img {
@@ -312,102 +373,58 @@ onBeforeUnmount(() => {
   object-fit: cover;
   display: block;
   pointer-events: none;
+  user-select: none;
 }
 
-.pos-0 {
-  transform: translateY(-50%);
-  z-index: 5;
-  opacity: 1;
-}
-
-.pos-1 {
-  left: 40vw;
-  transform: translateY(-50%) scale(0.74);
-  z-index: 4;
-  opacity: 0.82;
-  box-shadow: 0 14px 36px rgba(24, 24, 27, 0.1);
-}
-
-.pos-2 {
-  left: 57vw;
-  transform: translateY(-50%) scale(0.56);
-  z-index: 3;
-  opacity: 0.5;
-  box-shadow: 0 10px 26px rgba(24, 24, 27, 0.07);
-}
-
-.pos-3 {
-  left: 70vw;
-  transform: translateY(-50%) scale(0.42);
-  z-index: 2;
-  opacity: 0.28;
-  box-shadow: 0 6px 18px rgba(24, 24, 27, 0.05);
-}
-
-.fp-frame:not(.pos-0):not(.pos-1):not(.pos-2):not(.pos-3) {
-  opacity: 0;
-  z-index: 1;
-  pointer-events: none;
-  left: 80vw;
-  transform: translateY(-50%) scale(0.32);
-}
-
-/* ============ 左右切换 ============ */
-.fp-nav {
+/* ============ 开场 ============ */
+.fp-develop {
   position: absolute;
-  top: 44%;
-  z-index: 8;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  border: 1px solid rgba(24, 24, 27, 0.1);
-  background: rgba(255, 255, 255, 0.85);
-  color: #3f3f46;
-  font-size: 20px;
-  line-height: 1;
+  inset: 0;
+  z-index: 10;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.25s, transform 0.25s;
-  backdrop-filter: blur(4px);
+  gap: 12px;
+  background: inherit;
 }
 
-[data-theme='dark'] .fp-nav {
-  background: rgba(39, 39, 46, 0.85);
-  border-color: rgba(255, 255, 255, 0.1);
-  color: #d4d4d8;
+.fp-develop span:first-child {
+  font-family: var(--font-display);
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: #71717a;
 }
 
-.fp-nav.prev { left: 22px; }
-.fp-nav.next { right: 22px; }
-
-.film-page:hover .fp-nav {
-  opacity: 1;
+.fp-develop-hint {
+  font-size: 12px;
+  color: #a1a1aa;
+  animation: fpFloatY 2.2s ease-in-out infinite;
 }
 
-.fp-nav:hover:not(:disabled) {
-  transform: scale(1.1);
+@keyframes fpFloatY {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(5px); }
 }
 
-.fp-nav:disabled {
-  opacity: 0.3 !important;
-  cursor: default;
+/* ============ 文字层（量自参考站：标题 15/500，刻度 1.5×28，月份两行） ============ */
+.fp-text {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
 }
 
-/* ============ 标题 / 刻度 / 月份 ============ */
 .fp-title {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 84px;
-  z-index: 6;
+  bottom: 21.5vh;
   margin: 0;
-  padding: 0 32px;
+  padding: 0 24px;
   font-size: 15px;
   font-weight: 500;
-  color: #3f3f46;
+  color: #38383a;
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
@@ -422,37 +439,36 @@ onBeforeUnmount(() => {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 52px;
-  z-index: 6;
+  bottom: 10.8vh;
   display: flex;
   align-items: flex-end;
   justify-content: center;
   gap: 7px;
-  height: 26px;
+  height: 44px;
+  pointer-events: auto;
 }
 
 .fp-tick {
-  width: 2px;
-  height: 13px;
+  width: 1.5px;
+  height: 28px;
   border: none;
   border-radius: 1px;
-  background: rgba(24, 24, 27, 0.22);
+  background: #e4e4e7;
   cursor: pointer;
   padding: 0;
-  transition: height 0.3s cubic-bezier(0.22, 1, 0.36, 1), background 0.3s;
+  transition: height 0.35s cubic-bezier(0.22, 1, 0.36, 1), background 0.35s;
 }
 
 [data-theme='dark'] .fp-tick {
-  background: rgba(255, 255, 255, 0.25);
+  background: #3f3f46;
 }
 
 .fp-tick:hover {
-  background: rgba(24, 24, 27, 0.5);
-  height: 17px;
+  background: #a1a1aa;
 }
 
 .fp-tick.on {
-  height: 26px;
+  height: 44px;
   background: #18181b;
 }
 
@@ -464,69 +480,34 @@ onBeforeUnmount(() => {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 16px;
-  z-index: 6;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
+  bottom: 4.4vh;
+  margin: 0;
   font-size: 14px;
-  line-height: 1.3;
-  color: #52525b;
+  font-weight: 500;
+  line-height: 1.35;
+  color: #7f7f87;
+  text-align: center;
+}
+
+.fp-year {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 2vh;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.35;
+  color: #a0a0a8;
+  text-align: center;
 }
 
 [data-theme='dark'] .fp-month {
   color: #a1a1aa;
 }
 
-.fp-year {
-  font-size: 12.5px;
-  color: #a1a1aa;
-}
-
-/* 提示 */
-.fp-hint {
-  position: absolute;
-  left: 50%;
-  bottom: 132px;
-  z-index: 6;
-  transform: translateX(-50%);
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  color: #a1a1aa;
-  animation: fpFloat 2.2s ease-in-out infinite;
-}
-
-@keyframes fpFloat {
-  0%, 100% { transform: translate(-50%, 0); }
-  50% { transform: translate(-50%, 6px); }
-}
-
-.fp-restart {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: 132px;
-  z-index: 6;
-  border: none;
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(24, 24, 27, 0.08);
-  border-radius: 999px;
-  padding: 6px 16px;
-  font-size: 12.5px;
-  color: #3f3f46;
-  cursor: pointer;
-  backdrop-filter: blur(6px);
-}
-
-[data-theme='dark'] .fp-restart {
-  background: rgba(39, 39, 46, 0.85);
-  border-color: rgba(255, 255, 255, 0.1);
-  color: #d4d4d8;
-}
-
-.fp-restart:hover {
-  transform: translateX(-50%) translateY(-2px);
+[data-theme='dark'] .fp-year {
+  color: #8d8a96;
 }
 
 /* ============ 空态 ============ */
@@ -540,6 +521,7 @@ onBeforeUnmount(() => {
   gap: 6px;
   color: #a1a1aa;
   font-size: 15px;
+  z-index: 6;
 }
 
 .fp-empty .sub {
@@ -548,10 +530,6 @@ onBeforeUnmount(() => {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fp-frame {
-    transition: none;
-  }
-  .fp-hint,
   .fp-develop-hint {
     animation: none;
   }
@@ -563,32 +541,13 @@ onBeforeUnmount(() => {
     padding: 16px 20px;
   }
 
-  .fp-frame {
-    left: 6vw;
-    width: 58vw;
-  }
-
-  .pos-1 { left: 52vw; }
-  .pos-2 { left: 74vw; }
-  .pos-3 { left: 88vw; }
-
   .fp-title {
-    bottom: 92px;
-    font-size: 13.5px;
+    bottom: 24vh;
+    font-size: 14px;
   }
 
   .fp-ticks {
-    bottom: 58px;
-  }
-
-  .fp-month {
-    bottom: 18px;
-  }
-
-  .fp-nav {
-    opacity: 1;
-    width: 34px;
-    height: 34px;
+    bottom: 12vh;
   }
 }
 </style>
