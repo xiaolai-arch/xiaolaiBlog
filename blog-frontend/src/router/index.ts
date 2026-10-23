@@ -17,10 +17,10 @@ const routes: RouteRecordRaw[] = [
       { path: 'gallery', name: 'Gallery', component: () => import('@/views/front/GalleryPage.vue') },
       { path: 'projects', name: 'Projects', component: () => import('@/views/front/ProjectsPage.vue') },
       { path: 'tools', name: 'Tools', component: () => import('@/views/front/ToolsPage.vue') },
-      { path: 'tools/markdown', name: 'ToolMarkdown', component: () => import('@/views/front/MarkdownToolPage.vue') },
-      { path: 'leetcode', name: 'LeetCode', component: () => import('@/views/front/LeetCodePage.vue') },
-      { path: 'cet4', name: 'CET4', component: () => import('@/views/front/CET4Page.vue') },
-      { path: 'agent', name: 'AgentSprint', component: () => import('@/views/front/AgentSprintPage.vue') },
+      { path: 'tools/markdown', name: 'ToolMarkdown', component: () => import('@/views/front/MarkdownToolPage.vue'), meta: { requiresAuth: true } },
+      { path: 'leetcode', name: 'LeetCode', component: () => import('@/views/front/LeetCodePage.vue'), meta: { requiresAuth: true } },
+      { path: 'cet4', name: 'CET4', component: () => import('@/views/front/CET4Page.vue'), meta: { requiresAuth: true } },
+      { path: 'agent', name: 'AgentSprint', component: () => import('@/views/front/AgentSprintPage.vue'), meta: { requiresAuth: true } },
       { path: 'study', name: 'Study', component: () => import('@/views/front/StudyPage.vue') },
       { path: 'about', name: 'About', component: () => import('@/views/front/AboutPage.vue') },
       { path: 'changelog', name: 'Changelog', component: () => import('@/views/front/ChangelogPage.vue') },
@@ -34,6 +34,11 @@ const routes: RouteRecordRaw[] = [
     path: '/gallery/3d',
     name: 'Gallery3D',
     component: () => import('@/views/front/GalleryRoomPage.vue'),
+  },
+  {
+    path: '/login',
+    name: 'Auth',
+    component: () => import('@/views/AuthPage.vue'),
   },
   {
     path: '/admin',
@@ -63,16 +68,25 @@ const router = createRouter({
 
 router.beforeEach((to, _from, next) => {
   document.title = (to.meta.title as string) || 'Xiaolai Blog'
+  const token = localStorage.getItem('token')
+  let user: any = null
+  try {
+    user = JSON.parse(localStorage.getItem('user') || 'null')
+  } catch (_) {}
+
   if (to.meta.requiresAuth) {
-    const token = localStorage.getItem('token')
-    if (!token && to.name !== 'AdminLogin') {
-      next({ name: 'AdminLogin' })
-    } else {
-      next()
+    // 管理后台：需要管理员角色；前台工具页：登录即可
+    if (to.path.startsWith('/admin')) {
+      if (!token || user?.role !== 'admin') {
+        next({ name: 'AdminLogin' })
+        return
+      }
+    } else if (!token) {
+      next({ path: '/login', query: { redirect: to.fullPath } })
+      return
     }
-  } else {
-    next()
   }
+  next()
 })
 
 export default router

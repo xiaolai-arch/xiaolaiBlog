@@ -21,8 +21,14 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
-      if (window.location.pathname.startsWith('/admin') && window.location.pathname !== '/admin/login') {
-        window.location.href = '/admin/login'
+      if (window.location.pathname !== '/login') {
+        if (window.location.pathname.startsWith('/admin')) {
+          if (window.location.pathname !== '/admin/login') {
+            window.location.href = '/admin/login'
+          }
+        } else {
+          window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
+        }
       }
     }
     return Promise.reject(error)

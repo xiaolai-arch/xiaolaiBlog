@@ -56,9 +56,10 @@ public class AuthController {
                     .set(User::getLockTime, null)
             );
 
-            String token = jwtTokenProvider.generateToken(dto.getUsername());
+            String token = jwtTokenProvider.generateToken(dto.getUsername(), user.getRole());
             Map<String, Object> userMap = new HashMap<>();
             userMap.put("username", user.getUsername());
+            userMap.put("role", user.getRole());
             userMap.put("nickname", user.getNickname());
             userMap.put("avatar", user.getAvatar());
             return Result.success(Map.of("token", token, "user", userMap));
