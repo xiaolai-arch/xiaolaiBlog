@@ -63,17 +63,20 @@ type TourStep = { sel: string; holdMs: number }
 const nextSteps = (n = 1): TourStep[] =>
   Array.from({ length: n }, () => ({ sel: '[aria-label="Next painting"]', holdMs: 1000 }))
 const zoomSteps = (label: 'Zoom in' | 'Zoom out', n = 1): TourStep[] =>
-  Array.from({ length: n }, () => ({ sel: `[aria-label="${label}"]`, holdMs: 1000 }))
+  // 缩放运镜本身仅 0.22s，停留 0.48s 让连续点按干脆利落
+  Array.from({ length: n }, () => ({ sel: `[aria-label="${label}"]`, holdMs: 480 }))
 /**
- * 主循环 5s（5 幅 × 1s 纯巡馆）；缩放不再逐幅演示，每 4 圈插入一段
- * 原地“放大两级 → 缩回两级”的呼吸式演示，随后继续巡馆。
+ * 主循环 5s（5 幅 × 1s 纯巡馆）；每 2 圈插入一段原地“三级放大 → 三级缩回”
+ * 的呼吸式演示（点按间隔 0.48s，节奏明快），随后继续巡馆。
  */
 const GALLERY_TOUR_SCRIPT: TourStep[] = [
   ...nextSteps(5),
+  ...zoomSteps('Zoom in', 3),
+  ...zoomSteps('Zoom out', 3),
+  ...nextSteps(1),
   ...nextSteps(5),
-  ...nextSteps(5),
-  ...zoomSteps('Zoom in', 2),
-  ...zoomSteps('Zoom out', 2),
+  ...zoomSteps('Zoom in', 3),
+  ...zoomSteps('Zoom out', 3),
   ...nextSteps(1),
 ]
 let tourStep = 0
