@@ -26,7 +26,7 @@
     <!-- 文字层：标题 / 刻度 / 月份 -->
     <div class="fp-text" ref="textEl" v-if="photos.length">
       <p v-if="currentTitle" class="fp-title">{{ currentTitle }}</p>
-      <div class="fp-ticks" role="tablist" aria-label="切换照片">
+      <div class="fp-ticks" role="tablist" aria-label="切换照片" @mouseleave="hoverTick = -1">
         <button
           v-for="(ph, i) in photos"
           :key="ph.id"
@@ -34,7 +34,10 @@
           :class="{ on: i === idx }"
           :aria-label="`第 ${i + 1} 张`"
           @click="tweenTo(i)"
-        ></button>
+          @mouseenter="hoverTick = i"
+        >
+          <span :ref="el => setTick(i, el as HTMLElement | null)"></span>
+        </button>
       </div>
       <p class="fp-month">{{ currentMonth }}</p>
       <p class="fp-year">{{ currentYear }}</p>
@@ -94,6 +97,53 @@ const textEl = ref<HTMLElement | null>(null)
 const frameEls: Array<HTMLElement | null> = []
 function setFrame(i: number, el: HTMLElement | null) {
   frameEls[i] = el
+}
+
+/* ================= 刻度条（复刻 film-linemark-scale.ts） =================
+   高度 = 基础28 + 二次衰减增益8（|d|≤6），当前张×2，悬停附近4根再+14 二次衰减；逐帧 lerp 平滑 */
+const hoverTick = ref(-1)
+const tickSpans: Array<HTMLElement | null> = []
+const tickHeights: number[] = []
+function setTick(i: number, el: HTMLElement | null) {
+  tickSpans[i] = el
+}
+let lastProgress = 0
+
+const LINEMARK_MIN = 28
+const LINEMARK_INTENSITY = 8
+const LINEMARK_LIMIT = 6
+const LINEMARK_SELECTED_MULT = 2
+const LINEMARK_HOVER_BONUS = 14
+const LINEMARK_HOVER_LIMIT = 4
+const LINEMARK_IDLE_LERP = 0.14
+
+function linemarkTarget(d: number): number {
+  if (d > LINEMARK_LIMIT) return LINEMARK_MIN
+  const nd = 1 - d / LINEMARK_LIMIT
+  return LINEMARK_MIN + LINEMARK_INTENSITY * nd * nd
+}
+
+function layoutTicks(p: number, reduced: boolean) {
+  const sel = Math.round(p)
+  const vel = Math.abs(p - lastProgress)
+  lastProgress = p
+  const t = reduced ? 1 : Math.max(LINEMARK_IDLE_LERP, Math.min(1, vel * 55))
+  for (let i = 0; i < photos.value.length; i++) {
+    const el = tickSpans[i]
+    if (!el) continue
+    let target = linemarkTarget(Math.abs(i - p))
+    if (i === sel) target *= LINEMARK_SELECTED_MULT
+    if (hoverTick.value >= 0) {
+      const hd = Math.abs(i - hoverTick.value)
+      if (hd <= LINEMARK_HOVER_LIMIT) {
+        const nd = 1 - hd / LINEMARK_HOVER_LIMIT
+        target += LINEMARK_HOVER_BONUS * nd * nd
+      }
+    }
+    if (tickHeights[i] === undefined) tickHeights[i] = LINEMARK_MIN
+    tickHeights[i] += (target - tickHeights[i]) * t
+    el.style.height = tickHeights[i].toFixed(2) + 'px'
+  }
 }
 
 /* ================= 几何模型（量自参考站 1440 宽） =================
@@ -194,7 +244,10 @@ function frameLoop() {
     if (t >= 1) tweenTarget = null
   }
   layout()
+  layoutTicks(progress.value, reducedMotion)
 }
+
+let reducedMotion = false
 
 /* ================= 交互：滚轮 / 触摸 / 键盘 / 点击 ================= */
 function clampP(v: number) {
@@ -264,6 +317,7 @@ function onFrameClick(i: number) {
 }
 
 onMounted(async () => {
+  reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   try {
     const res = await fetch('/api/v1/gallery/images?page=1&size=24')
     const body = await res.json()
@@ -444,44 +498,50 @@ onBeforeUnmount(() => {
   color: #d4d4d8;
 }
 
+/* 刻度条（几何与色彩复刻源码：按钮宽6 gap4，内条1.5px，idle #e4e4e7 / active #27272a） */
 .fp-ticks {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 10.8vh;
+  bottom: 9vh;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 7px;
-  height: 44px;
+  gap: 4px;
+  min-height: 84px;
   pointer-events: auto;
+  touch-action: none;
 }
 
 .fp-tick {
-  width: 1.5px;
-  height: 28px;
+  width: 6px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 6px 0;
+  margin: -6px 0;
   border: none;
-  border-radius: 1px;
-  background: #e4e4e7;
+  background: transparent;
   cursor: pointer;
-  padding: 0;
-  transition: height 0.35s cubic-bezier(0.22, 1, 0.36, 1), background 0.35s;
 }
 
-[data-theme='dark'] .fp-tick {
+.fp-tick span {
+  display: block;
+  width: 1.5px;
+  height: 28px;
+  border-radius: 999px;
+  background: #e4e4e7;
+}
+
+.fp-tick.on span {
+  background: #27272a;
+}
+
+[data-theme='dark'] .fp-tick span {
   background: #3f3f46;
 }
 
-.fp-tick:hover {
-  background: #a1a1aa;
-}
-
-.fp-tick.on {
-  height: 44px;
-  background: #18181b;
-}
-
-[data-theme='dark'] .fp-tick.on {
+[data-theme='dark'] .fp-tick.on span {
   background: #f4f4f5;
 }
 
