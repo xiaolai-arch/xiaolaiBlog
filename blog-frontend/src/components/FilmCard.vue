@@ -27,8 +27,8 @@
           <p class="empty-sub">后台「媒体」上传后展示在这里</p>
         </div>
 
-        <!-- 当前照片标题 -->
-        <p class="photo-title">{{ currentTitle }}</p>
+        <!-- 照片标题（仅后台填了标题时显示，不展示文件名） -->
+        <p v-if="currentTitle" class="photo-title">{{ currentTitle }}</p>
 
         <!-- 刻度轴（仅做预览切换） -->
         <div class="ticks" role="tablist" aria-label="切换照片" @click.stop>
@@ -85,8 +85,7 @@ function enter() {
 
 const currentTitle = computed(() => {
   const p = photos.value[index.value]
-  if (!p) return ''
-  return p.title || p.originalName || ''
+  return p?.title?.trim() || ''
 })
 
 const currentMonth = computed(() => {

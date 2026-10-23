@@ -25,7 +25,7 @@
 
     <!-- 文字层：标题 / 刻度 / 月份 -->
     <div class="fp-text" ref="textEl" v-if="photos.length">
-      <p class="fp-title">{{ currentTitle }}</p>
+      <p v-if="currentTitle" class="fp-title">{{ currentTitle }}</p>
       <div class="fp-ticks" role="tablist" aria-label="切换照片">
         <button
           v-for="(ph, i) in photos"
@@ -79,9 +79,8 @@ const statusText = ref(DARKROOM[0])
 let phraseIdx = 0
 let inTransition = false
 
-const currentTitle = computed(
-  () => photos.value[idx.value]?.title || photos.value[idx.value]?.originalName || '',
-)
+/* 标题仅在后台填了图片标题时展示，不回退显示文件名 */
+const currentTitle = computed(() => photos.value[idx.value]?.title?.trim() || '')
 const currentMonth = computed(() => {
   const t = photos.value[idx.value]?.createTime
   return t ? `${parseInt(t.slice(5, 7), 10)} 月` : ''
