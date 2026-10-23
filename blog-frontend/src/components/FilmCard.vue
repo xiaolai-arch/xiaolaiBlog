@@ -441,7 +441,7 @@ onBeforeUnmount(stopAuto)
   opacity: 0.8;
 }
 
-/* ============ 说明行 ============ */
+/* ============ 说明行：隐式显示，悬停卡片时浮现 ============ */
 .card-caption {
   display: flex;
   align-items: flex-start;
@@ -451,6 +451,15 @@ onBeforeUnmount(stopAuto)
   font-size: 16px;
   line-height: 1.375;
   letter-spacing: 0.005em;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+
+.film-card:hover .card-caption,
+.film-card:focus-visible .card-caption {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .caption-title {
@@ -469,12 +478,6 @@ onBeforeUnmount(stopAuto)
 .caption-more {
   margin-left: auto;
   color: #60a5fa;
-  opacity: 0;
-  transition: opacity 0.3s ease-out;
-}
-
-.film-card:hover .caption-more {
-  opacity: 1;
 }
 
 @keyframes filmCardEnter {
@@ -515,8 +518,10 @@ onBeforeUnmount(stopAuto)
     opacity: 1;
   }
 
-  .caption-more {
+  /* 触屏无悬停：说明行常显 */
+  .card-caption {
     opacity: 1;
+    transform: none;
   }
 }
 </style>

@@ -464,7 +464,7 @@ onMounted(async () => {
   margin: -6px 0 2px;
 }
 
-/* 非 featured：标题行 + Try It Out */
+/* 非 featured：标题行 + Try It Out（隐式显示，悬停卡片时浮现） */
 .card-caption {
   display: flex;
   align-items: flex-start;
@@ -474,6 +474,15 @@ onMounted(async () => {
   font-size: 16px;
   line-height: 1.375;
   letter-spacing: 0.005em;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+
+.project-card:hover .card-caption,
+.project-card:focus-visible .card-caption {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .caption-title {
@@ -488,13 +497,7 @@ onMounted(async () => {
 .caption-try {
   margin-left: auto;
   color: #60a5fa;
-  opacity: 0;
-  transition: opacity 0.3s ease-out;
   flex-shrink: 0;
-}
-
-.project-card:hover .caption-try {
-  opacity: 1;
 }
 
 /* ============ 动画 ============ */
@@ -562,8 +565,10 @@ onMounted(async () => {
 
   .tp-dot,
   .tp-try,
-  .caption-try {
+  /* 触屏无悬停：说明行常显 */
+  .card-caption {
     opacity: 1;
+    transform: none;
   }
 }
 </style>
