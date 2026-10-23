@@ -41,10 +41,6 @@
             @click="go(i)"
           ></button>
         </div>
-        <div class="photo-date">
-          <span class="d-month">{{ currentMonth }}</span>
-          <span class="d-year">{{ currentYear }}</span>
-        </div>
 
       </template>
     </div>
@@ -84,18 +80,6 @@ function enter() {
 const currentTitle = computed(() => {
   const p = photos.value[index.value]
   return p?.title?.trim() || ''
-})
-
-const currentMonth = computed(() => {
-  const p = photos.value[index.value]
-  if (!p?.createTime) return ''
-  const m = parseInt(p.createTime.slice(5, 7), 10)
-  return `${m} 月`
-})
-
-const currentYear = computed(() => {
-  const p = photos.value[index.value]
-  return p?.createTime ? p.createTime.slice(0, 4) : ''
 })
 
 /* i 相对当前张的偏移位置：0=主图，1..3=右侧渐远 */
@@ -366,26 +350,6 @@ onBeforeUnmount(stopAuto)
 
 [data-theme='dark'] .tick.on {
   background: #f4f4f5;
-}
-
-.photo-date {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 12px;
-  z-index: 5;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
-  font-size: 12.5px;
-  line-height: 1.25;
-  color: #52525b;
-}
-
-.photo-date .d-year {
-  font-size: 11.5px;
-  color: #a1a1aa;
 }
 
 /* ============ 空态 ============ */

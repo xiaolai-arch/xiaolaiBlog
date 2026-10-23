@@ -74,7 +74,10 @@ const currentTitle = computed(() => photos.value[idx.value]?.title?.trim() || ''
 
 const currentMonth = computed(() => {
   const t = photos.value[idx.value]?.createTime
-  return t ? `${parseInt(t.slice(5, 7), 10)} 月` : ''
+  if (!t) return ''
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December']
+  return MONTHS[parseInt(t.slice(5, 7), 10) - 1] || ''
 })
 const currentYear = computed(() => photos.value[idx.value]?.createTime?.slice(0, 4) || '')
 
