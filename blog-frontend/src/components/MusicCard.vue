@@ -23,8 +23,6 @@
           <span class="f-artist">{{ featuredSong.artist }}</span>
         </p>
       </Transition>
-
-      <span class="enter-hint">进入 Library ↗</span>
     </div>
 
     <div class="card-caption">
@@ -275,38 +273,6 @@ onBeforeUnmount(() => {
 .songfade-leave-to {
   opacity: 0;
   transform: translateY(-5px);
-}
-
-/* 进入提示（悬停浮现，浅色胶囊） */
-.enter-hint {
-  position: absolute;
-  right: 16px;
-  top: 14px;
-  z-index: 3;
-  padding: 4px 12px 3.5px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 500;
-  color: #3f3f46;
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(24, 24, 27, 0.08);
-  backdrop-filter: blur(6px);
-  opacity: 0;
-  transform: translateY(-3px);
-  transition: opacity 0.3s ease, transform 0.3s ease;
-  pointer-events: none;
-}
-
-[data-theme='dark'] .enter-hint {
-  color: #e4e4e7;
-  background: rgba(39, 39, 46, 0.85);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-.music-card:hover .enter-hint,
-.music-card:focus-visible .enter-hint {
-  opacity: 1;
-  transform: translateY(0);
 }
 
 /* ============ 说明行：隐式显示，悬停卡片时浮现 ============ */
