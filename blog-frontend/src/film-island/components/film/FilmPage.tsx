@@ -37,10 +37,9 @@ const FILM_IMG_WIDTH_DESKTOP = 828;
 const FILM_IMG_WIDTH_MOBILE = 640;
 const FILM_IMG_QUALITY = 75;
 
-function filmOptimizedSrc(src: string, mobile = false): string {
-  if (!src || src.startsWith('/_next/image')) return src;
-  const w = mobile ? FILM_IMG_WIDTH_MOBILE : FILM_IMG_WIDTH_DESKTOP;
-  return `/_next/image?url=${encodeURIComponent(src)}&w=${w}&q=${FILM_IMG_QUALITY}`;
+function filmOptimizedSrc(src: string, _mobile = false): string {
+  // 原版走 Next.js 图片优化服务（/_next/image），本项目无该服务，直接用原图。
+  return src ?? '';
 }
 
 const BASE_WIDTH = 120;
