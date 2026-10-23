@@ -13,7 +13,7 @@
         :key="ph.id"
         :ref="el => setFrame(i, el as HTMLElement | null)"
         class="fp-frame"
-        :aria-label="`查看 ${ph.title || ph.originalName || '照片'}`"
+        :aria-label="`查看 ${ph.title || '照片'}`"
         @click="onFrameClick(i)"
       >
         <img :src="ph.url" :alt="ph.title || ph.originalName" draggable="false" />
@@ -69,6 +69,15 @@ const loading = ref(true)
 const progress = ref(0)
 const idx = computed(() => Math.round(progress.value))
 
+/* 标题仅在后台填了图片标题时展示，不回退显示文件名 */
+const currentTitle = computed(() => photos.value[idx.value]?.title?.trim() || '')
+
+const currentMonth = computed(() => {
+  const t = photos.value[idx.value]?.createTime
+  return t ? `${parseInt(t.slice(5, 7), 10)} 月` : ''
+})
+const currentYear = computed(() => photos.value[idx.value]?.createTime?.slice(0, 4) || '')
+
 /* 暗房文案：加载与切换过渡时轮换（取自参考站） */
 const DARKROOM = [
   'rolling the negatives…',
@@ -82,14 +91,6 @@ const statusText = ref(DARKROOM[0])
 let phraseIdx = 0
 let inTransition = false
 
-/* 标题仅在后台填了图片标题时展示，不回退显示文件名 */
-const currentTitle = computed(() => photos.value[idx.value]?.title?.trim() || '')
-const currentMonth = computed(() => {
-  const t = photos.value[idx.value]?.createTime
-  return t ? `${parseInt(t.slice(5, 7), 10)} 月` : ''
-})
-const currentYear = computed(() => photos.value[idx.value]?.createTime?.slice(0, 4) || '')
-
 /* ================= DOM refs（渲染循环直写样式） ================= */
 const stripEl = ref<HTMLElement | null>(null)
 const statusEl = ref<HTMLElement | null>(null)
@@ -99,8 +100,7 @@ function setFrame(i: number, el: HTMLElement | null) {
   frameEls[i] = el
 }
 
-/* ================= 刻度条（复刻 film-linemark-scale.ts） =================
-   高度 = 基础28 + 二次衰减增益8（|d|≤6），当前张×2，悬停附近4根再+14 二次衰减；逐帧 lerp 平滑 */
+/* ================= 刻度条（复刻 film-linemark-scale.ts） ================= */
 const hoverTick = ref(-1)
 const tickSpans: Array<HTMLElement | null> = []
 const tickHeights: number[] = []
@@ -146,72 +146,118 @@ function layoutTicks(p: number, reduced: boolean) {
   }
 }
 
-/* ================= 几何模型（量自参考站 1440 宽） =================
-   宽度曲线：焦点 480(=vw/3) → 邻位 293 → 76 → 72；透明度 1 → .771 → .505 → .5
-   照片等差横排 4px 间隙，焦点左缘固定 vw/3，垂直中线 46% */
-const W_PROFILE: Array<[number, number]> = [[0, 480], [1, 293], [2, 76], [3, 72]]
-const O_PROFILE: Array<[number, number]> = [[0, 1], [1, 0.771], [2, 0.505], [3, 0.5]]
+/* ================= 照片带几何（复刻 FilmPage.tsx 布局常量） =================
+   绝对像素尺寸：槽宽 120px / 移动 72px，间距 4px；宽度在 72 与
+   min(480, 横图495/竖图 bw×2.2) 之间按 smoothstep 曲线过渡（范围 2.12 槽位）；
+   焦点照片中心锚定屏幕中线，纵向 midY 同源码 play band/timeline 公式 */
+const GAP = 4
+const BASE_W_DESKTOP = 120
+const BASE_W_MOBILE = 72
+const W_COLLAPSED = 72
+const W_EXPANDED_MAX = 480
+const LANDSCAPE_CENTER_MAX = 495
+const PORTRAIT_CENTER_SCALE_DESKTOP = 2.2
+const PORTRAIT_CENTER_SCALE_MOBILE = 1.92
+const WIDEN_SLOT_RANGE = 2.12
 
-function profileValue(profile: Array<[number, number]>, d: number): number {
-  const x = Math.abs(d)
-  if (x >= profile[profile.length - 1][0]) return profile[profile.length - 1][1]
-  for (let k = 0; k < profile.length - 1; k++) {
-    const [x0, v0] = profile[k]
-    const [x1, v1] = profile[k + 1]
-    if (x >= x0 && x <= x1) return v0 + ((v1 - v0) * (x - x0)) / (x1 - x0)
-  }
-  return profile[profile.length - 1][1]
+const INTRO_STAGGER_MS = 60
+const INTRO_FADE_MS = 520
+const INTRO_SLIDE_PX = 18
+
+let introStart: number | null = null
+
+function smoothstep(t: number): number {
+  const c = Math.max(0, Math.min(1, t))
+  return c * c * (3 - 2 * c)
 }
 
-/* ================= scrub 渲染循环 ================= */
-let rafId: number | null = null
+function clampAspect(ar: number): number {
+  return Math.min(3, Math.max(0.35, ar || 1))
+}
+
+function frameWidthOpacity(i: number, p: number, vw: number): { w: number; op: number } {
+  const mobile = vw < 640
+  const bw = mobile ? BASE_W_MOBILE : BASE_W_DESKTOP
+  const ar = clampAspect(photos.value[i].aspect)
+  const d = Math.abs(p - i)
+  const u = Math.min(1, d / WIDEN_SLOT_RANGE)
+  const widenT = smoothstep(1 - u)
+  const collapsed = Math.min(W_COLLAPSED, bw)
+  const expanded = Math.min(
+    W_EXPANDED_MAX,
+    ar > 1
+      ? mobile
+        ? vw * 0.64
+        : LANDSCAPE_CENTER_MAX
+      : bw * (mobile ? PORTRAIT_CENTER_SCALE_MOBILE : PORTRAIT_CENTER_SCALE_DESKTOP),
+  )
+  return { w: collapsed + (expanded - collapsed) * widenT, op: 0.5 + 0.5 * widenT }
+}
+
+/* 照片带垂直中线（同源码：play band 底与 timeline 顶之间的中点） */
+function stripMidY(vh: number, mobile: boolean): number {
+  const rem = 16
+  const playBarTop = Math.max(1.625 * rem + vh * 0.07, 2.75 * rem)
+  const playBandBottom = playBarTop + 40
+  const timelineInset = Math.max(0.375 * rem + vh * 0.025, 0.75 * rem)
+  const reserve = timelineInset + (mobile ? 148 : 172)
+  return (playBandBottom + (vh - reserve)) / 2
+}
 
 function layout() {
   const n = photos.value.length
+  if (!n) return
   const vw = window.innerWidth
   const vh = window.innerHeight
-  const scale = vw / 1440
-  const gap = 4 * scale
-  const focusLeft = vw / 3
-  const midline = vh * 0.46
+  const mobile = vw < 640
+  const midY = stripMidY(vh, mobile)
   const p = progress.value
 
-  if (!n) return
-
-  // 各照片宽度与累计 left
+  // 各照片宽度/高度与累计 left（间距 4px 累积排布）
   const widths: number[] = []
+  const heights: number[] = []
+  const ops: number[] = []
   const lefts: number[] = []
   let acc = 0
   for (let i = 0; i < n; i++) {
-    const w = profileValue(W_PROFILE, i - p) * scale
+    const { w, op } = frameWidthOpacity(i, p, vw)
+    const h = w / clampAspect(photos.value[i].aspect)
     widths.push(w)
+    heights.push(h)
+    ops.push(op)
     lefts.push(acc)
-    acc += w + gap
+    acc += w + GAP
   }
 
-  // 轨道平移：把"虚拟焦点位置"（floor 与 ceil 照片 left 的插值）对齐到 vw/3
+  // 轨道平移：把焦点照片中心（floor/ceil 插值）锚定屏幕中线
   const i0 = Math.max(0, Math.min(n - 1, Math.floor(p)))
   const i1 = Math.max(0, Math.min(n - 1, Math.ceil(p)))
   const frac = Math.abs(p - Math.floor(p))
-  const virtualFocus = lefts[i0] + (lefts[i1] - lefts[i0]) * frac
-  const trackOffset = focusLeft - virtualFocus
+  const c0 = lefts[i0] + widths[i0] / 2
+  const c1 = lefts[i1] + widths[i1] / 2
+  const trackOffset = vw / 2 - (c0 + (c1 - c0) * frac)
+
+  // 入场：每张错峰 60ms、520ms 淡入 + 18px 滑入
+  const now = performance.now()
+  if (introStart === null) introStart = now
+  const introActive = now - introStart < (n - 1) * INTRO_STAGGER_MS + INTRO_FADE_MS + 80
 
   for (let i = 0; i < n; i++) {
     const el = frameEls[i]
     if (!el) continue
-    const d = Math.abs(i - p)
-    if (d > 6) {
-      el.style.visibility = 'hidden'
-      continue
+    el.style.left = lefts[i] + trackOffset + 'px'
+    el.style.top = midY - heights[i] / 2 + 'px'
+    el.style.width = widths[i] + 'px'
+    el.style.height = heights[i] + 'px'
+    el.style.zIndex = String(100 - Math.round(Math.abs(i - p) * 10))
+
+    let introL = 1
+    if (introActive) {
+      const u = Math.max(0, Math.min(1, (now - introStart - i * INTRO_STAGGER_MS) / INTRO_FADE_MS))
+      introL = smoothstep(u)
     }
-    el.style.visibility = 'visible'
-    const w = widths[i]
-    const h = w / (photos.value[i].aspect || 1.5)
-    el.style.width = w + 'px'
-    el.style.height = h + 'px'
-    el.style.transform = `translate3d(${lefts[i] + trackOffset}px, ${midline - h / 2}px, 0)`
-    el.style.opacity = String(profileValue(O_PROFILE, i - p))
-    el.style.zIndex = String(100 - Math.round(d * 10))
+    el.style.opacity = String(introL < 1 ? ops[i] * introL : ops[i])
+    el.style.transform = introL < 1 ? `translate3d(${-(1 - introL) * INTRO_SLIDE_PX}px, 0, 0)` : ''
   }
 
   // 暗房文案：加载中常显；切换过渡按偏离程度淡入淡出，并轮换短语
@@ -235,6 +281,10 @@ function layout() {
   }
 }
 
+/* ================= scrub 渲染循环 ================= */
+let rafId: number | null = null
+let reducedMotion = false
+
 function frameLoop() {
   rafId = requestAnimationFrame(frameLoop)
   if (tweenTarget !== null) {
@@ -246,8 +296,6 @@ function frameLoop() {
   layout()
   layoutTicks(progress.value, reducedMotion)
 }
-
-let reducedMotion = false
 
 /* ================= 交互：滚轮 / 触摸 / 键盘 / 点击 ================= */
 function clampP(v: number) {
@@ -270,11 +318,17 @@ function scheduleSnap() {
   snapTimer = window.setTimeout(() => tweenTo(Math.round(progress.value)), 260)
 }
 
+/* 源码：wheel 系数 0.68，每槽位 124px（移动端 76px×0.55） */
+const WHEEL_FACTOR = 0.68
+
 function onWheel(e: WheelEvent) {
   e.preventDefault()
   if (Math.abs(e.deltaY) < 2) return
+  const vw = window.innerWidth
+  const pitch = (vw < 640 ? BASE_W_MOBILE : BASE_W_DESKTOP) + GAP
+  const step = vw < 640 ? pitch * 0.55 : pitch
   tweenTarget = null
-  progress.value = clampP(progress.value + e.deltaY / 890)
+  progress.value = clampP(progress.value + (WHEEL_FACTOR * e.deltaY) / step)
   scheduleSnap()
 }
 
@@ -289,7 +343,7 @@ function onTouchMove(e: TouchEvent) {
   const dy = touchY - e.touches[0].clientY
   const dx = touchX - e.touches[0].clientX
   if (Math.abs(dy) > Math.abs(dx)) {
-    progress.value = clampP(progress.value + dy / 890)
+    progress.value = clampP(progress.value + dy / 300)
   }
 }
 function onTouchEnd() {
@@ -433,7 +487,8 @@ onBeforeUnmount(() => {
   overflow: hidden;
   background: transparent;
   cursor: pointer;
-  will-change: transform, width, height, opacity;
+  transform-origin: center center;
+  will-change: left, top, width, height, opacity;
 }
 
 [data-theme='dark'] .fp-frame {
@@ -449,7 +504,7 @@ onBeforeUnmount(() => {
   user-select: none;
 }
 
-/* ============ 暗房状态文案（同参考站：加载与过渡时居中浮现） ============ */
+/* ============ 暗房状态文案 ============ */
 .fp-status {
   position: absolute;
   left: 0;
@@ -470,7 +525,7 @@ onBeforeUnmount(() => {
   color: #8d8a96;
 }
 
-/* ============ 文字层（量自参考站：标题 15/500，刻度 1.5×28，月份两行） ============ */
+/* ============ 文字层 ============ */
 .fp-text {
   position: absolute;
   inset: 0;
@@ -498,7 +553,7 @@ onBeforeUnmount(() => {
   color: #d4d4d8;
 }
 
-/* 刻度条（几何与色彩复刻源码：按钮宽6 gap4，内条1.5px，idle #e4e4e7 / active #27272a） */
+/* 刻度条（几何与色彩复刻源码） */
 .fp-ticks {
   position: absolute;
   left: 0;
