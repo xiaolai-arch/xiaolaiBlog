@@ -13,7 +13,7 @@
 
     <div v-if="mode === 'local'" class="mode-banner">
       <span>当前为本地模式，笔记只存在这台浏览器里。</span>
-      <router-link to="/admin/login">登录后开启云端同步 →</router-link>
+      <router-link :to="{ path: '/login', query: { redirect: $route.fullPath } }">注册 / 登录后开启云端同步 →</router-link>
     </div>
     <div v-else-if="pendingLocalCount > 0" class="mode-banner">
       <span>检测到 {{ pendingLocalCount }} 篇本地笔记，是否上传到云端？</span>

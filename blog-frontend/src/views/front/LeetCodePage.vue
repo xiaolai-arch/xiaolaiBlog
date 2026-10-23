@@ -96,6 +96,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import { progressApi } from '@/api'
+import { requireLoginForAction } from '@/utils/requireLogin'
 import { logStudy, unlogStudy } from '@/utils/studyLog'
 
 interface Problem {
@@ -258,6 +259,7 @@ function toggle(pid: string) {
   doneSet.value = next
   localStorage.setItem(DONE_KEY, JSON.stringify([...next]))
   if (cloudActive.value) pushDone(next)
+  else if (!localStorage.getItem('token')) requireLoginForAction('云端同步打卡进度')
 }
 
 function pushDone(set: Set<string>) {

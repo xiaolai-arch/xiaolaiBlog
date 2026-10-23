@@ -45,7 +45,6 @@
             </div>
 
             <div class="media-ring" aria-hidden="true"></div>
-            <span v-if="!authStore.isLoggedIn" class="lock-badge">注册登录后可用</span>
           </div>
 
           <div class="tool-caption">
@@ -66,9 +65,6 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
 import LivePreview from '@/components/LivePreview.vue'
-import { useAuthStore } from '@/stores/auth'
-
-const authStore = useAuthStore()
 
 interface Tool {
   key: string
@@ -288,34 +284,6 @@ onBeforeUnmount(() => {
   z-index: 3;
 }
 
-/* 未登录提示角标 */
-.lock-badge {
-  position: absolute;
-  right: 14px;
-  top: 14px;
-  z-index: 4;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 12px 3.5px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 500;
-  color: #fff;
-  background: rgba(24, 24, 27, 0.55);
-  backdrop-filter: blur(6px);
-  pointer-events: none;
-}
-
-.lock-badge::before {
-  content: '';
-  width: 10px;
-  height: 10px;
-  flex: none;
-  background: currentColor;
-  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5Zm-3 8V7a3 3 0 1 1 6 0v3H9Z'/%3E%3C/svg%3E") no-repeat center / contain;
-  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5Zm-3 8V7a3 3 0 1 1 6 0v3H9Z'/%3E%3C/svg%3E") no-repeat center / contain;
-}
 
 [data-theme='dark'] .media-ring {
   border-color: rgba(255, 255, 255, 0.08);
