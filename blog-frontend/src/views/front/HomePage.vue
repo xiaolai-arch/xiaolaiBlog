@@ -4,11 +4,6 @@
     <div class="page-header">
       <div class="grain" aria-hidden="true"></div>
 
-      <!-- Logo 行 -->
-      <div class="logo-row">
-        <router-link to="/" class="site-logo">{{ siteTitle }}</router-link>
-      </div>
-
       <!-- Hero 文案 -->
       <div class="hero-block">
         <p class="hero-name">咲来</p>
@@ -161,12 +156,10 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { siteApi } from '@/api'
 import LivePreview from '@/components/LivePreview.vue'
 import MusicCard from '@/components/MusicCard.vue'
 import FilmCard from '@/components/FilmCard.vue'
 
-const siteTitle = ref('咲来的 Blog')
 
 /* Blog 卡：延迟挂载 iframe，错开三段演示视频的加载；悬停时暂停滚动便于阅读 */
 const blogLiveReady = ref(false)
@@ -233,13 +226,7 @@ const cards: HomeCard[] = [
   },
 ]
 
-onMounted(async () => {
-  try {
-    const res = await siteApi.getConfig()
-    if (res.data.code === 200 && res.data.data.site_title) {
-      siteTitle.value = res.data.data.site_title
-    }
-  } catch (_) {}
+onMounted(() => {
   window.setTimeout(() => {
     blogLiveReady.value = true
   }, 600)
@@ -287,22 +274,6 @@ onMounted(async () => {
   pointer-events: none;
   opacity: 0.5;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.05'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
-.logo-row {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  justify-content: space-between;
-  padding: 32px 64px 32px;
-}
-
-.site-logo {
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: 0.0125em;
-  color: var(--text-primary) !important;
 }
 
 .hero-block {
@@ -660,7 +631,6 @@ onMounted(async () => {
 
 /* ============ 移动端 ============ */
 @media (max-width: 768px) {
-  .logo-row,
   .hero-block,
   .tabs {
     padding-left: 24px;
