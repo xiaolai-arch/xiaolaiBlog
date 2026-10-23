@@ -57,16 +57,24 @@ const loaded = ref(false)
 const hiddenForOffscreen = ref(false)
 
 /* ================= 展厅导览脚本（tour 模式） ================= */
+/* ================= 展厅导览脚本（tour 模式） ================= */
 /** sel 为预览页内的按钮选择器，holdMs 为按下后的停留时长（运镜动画本身约 0.78s） */
-const GALLERY_TOUR_SCRIPT: Array<{ sel: string; holdMs: number }> = [
-  { sel: '[aria-label="Next painting"]', holdMs: 1000 },
-  { sel: '[aria-label="Next painting"]', holdMs: 1000 },
-  { sel: '[aria-label="Zoom in"]', holdMs: 1000 },
-  { sel: '[aria-label="Zoom in"]', holdMs: 1000 },
-  { sel: '[aria-label="Next painting"]', holdMs: 1000 },
-  { sel: '[aria-label="Zoom out"]', holdMs: 1000 },
-  { sel: '[aria-label="Zoom out"]', holdMs: 1000 },
-  { sel: '[aria-label="Next painting"]', holdMs: 1000 },
+type TourStep = { sel: string; holdMs: number }
+const nextSteps = (n = 1): TourStep[] =>
+  Array.from({ length: n }, () => ({ sel: '[aria-label="Next painting"]', holdMs: 1000 }))
+const zoomSteps = (label: 'Zoom in' | 'Zoom out', n = 1): TourStep[] =>
+  Array.from({ length: n }, () => ({ sel: `[aria-label="${label}"]`, holdMs: 1000 }))
+/**
+ * 主循环 5s（5 幅 × 1s 纯巡馆）；缩放不再逐幅演示，每 4 圈插入一段
+ * 原地“放大两级 → 缩回两级”的呼吸式演示，随后继续巡馆。
+ */
+const GALLERY_TOUR_SCRIPT: TourStep[] = [
+  ...nextSteps(5),
+  ...nextSteps(5),
+  ...nextSteps(5),
+  ...zoomSteps('Zoom in', 2),
+  ...zoomSteps('Zoom out', 2),
+  ...nextSteps(1),
 ]
 let tourStep = 0
 
