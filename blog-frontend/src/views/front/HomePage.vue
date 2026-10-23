@@ -46,9 +46,24 @@
         class="project-card"
         :class="{ featured: card.featured }"
         :style="{ animationDelay: Math.min(i * 60, 300) + 'ms' }"
+        @mouseenter="card.live ? (galleryHovered = true) : undefined"
+        @mouseleave="card.live ? (galleryHovered = false) : undefined"
       >
         <div class="media" :class="'grad-' + card.grad">
+          <!-- live 卡（3D 美术馆）：媒体区为展厅页实时预览，导览运镜与真实操作一致 -->
+          <LivePreview
+            v-if="card.live"
+            :active="galleryLiveReady"
+            :src="card.live"
+            :title="card.title + '实时预览'"
+            :paused="galleryHovered"
+            :preview-w="1280"
+            :preview-h="800"
+            tour
+            :drift="false"
+          />
           <video
+            v-else
             class="media-video"
             :src="card.video"
             autoplay
@@ -128,14 +143,33 @@ const siteTitle = ref('咲来的 Blog')
 const blogLiveReady = ref(false)
 const blogHovered = ref(false)
 
-const cards = [
+/* 3D 美术馆卡：同样延迟挂载（WebGL 初始化较重），悬停时暂停导览便于细看 */
+const galleryLiveReady = ref(false)
+const galleryHovered = ref(false)
+
+interface HomeCard {
+  title: string
+  year: string
+  desc: string
+  to: string
+  grad: string
+  /** 预录演示视频（无 live 时使用） */
+  video?: string
+  /** 实时预览路由（优先于 video） */
+  live?: string
+  featured: boolean
+  tryIt?: boolean
+}
+
+const cards: HomeCard[] = [
   {
     title: '3D 美术馆',
     year: 'NEW',
     desc: '',
     to: '/gallery/3d',
     grad: 'sky',
-    video: '/videos/gallery.webm',
+    // 预录 webm 换成展厅页实时预览：画面永远与真实页面一致，运镜走页面自身导览
+    live: '/gallery/3d',
     featured: false,
     tryIt: true,
   },
@@ -171,6 +205,9 @@ onMounted(async () => {
   window.setTimeout(() => {
     blogLiveReady.value = true
   }, 600)
+  window.setTimeout(() => {
+    galleryLiveReady.value = true
+  }, 1200)
 })
 </script>
 

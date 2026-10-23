@@ -34,6 +34,10 @@ const props = withDefaults(
     drift?: boolean
     /** 下行巡览速度（px/s，按预览视口坐标）：博客等文字页用慢速，胶片等大步进页面按网站节奏提速 */
     scrollSpeed?: number
+    /** 导览模式：适用于页面自身无滚动的体验页（如 3D 展厅），定时“按”页内导览按钮驱动运镜 */
+    tour?: boolean
+    /** 导览模式下两次步进之间的间隔（ms） */
+    tourIntervalMs?: number
   }>(),
   {
     title: '实时预览',
@@ -43,6 +47,8 @@ const props = withDefaults(
     previewH: 625,
     drift: true,
     scrollSpeed: 26,
+    tour: false,
+    tourIntervalMs: 3600,
   },
 )
 
@@ -79,7 +85,8 @@ function onLoad() {
   st.pos = 0
   st.dir = 1
   st.last = performance.now()
-  st.holdUntil = performance.now() + 2200
+  // 导览模式（3D 展厅）首步多留些时间：WebGL 初始化 + 挂画请求都要先完成
+  st.holdUntil = performance.now() + (props.tour ? 4500 : 2200)
 }
 
 /* ================= 自动滚动巡览 ================= */
@@ -116,6 +123,22 @@ function frameLoop(now: number) {
   const dt = Math.min(64, now - st.last)
   st.last = now
   if (now < st.holdUntil) return
+
+  if (props.tour) {
+    // 导览模式：页面本身没有文档滚动（如 3D 展厅），定时点击页内导览控件，
+    // 运镜动画与真实用户按按钮完全一致；步进按环形顺序自动绕展厅一整圈。
+    const btn = win.document.querySelector<HTMLButtonElement>(
+      '[aria-label="Next painting"]',
+    )
+    if (btn) {
+      btn.click()
+      st.holdUntil = now + props.tourIntervalMs
+    } else {
+      st.holdUntil = now + 1500
+    }
+    return
+  }
+
   const doc = win.document.documentElement
   let max = 0
   try {
