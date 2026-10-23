@@ -3,7 +3,7 @@
     <!-- 顶栏：返回 + 品名 -->
     <header class="fp-top">
       <router-link to="/" class="fp-back">← 回首页</router-link>
-      <span class="fp-brand">Film</span>
+      <span class="fp-brand">图集</span>
     </header>
 
     <!-- 照片带（scrub 渲染循环直接写样式） -->

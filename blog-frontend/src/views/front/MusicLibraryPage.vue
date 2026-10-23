@@ -3,7 +3,7 @@
     <!-- 顶栏 -->
     <header class="ml-top">
       <router-link to="/" class="ml-back">← 回首页</router-link>
-      <span class="ml-brand">Library</span>
+      <span class="ml-brand">音乐</span>
     </header>
 
     <!-- 页头 + 书架：同一内容宽度，聚拢居中 -->
