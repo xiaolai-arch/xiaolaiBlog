@@ -1,8 +1,8 @@
 <template>
-  <div class="music-card">
+  <div class="music-card" @click="enter" role="link" aria-label="进入音乐书架页" tabindex="0" @keydown.enter="enter">
     <div class="player">
       <!-- 当前曲：迷你黑胶 + 信息 + 歌词 -->
-      <div class="now" @click="togglePlay">
+      <div class="now" @click.stop="togglePlay">
         <div class="disc" :class="{ spinning: playing }" aria-hidden="true">
           <img v-if="meta.cover" class="disc-cover" :src="meta.cover" alt="" />
           <span class="disc-hole"></span>
@@ -26,7 +26,7 @@
           :key="i"
           :class="{ active: i === songIndex }"
           :title="s.title"
-          @click="playAt(i)"
+          @click.stop="playAt(i)"
         >
           <span class="q-index">{{ i === songIndex && playing ? '♪' : i + 1 }}</span>
           <span class="q-title">{{ s.title }}</span>
@@ -82,7 +82,7 @@
         <span>我喜欢的音乐</span>
         <span class="tp-year"> • {{ songs.length }} 首</span>
       </p>
-      <span class="caption-song">♪ {{ meta.title }}</span>
+      <span class="caption-song">♪ {{ meta.title }} · 进入 Library →</span>
     </div>
 
     <audio ref="audioEl" preload="none" @loadedmetadata="onMeta" @ended="onEnded"></audio>
@@ -91,6 +91,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+/* 点击整卡进入音乐书架页 */
+function enter() {
+  router.push('/music')
+}
 
 interface Lyric {
   t: number
@@ -318,6 +326,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  cursor: pointer;
   animation: musicCardEnter 450ms cubic-bezier(0.25, 0.46, 0.45, 0.94) 240ms both;
 }
 

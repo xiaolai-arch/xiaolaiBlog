@@ -35,6 +35,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/front/FilmPage.vue'),
   },
   {
+    // 音乐书架页（参考站 library 形态）：专辑封面书墙 + 底部播放条
+    path: '/music',
+    name: 'MusicLibrary',
+    component: () => import('@/views/front/MusicLibraryPage.vue'),
+  },
+  {
     // Fully immersive: the room is its own fullscreen shell, so it sits outside
     // FrontLayout rather than fighting the site header's stacking order.
     path: '/gallery/3d',
