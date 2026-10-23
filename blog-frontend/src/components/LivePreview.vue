@@ -32,6 +32,8 @@ const props = withDefaults(
     previewW?: number
     previewH?: number
     drift?: boolean
+    /** 下行巡览速度（px/s，按预览视口坐标）：博客等文字页用慢速，胶片等大步进页面按网站节奏提速 */
+    scrollSpeed?: number
   }>(),
   {
     title: '实时预览',
@@ -40,6 +42,7 @@ const props = withDefaults(
     previewW: 1000,
     previewH: 625,
     drift: true,
+    scrollSpeed: 26,
   },
 )
 
@@ -125,7 +128,7 @@ function frameLoop(now: number) {
     st.holdUntil = now + 4000
     return
   }
-  const speed = st.dir === 1 ? 26 : 64 // 下行慢速巡览，回顶快一些
+  const speed = st.dir === 1 ? props.scrollSpeed : props.scrollSpeed * 2.5 // 下行巡览，回顶快一些
   st.pos += (st.dir * speed * dt) / 1000
   if (st.pos >= max) {
     st.pos = max

@@ -18,6 +18,7 @@
         :paused="hovered"
         :preview-w="1280"
         :preview-h="800"
+        :scroll-speed="98"
       />
     </div>
 
