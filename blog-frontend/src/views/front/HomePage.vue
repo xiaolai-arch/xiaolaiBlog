@@ -10,7 +10,7 @@
         <div class="hero-desc">
           <span>你好！我是阿咲，一名喜欢通过创造学习的软件工程师。</span>
           <span><br aria-hidden="true" /></span>
-          <span>最近我一直在深入学习 Agent 智能体开发和大型语言模型。这个网站上面有我的学习仪表盘，可以看到我每天学到什么！</span>
+          <span>最近我一直在深入学习 Agent 智能体开发和大型语言模型。</span>
         </div>
       </div>
 
