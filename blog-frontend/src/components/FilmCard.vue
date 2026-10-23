@@ -1,43 +1,52 @@
 <template>
   <div class="film-card">
     <div class="stage">
-      <!-- 照片层叠带：主图 + 右侧渐远 -->
-      <div v-if="photos.length" class="strip">
-        <div
-          v-for="(p, i) in photos"
-          :key="p.id"
-          class="frame"
-          :class="'pos-' + posOf(i)"
-          v-show="posOf(i) <= 2"
-          @click="posOf(i) === 0 ? next(1) : go(i)"
-        >
-          <img :src="p.url" :alt="p.title || p.originalName" loading="lazy" />
+      <!-- 开场：冲洗底片中 -->
+      <Transition name="develop">
+        <div v-if="developing" class="develop">rolling the negatives…</div>
+      </Transition>
+
+      <template v-if="!developing">
+        <!-- 照片层叠带：主图居中偏左 + 右侧等距渐远 -->
+        <div v-if="photos.length" class="strip">
+          <div
+            v-for="(p, i) in photos"
+            :key="p.id"
+            class="frame"
+            :class="'pos-' + posOf(i)"
+            v-show="posOf(i) <= 3"
+            @click="posOf(i) === 0 ? next(1) : go(i)"
+          >
+            <img :src="p.url" :alt="p.title || p.originalName" loading="lazy" />
+          </div>
+
+          <button class="nav prev" aria-label="上一张" @click.stop="next(-1)">‹</button>
+          <button class="nav next" aria-label="下一张" @click.stop="next(1)">›</button>
+        </div>
+        <div v-else class="empty">
+          <p>{{ loading ? '加载中…' : '图库还没有照片' }}</p>
+          <p class="empty-sub">后台「媒体」上传后展示在这里</p>
         </div>
 
-        <!-- 左右切换 -->
-        <button class="nav prev" aria-label="上一张" @click.stop="next(-1)">‹</button>
-        <button class="nav next" aria-label="下一张" @click.stop="next(1)">›</button>
-      </div>
-      <div v-else class="empty">
-        <p>{{ loading ? '加载中…' : '图库还没有照片' }}</p>
-        <p class="empty-sub">后台「媒体」上传后展示在这里</p>
-      </div>
+        <!-- 当前照片标题 -->
+        <p class="photo-title">{{ currentTitle }}</p>
 
-      <!-- 当前照片标题 -->
-      <p class="photo-title">{{ currentTitle }}</p>
-
-      <!-- 刻度轴 -->
-      <div class="ticks" role="tablist" aria-label="切换照片">
-        <button
-          v-for="(p, i) in photos"
-          :key="p.id"
-          class="tick"
-          :class="{ on: i === index }"
-          :aria-label="`第 ${i + 1} 张`"
-          @click="go(i)"
-        ></button>
-      </div>
-      <p class="photo-date">{{ currentDate }}</p>
+        <!-- 刻度轴 -->
+        <div class="ticks" role="tablist" aria-label="切换照片">
+          <button
+            v-for="(p, i) in photos"
+            :key="p.id"
+            class="tick"
+            :class="{ on: i === index }"
+            :aria-label="`第 ${i + 1} 张`"
+            @click="go(i)"
+          ></button>
+        </div>
+        <div class="photo-date">
+          <span class="d-month">{{ currentMonth }}</span>
+          <span class="d-year">{{ currentYear }}</span>
+        </div>
+      </template>
     </div>
 
     <div class="card-caption">
@@ -64,6 +73,7 @@ interface Photo {
 const photos = ref<Photo[]>([])
 const loading = ref(true)
 const index = ref(0)
+const developing = ref(true)
 
 const currentTitle = computed(() => {
   const p = photos.value[index.value]
@@ -71,13 +81,19 @@ const currentTitle = computed(() => {
   return p.title || p.originalName || ''
 })
 
-const currentDate = computed(() => {
+const currentMonth = computed(() => {
   const p = photos.value[index.value]
   if (!p?.createTime) return ''
-  return p.createTime.slice(0, 10).replace(/-/g, '.')
+  const m = parseInt(p.createTime.slice(5, 7), 10)
+  return `${m} 月`
 })
 
-/* i 相对当前张的偏移位置：0=主图，1/2=右侧渐远 */
+const currentYear = computed(() => {
+  const p = photos.value[index.value]
+  return p?.createTime ? p.createTime.slice(0, 4) : ''
+})
+
+/* i 相对当前张的偏移位置：0=主图，1..3=右侧渐远 */
 function posOf(i: number) {
   const n = photos.value.length
   if (!n) return 0
@@ -120,7 +136,11 @@ onMounted(async () => {
     }
   } catch (_) {}
   loading.value = false
-  startAuto()
+  // 开场"冲洗底片"仪式感：1.4s 后显影
+  setTimeout(() => {
+    developing.value = false
+    startAuto()
+  }, 1400)
 })
 
 onBeforeUnmount(stopAuto)
@@ -134,46 +154,64 @@ onBeforeUnmount(stopAuto)
   animation: filmCardEnter 450ms cubic-bezier(0.25, 0.46, 0.45, 0.94) 300ms both;
 }
 
-/* 浅色纸感舞台，与参考站 film 页一致 */
+/* 浅色舞台：满幅留白，照片带垂直居中（同参考站 film 页构图） */
 .stage {
   position: relative;
   flex: 1;
   min-height: 300px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 18px 20px 16px;
   border-radius: 26px;
   overflow: hidden;
   isolation: isolate;
-  background: linear-gradient(160deg, #fdfdfc, #f7f7f5 60%, #f1f2ef);
+  background: linear-gradient(175deg, #fbfbfa, #f6f6f4 55%, #f2f2ef);
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.04),
     0 12px 34px rgba(24, 24, 27, 0.08);
 }
 
 [data-theme='dark'] .stage {
-  background: linear-gradient(160deg, #232326, #1f1f22 60%, #26262a);
+  background: linear-gradient(175deg, #232326, #1f1f22 55%, #26262a);
+}
+
+/* ============ 开场：冲洗底片 ============ */
+.develop {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  color: #a1a1aa;
+}
+
+.develop-enter-active,
+.develop-leave-active {
+  transition: opacity 0.8s ease;
+}
+
+.develop-enter-from,
+.develop-leave-to {
+  opacity: 0;
 }
 
 /* ============ 照片层叠带 ============ */
 .strip {
   position: absolute;
-  inset: 0 0 96px 0;
+  inset: 0 0 92px 0;
 }
 
 .frame {
   position: absolute;
-  top: 46%;
-  left: 9%;
-  width: 50%;
+  top: 50%;
+  left: 14%;
+  width: 42%;
   aspect-ratio: 4 / 3;
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(24, 24, 27, 0.18);
+  box-shadow: 0 14px 34px rgba(24, 24, 27, 0.16);
   cursor: pointer;
-  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.6s ease, left 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.7s ease, left 0.7s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform, left, opacity;
 }
 
@@ -185,42 +223,52 @@ onBeforeUnmount(stopAuto)
   pointer-events: none;
 }
 
-/* 主图 */
+/* 主图：垂直居中 */
 .pos-0 {
   transform: translateY(-50%);
-  z-index: 3;
+  z-index: 5;
   opacity: 1;
 }
 
-/* 右侧渐远两张 */
+/* 右侧等距渐远：像一串从远处飘来的照片 */
 .pos-1 {
-  left: 64%;
-  transform: translateY(-50%) scale(0.78);
-  z-index: 2;
-  opacity: 0.7;
+  left: 38%;
+  transform: translateY(-50%) scale(0.76);
+  z-index: 4;
+  opacity: 0.85;
+  box-shadow: 0 8px 22px rgba(24, 24, 27, 0.1);
 }
 
 .pos-2 {
-  left: 85%;
-  transform: translateY(-50%) scale(0.6);
-  z-index: 1;
-  opacity: 0.38;
+  left: 55%;
+  transform: translateY(-50%) scale(0.58);
+  z-index: 3;
+  opacity: 0.55;
+  box-shadow: 0 6px 16px rgba(24, 24, 27, 0.07);
 }
 
-/* 其余隐藏（保留在 DOM 以复用过渡） */
-.frame:not(.pos-0):not(.pos-1):not(.pos-2) {
+.pos-3 {
+  left: 68%;
+  transform: translateY(-50%) scale(0.44);
+  z-index: 2;
+  opacity: 0.3;
+  box-shadow: 0 4px 12px rgba(24, 24, 27, 0.05);
+}
+
+/* 其余淡出 */
+.frame:not(.pos-0):not(.pos-1):not(.pos-2):not(.pos-3) {
   opacity: 0;
-  z-index: 0;
+  z-index: 1;
   pointer-events: none;
-  left: 96%;
-  transform: translateY(-50%) scale(0.5);
+  left: 78%;
+  transform: translateY(-50%) scale(0.34);
 }
 
 /* ============ 切换按钮 ============ */
 .nav {
   position: absolute;
-  top: 38%;
-  z-index: 4;
+  top: 44%;
+  z-index: 6;
   width: 30px;
   height: 30px;
   border-radius: 50%;
@@ -249,13 +297,16 @@ onBeforeUnmount(stopAuto)
   transform: scale(1.1);
 }
 
-/* ============ 标题 / 刻度 / 日期 ============ */
+/* ============ 标题 / 刻度 / 月份 ============ */
 .photo-title {
-  position: relative;
-  z-index: 3;
-  max-width: 86%;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 64px;
+  z-index: 5;
   margin: 0;
-  font-size: 13.5px;
+  padding: 0 24px;
+  font-size: 13px;
   font-weight: 500;
   color: #3f3f46;
   text-align: center;
@@ -269,35 +320,40 @@ onBeforeUnmount(stopAuto)
 }
 
 .ticks {
-  position: relative;
-  z-index: 3;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 40px;
+  z-index: 5;
   display: flex;
   align-items: flex-end;
-  gap: 5px;
-  margin-top: 12px;
+  justify-content: center;
+  gap: 6px;
   height: 22px;
 }
 
 .tick {
-  width: 3px;
-  height: 13px;
+  width: 1.5px;
+  height: 11px;
   border: none;
   border-radius: 1px;
-  background: rgba(24, 24, 27, 0.18);
+  background: rgba(24, 24, 27, 0.22);
   cursor: pointer;
   padding: 0;
-  transition: height 0.25s, background 0.25s;
+  transition: height 0.3s cubic-bezier(0.22, 1, 0.36, 1), background 0.3s, width 0.3s;
 }
 
 [data-theme='dark'] .tick {
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .tick:hover {
-  background: rgba(24, 24, 27, 0.45);
+  background: rgba(24, 24, 27, 0.5);
+  height: 15px;
 }
 
 .tick.on {
+  width: 2px;
   height: 22px;
   background: #18181b;
 }
@@ -307,13 +363,23 @@ onBeforeUnmount(stopAuto)
 }
 
 .photo-date {
-  position: relative;
-  z-index: 3;
-  margin: 6px 0 0;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 12px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  font-size: 12.5px;
+  line-height: 1.25;
+  color: #52525b;
+}
+
+.photo-date .d-year {
   font-size: 11.5px;
   color: #a1a1aa;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
 }
 
 /* ============ 空态 ============ */
@@ -398,6 +464,11 @@ onBeforeUnmount(stopAuto)
 @media (max-width: 768px) {
   .stage {
     min-height: 340px;
+  }
+
+  .frame {
+    left: 8%;
+    width: 56%;
   }
 
   .nav {
