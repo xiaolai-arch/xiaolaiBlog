@@ -46,10 +46,6 @@
               <el-icon><Headset /></el-icon>
               <span>音乐</span>
             </el-menu-item>
-            <el-menu-item index="/admin/anime">
-              <el-icon><Film /></el-icon>
-              <span>番剧</span>
-            </el-menu-item>
             <el-menu-item index="/admin/settings">
               <el-icon><Setting /></el-icon>
               <span>设置</span>

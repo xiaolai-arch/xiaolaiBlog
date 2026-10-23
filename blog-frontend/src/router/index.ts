@@ -55,7 +55,6 @@ const routes: RouteRecordRaw[] = [
       { path: 'comments', name: 'CommentManage', component: () => import('@/views/admin/CommentManagePage.vue'), meta: { requiresAuth: true } },
       { path: 'media', name: 'MediaManage', component: () => import('@/views/admin/MediaManagePage.vue'), meta: { requiresAuth: true } },
       { path: 'music', name: 'MusicManage', component: () => import('@/views/admin/MusicManagePage.vue'), meta: { requiresAuth: true } },
-      { path: 'anime', name: 'AnimeManage', component: () => import('@/views/admin/AnimeManagePage.vue'), meta: { requiresAuth: true } },
       { path: 'settings', name: 'SiteSettings', component: () => import('@/views/admin/SiteSettingsPage.vue'), meta: { requiresAuth: true } },
     ]
   },
