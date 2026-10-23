@@ -41,51 +41,26 @@
         class="project-card"
         :class="{ featured: card.featured }"
         :style="{ animationDelay: Math.min(i * 60, 300) + 'ms' }"
-        @mouseenter="card.live ? (galleryHovered = true) : undefined"
-        @mouseleave="card.live ? (galleryHovered = false) : undefined"
+        @mouseenter="card.live ? (liveHovered[card.to] = true) : undefined"
+        @mouseleave="card.live ? (liveHovered[card.to] = false) : undefined"
       >
         <div
           class="media"
-          :class="[card.grad ? 'grad-' + card.grad : '', card.shimmer ? 'shimmer-media' : '']"
+          :class="card.grad ? 'grad-' + card.grad : ''"
         >
           <!-- live 卡（3D 美术馆）：媒体区为展厅页实时预览，导览运镜与真实操作一致 -->
           <LivePreview
             v-if="card.live"
-            :active="galleryLiveReady"
+            :active="liveReady[card.to] === true"
             :src="card.live"
             :title="card.title + '实时预览'"
-            :paused="galleryHovered"
+            :paused="liveHovered[card.to] === true"
             :preview-w="1280"
             :preview-h="800"
             tour
+            :tour-steps="card.tourSteps"
             :drift="false"
           />
-          <!-- shimmer 卡（拍立得）：参考站同款「封面图 + 自动播放视频 + 微光加载层」视频卡 -->
-          <template v-else-if="card.shimmer">
-            <img
-              class="shimmer-poster"
-              :class="{ 'is-hidden': videoReady[card.title] }"
-              :src="card.poster"
-              alt=""
-              decoding="async"
-            />
-            <video
-              class="media-video"
-              :src="card.video"
-              autoplay
-              muted
-              loop
-              playsinline
-              preload="auto"
-              disablepictureinpicture
-              @loadeddata="videoReady[card.title] = true"
-            ></video>
-            <div
-              class="shimmer-overlay"
-              :class="{ 'is-off': videoReady[card.title] }"
-              aria-hidden="true"
-            ></div>
-          </template>
           <video
             v-else
             class="media-video"
@@ -156,7 +131,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import LivePreview from '@/components/LivePreview.vue'
+import LivePreview, { type TourStep } from '@/components/LivePreview.vue'
 import MusicCard from '@/components/MusicCard.vue'
 import FilmCard from '@/components/FilmCard.vue'
 
@@ -165,26 +140,27 @@ import FilmCard from '@/components/FilmCard.vue'
 const blogLiveReady = ref(false)
 const blogHovered = ref(false)
 
-/* 3D 美术馆卡：同样延迟挂载（WebGL 初始化较重），悬停时暂停导览便于细看 */
-const galleryLiveReady = ref(false)
-const galleryHovered = ref(false)
+/* live 卡（3D 展厅 / 拍立得）：按路由延迟挂载（初始化较重），悬停时暂停导览便于细看 */
+const liveReady = reactive<Record<string, boolean>>({})
+const liveHovered = reactive<Record<string, boolean>>({})
 
-/* shimmer 卡：视频首帧就绪后，封面图与微光层一并淡出 */
-const videoReady = reactive<Record<string, boolean>>({})
+/* 拍立得卡导览脚本：依次点过七种机身色，循环往复 */
+const POLAROID_TOUR_STEPS: TourStep[] = [
+  'Red', 'Orange', 'Yellow', 'Green', 'Cyan', 'Blue', 'Purple',
+].map((name) => ({ sel: `[aria-label="Select ${name} color"]`, holdMs: 1600 }))
 
 interface HomeCard {
   title: string
   year: string
   desc: string
   to: string
-  grad: string
+  grad?: string
   /** 预录演示视频（无 live 时使用） */
   video?: string
   /** 实时预览路由（优先于 video） */
   live?: string
-  /** 参考站同款视频卡：封面图 + 视频就绪前淡出的微光加载层 */
-  shimmer?: boolean
-  poster?: string
+  /** 自定义导览脚本（live 卡在 tour 模式下按步点击页内控件） */
+  tourSteps?: TourStep[]
   featured: boolean
   tryIt?: boolean
 }
@@ -206,11 +182,9 @@ const cards: HomeCard[] = [
     year: 'NEW',
     desc: '',
     to: '/toys/polaroid',
-    // 参考站同款视频卡：封面图兜底 + 微光加载层（无渐变底）
-    grad: '',
-    video: '/videos/polaroid.webm',
-    poster: '/videos/polaroid-poster.jpg',
-    shimmer: true,
+    // 实时预览 + 自动换色演示：和真实页面一模一样的定制器在跑
+    live: '/toys/polaroid',
+    tourSteps: POLAROID_TOUR_STEPS,
     featured: false,
     tryIt: true,
   },
@@ -231,8 +205,11 @@ onMounted(() => {
     blogLiveReady.value = true
   }, 600)
   window.setTimeout(() => {
-    galleryLiveReady.value = true
+    liveReady['/gallery/3d'] = true
   }, 1200)
+  window.setTimeout(() => {
+    liveReady['/toys/polaroid'] = true
+  }, 1800)
 })
 </script>
 
@@ -431,58 +408,6 @@ onMounted(() => {
   display: block;
   border-radius: inherit;
 }
-/* ============ shimmer 卡（参考站同款视频卡） ============ */
-.shimmer-media {
-  aspect-ratio: 678 / 367.625;
-  background: #e4e4e7;
-}
-.shimmer-poster {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: 10;
-  transition: opacity 0.5s ease-out;
-}
-.shimmer-poster.is-hidden {
-  opacity: 0;
-}
-.shimmer-overlay {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: 20;
-  background-color: #e4e4e7;
-  background-image: linear-gradient(
-    100deg,
-    transparent 30%,
-    rgba(255, 255, 255, 0.55) 50%,
-    transparent 70%
-  );
-  background-size: 200% 100%;
-  animation: cardShimmer 1.6s ease-in-out infinite;
-  transition: opacity 0.5s ease-out;
-}
-.shimmer-overlay.is-off {
-  opacity: 0;
-}
-@keyframes cardShimmer {
-  from {
-    background-position: 120% 0;
-  }
-  to {
-    background-position: -80% 0;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .shimmer-overlay {
-    animation: none;
-  }
-}
 
 .media-ring {
   position: absolute;
@@ -658,11 +583,6 @@ onMounted(() => {
 
   .media {
     aspect-ratio: 16 / 10;
-  }
-
-  /* shimmer 卡保持参考站比例，移动端不压扁 */
-  .media.shimmer-media {
-    aspect-ratio: 678 / 367.625;
   }
 
   .tp-dot,

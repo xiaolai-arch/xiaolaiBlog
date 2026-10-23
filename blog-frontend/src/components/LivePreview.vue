@@ -36,6 +36,8 @@ const props = withDefaults(
     scrollSpeed?: number
     /** 导览模式：适用于页面自身无滚动的体验页（如 3D 展厅），按脚本定时“按”页内导览按钮驱动运镜 */
     tour?: boolean
+    /** 自定义导览脚本：不传则使用内置的 3D 展厅脚本 */
+    tourSteps?: TourStep[]
   }>(),
   {
     title: '实时预览',
@@ -46,6 +48,7 @@ const props = withDefaults(
     drift: true,
     scrollSpeed: 26,
     tour: false,
+    tourSteps: undefined,
   },
 )
 
@@ -59,7 +62,7 @@ const hiddenForOffscreen = ref(false)
 /* ================= 展厅导览脚本（tour 模式） ================= */
 /* ================= 展厅导览脚本（tour 模式） ================= */
 /** sel 为预览页内的按钮选择器，holdMs 为按下后的停留时长（运镜动画本身约 0.78s） */
-type TourStep = { sel: string; holdMs: number }
+export type TourStep = { sel: string; holdMs: number }
 const nextSteps = (n = 1): TourStep[] =>
   Array.from({ length: n }, () => ({ sel: '[aria-label="Next painting"]', holdMs: 1000 }))
 const zoomSteps = (label: 'Zoom in' | 'Zoom out', n = 1): TourStep[] =>
@@ -148,10 +151,10 @@ function frameLoop(now: number) {
   if (now < st.holdUntil) return
 
   if (props.tour) {
-    // 导览模式：页面本身没有文档滚动（如 3D 展厅），按脚本点击页内导览控件，
-    // 运镜动画与真实用户按按钮完全一致。脚本节奏：两幅一停的快速巡馆，
-    // 每圈插一段“放大两级 → 保持放大平移到下一幅 → 缩回两级”的缩放演示。
-    const step = GALLERY_TOUR_SCRIPT[tourStep % GALLERY_TOUR_SCRIPT.length]
+    // 导览模式：页面本身没有文档滚动（如 3D 展厅 / 拍立得定制器），按脚本点击
+    // 页内控件，动画与真实用户操作完全一致。
+    const script = props.tourSteps ?? GALLERY_TOUR_SCRIPT
+    const step = script[tourStep % script.length]
     const btn = win.document.querySelector<HTMLButtonElement>(step.sel)
     if (btn) {
       btn.click()
