@@ -1,35 +1,47 @@
 <template>
   <div class="music-card">
-    <!-- 深色播放面：参考 liumichelle/library 的底部播放条，浓缩成一张卡 -->
-    <div class="player" @click="togglePlay">
-      <div class="disc" :class="{ spinning: playing }" aria-hidden="true">
-        <img v-if="meta.cover" class="disc-cover" :src="meta.cover" alt="" />
-        <span class="disc-hole"></span>
+    <div class="player">
+      <!-- 当前曲：迷你黑胶 + 信息 + 歌词 -->
+      <div class="now" @click="togglePlay">
+        <div class="disc" :class="{ spinning: playing }" aria-hidden="true">
+          <img v-if="meta.cover" class="disc-cover" :src="meta.cover" alt="" />
+          <span class="disc-hole"></span>
+        </div>
+        <div class="now-info">
+          <p class="title-row">
+            <span class="song-title">{{ meta.title }}</span>
+            <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          </p>
+          <p class="artist">{{ meta.artist }}<template v-if="meta.album"> • {{ meta.album }}</template></p>
+          <Transition name="lyric" mode="out-in">
+            <p class="lyric" :key="lyricIndex + '-' + songIndex">{{ currentLyric }}</p>
+          </Transition>
+        </div>
       </div>
 
-      <div class="info">
-        <p class="title-row">
-          <span class="song-title">{{ meta.title }}</span>
-          <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-        </p>
-        <p class="artist">{{ meta.artist }}<template v-if="meta.album"> • {{ meta.album }}</template></p>
-        <Transition name="lyric" mode="out-in">
-          <p class="lyric" :key="lyricIndex + '-' + songIndex">{{ currentLyric }}</p>
-        </Transition>
-      </div>
+      <!-- 歌单：点击切歌 -->
+      <ul class="queue">
+        <li
+          v-for="(s, i) in songs"
+          :key="i"
+          :class="{ active: i === songIndex }"
+          :title="s.title"
+          @click="playAt(i)"
+        >
+          <span class="q-index">{{ i === songIndex && playing ? '♪' : i + 1 }}</span>
+          <span class="q-title">{{ s.title }}</span>
+          <span class="q-artist">{{ s.artist }}</span>
+        </li>
+      </ul>
 
+      <!-- 控制行 -->
       <div class="ctrl" @click.stop>
         <button class="skip-btn" aria-label="上一首" :disabled="songs.length < 2" @click="skip(-1)">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M7 6c0-.55.45-1 1-1s1 .45 1 1v12c0 .55-.45 1-1 1s-1-.45-1-1V6Zm3.6 6.5 8.1-5.6c.66-.46 1.57.01 1.57.82v11.13c0 .8-.9 1.28-1.57.82l-8.1-5.6a1 1 0 0 1 0-1.57Z" />
           </svg>
         </button>
-
-        <button
-          class="play-btn"
-          :aria-label="playing ? '暂停' : '播放'"
-          @click="togglePlay"
-        >
+        <button class="play-btn" :aria-label="playing ? '暂停' : '播放'" @click="togglePlay">
           <svg v-if="!playing" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M8 5.14v13.72c0 .8.87 1.3 1.56.9l11-6.86a1.05 1.05 0 0 0 0-1.8l-11-6.86A1.05 1.05 0 0 0 8 5.14Z" />
           </svg>
@@ -38,7 +50,6 @@
             <rect x="14" y="4" width="4" height="16" rx="1.4" />
           </svg>
         </button>
-
         <button class="skip-btn" aria-label="下一首" :disabled="songs.length < 2" @click="skip(1)">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M17 6c0-.55-.45-1-1-1s-1 .45-1 1v12c0 .55.45 1 1 1s1-.45 1-1V6Zm-11.27 5.9 8.1 5.6c.66.46 1.57-.01 1.57-.82V5.55c0-.8-.9-1.28-1.57-.82l-8.1 5.6a1 1 0 0 0 0 1.57Z" />
@@ -63,38 +74,18 @@
           <div class="p-dot" :style="{ left: progressPct + '%' }"></div>
         </div>
         <span class="time t-total">{{ fmt(duration) }}</span>
-
-        <svg class="vol-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M4 9.5v5c0 .55.45 1 1 1h3l3.7 3.2c.65.55 1.65.1 1.65-.76V5.06c0-.86-1-1.32-1.65-.76L8 9.5H5c-.55 0-1 .45-1 1Z" />
-          <path v-if="volume > 0.05" d="M16 8.6a4.6 4.6 0 0 1 0 6.8 1 1 0 0 0 1.3 1.52 6.6 6.6 0 0 0 0-9.84A1 1 0 0 0 16 8.6Z" />
-        </svg>
-        <input
-          v-model.number="volume"
-          class="vol"
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          aria-label="音量"
-          @input="onVolume"
-        />
       </div>
     </div>
 
     <div class="card-caption">
       <p class="caption-title">
         <span>我喜欢的音乐</span>
-        <span class="tp-year"> • Now Playing<template v-if="songs.length > 1"> {{ songIndex + 1 }}/{{ songs.length }}</template></span>
+        <span class="tp-year"> • {{ songs.length }} 首</span>
       </p>
-      <span class="caption-song">♪ {{ meta.title }} — {{ meta.artist || meta.album || '未知歌手' }}</span>
+      <span class="caption-song">♪ {{ meta.title }}</span>
     </div>
 
-    <audio
-      ref="audioEl"
-      preload="none"
-      @loadedmetadata="onMeta"
-      @ended="onEnded"
-    ></audio>
+    <audio ref="audioEl" preload="none" @loadedmetadata="onMeta" @ended="onEnded"></audio>
   </div>
 </template>
 
@@ -135,7 +126,6 @@ const audioEl = ref<HTMLAudioElement | null>(null)
 const playing = ref(false)
 const cur = ref(0)
 const duration = ref(0)
-const volume = ref(0.8)
 const lyricIndex = ref(-1)
 const progressEl = ref<HTMLElement | null>(null)
 
@@ -163,7 +153,7 @@ function resetProgress() {
 
 function loadSong(index: number, autoplay: boolean) {
   const a = audioEl.value
-  if (!a) return
+  if (!a || !songs.value.length) return
   songIndex.value = (index + songs.value.length) % songs.value.length
   resetProgress()
   a.src = meta.value.audio
@@ -176,6 +166,14 @@ function loadSong(index: number, autoplay: boolean) {
         playing.value = false
       })
   }
+}
+
+function playAt(index: number) {
+  if (index === songIndex.value) {
+    togglePlay()
+    return
+  }
+  loadSong(index, true)
 }
 
 function skip(dir: 1 | -1) {
@@ -205,13 +203,8 @@ function onMeta() {
 }
 
 function onEnded() {
-  // 单曲结束自动下一首，循环整个歌单
   playing.value = false
   loadSong(songIndex.value + 1, true)
-}
-
-function onVolume() {
-  if (audioEl.value) audioEl.value.volume = volume.value
 }
 
 function seekByEvent(e: MouseEvent) {
@@ -311,7 +304,6 @@ onMounted(async () => {
     }
   }
   loadSong(0, false)
-  if (audioEl.value) audioEl.value.volume = volume.value
   rafId = requestAnimationFrame(frame)
 })
 
@@ -329,16 +321,16 @@ onBeforeUnmount(() => {
   animation: musicCardEnter 450ms cubic-bezier(0.25, 0.46, 0.45, 0.94) 240ms both;
 }
 
-/* 深色播放面：浅色页面里的视觉锚点（同参考站） */
+/* 深色播放面：与动漫卡并排的一对小组件 */
 .player {
   position: relative;
   display: flex;
-  align-items: center;
-  gap: 28px;
-  padding: 26px 32px;
+  flex-direction: column;
+  flex: 1;
+  min-height: 300px;
+  padding: 18px 20px 14px;
   border-radius: 26px;
   overflow: hidden;
-  cursor: pointer;
   isolation: isolate;
   color: #f4f4f5;
   background:
@@ -359,15 +351,22 @@ onBeforeUnmount(() => {
   pointer-events: none;
 }
 
-/* ============ 黑胶 ============ */
+/* ============ 当前曲 ============ */
+.now {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  min-width: 0;
+}
+
 .disc {
   position: relative;
   flex: none;
-  width: 104px;
-  height: 104px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  background:
-    repeating-radial-gradient(circle, #0c0c0e 0 1.5px, #17171b 1.5px 3.2px);
+  background: repeating-radial-gradient(circle, #0c0c0e 0 1.5px, #17171b 1.5px 3.2px);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
   display: flex;
   align-items: center;
@@ -391,8 +390,8 @@ onBeforeUnmount(() => {
 
 .disc-hole {
   position: absolute;
-  width: 9px;
-  height: 9px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: #e4e4e7;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
@@ -404,24 +403,24 @@ onBeforeUnmount(() => {
   }
 }
 
-/* ============ 歌曲信息 ============ */
-.info {
+.now-info {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .title-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  min-width: 0;
 }
 
 .song-title {
   font-family: var(--font-display);
-  font-size: 21px;
+  font-size: 17px;
   font-weight: 600;
   letter-spacing: 0.0125em;
   white-space: nowrap;
@@ -430,7 +429,7 @@ onBeforeUnmount(() => {
 }
 
 .artist {
-  font-size: 13px;
+  font-size: 12px;
   color: #a1a1aa;
   white-space: nowrap;
   overflow: hidden;
@@ -438,14 +437,13 @@ onBeforeUnmount(() => {
 }
 
 .lyric {
-  margin-top: 6px;
-  font-size: 14px;
+  font-size: 12px;
   line-height: 1.5;
   color: #d4d4d8;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  min-height: 21px;
+  min-height: 18px;
 }
 
 .lyric-enter-active,
@@ -455,12 +453,12 @@ onBeforeUnmount(() => {
 
 .lyric-enter-from {
   opacity: 0;
-  transform: translateY(5px);
+  transform: translateY(4px);
 }
 
 .lyric-leave-to {
   opacity: 0;
-  transform: translateY(-5px);
+  transform: translateY(-4px);
 }
 
 /* ============ 均衡器 ============ */
@@ -469,7 +467,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: flex-end;
   gap: 2.5px;
-  height: 14px;
+  height: 13px;
 }
 
 .eq i {
@@ -485,7 +483,7 @@ onBeforeUnmount(() => {
 .eq i:nth-child(3) { animation-delay: 0.36s; background: #a78bfa; }
 .eq i:nth-child(4) { animation-delay: 0.54s; background: #34d399; }
 
-.disc.spinning ~ .info .eq i {
+.disc.spinning ~ .now-info .eq i {
   animation-play-state: running;
 }
 
@@ -494,19 +492,86 @@ onBeforeUnmount(() => {
   50% { height: 100%; }
 }
 
-/* ============ 控制区 ============ */
+/* ============ 歌单 ============ */
+.queue {
+  list-style: none;
+  margin: 12px 0 10px;
+  padding: 0 2px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.queue::-webkit-scrollbar {
+  width: 0;
+}
+
+.queue li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease-out;
+}
+
+.queue li:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.queue li.active {
+  background: rgba(96, 165, 250, 0.12);
+}
+
+.q-index {
+  flex: none;
+  width: 18px;
+  font-size: 11px;
+  color: #71717a;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.queue li.active .q-index {
+  color: #60a5fa;
+}
+
+.q-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #e4e4e7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.q-artist {
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: 11px;
+  color: #71717a;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============ 控制行 ============ */
 .ctrl {
   flex: none;
   display: flex;
   align-items: center;
-  gap: 14px;
-  cursor: default;
+  gap: 10px;
 }
 
 .skip-btn {
   flex: none;
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   border: none;
   background: transparent;
@@ -529,14 +594,14 @@ onBeforeUnmount(() => {
 }
 
 .skip-btn svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
 }
 
 .play-btn {
   flex: none;
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: #f4f4f5;
@@ -554,22 +619,23 @@ onBeforeUnmount(() => {
 }
 
 .play-btn svg {
-  width: 19px;
-  height: 19px;
+  width: 16px;
+  height: 16px;
 }
 
 .time {
-  font-size: 12px;
+  flex: none;
+  font-size: 11px;
   color: #a1a1aa;
   font-variant-numeric: tabular-nums;
-  min-width: 34px;
+  min-width: 30px;
   text-align: center;
 }
 
 .progress {
   position: relative;
-  width: 210px;
-  height: 18px;
+  flex: 1;
+  height: 16px;
   display: flex;
   align-items: center;
   cursor: pointer;
@@ -581,7 +647,7 @@ onBeforeUnmount(() => {
   position: absolute;
   left: 0;
   right: 0;
-  height: 4px;
+  height: 3.5px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.14);
 }
@@ -589,7 +655,7 @@ onBeforeUnmount(() => {
 .p-fill {
   position: absolute;
   left: 0;
-  height: 4px;
+  height: 3.5px;
   border-radius: 999px;
   background: linear-gradient(90deg, #60a5fa, #a78bfa);
   max-width: 100%;
@@ -597,8 +663,8 @@ onBeforeUnmount(() => {
 
 .p-dot {
   position: absolute;
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
@@ -608,23 +674,10 @@ onBeforeUnmount(() => {
 
 .progress:hover .p-dot,
 .progress:focus-visible .p-dot {
-  box-shadow: 0 0 0 5px rgba(96, 165, 250, 0.25);
+  box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.25);
 }
 
-.vol-icon {
-  flex: none;
-  width: 17px;
-  height: 17px;
-  color: #a1a1aa;
-}
-
-.vol {
-  width: 78px;
-  accent-color: #60a5fa;
-  cursor: pointer;
-}
-
-/* ============ 说明行（与其他卡同规格） ============ */
+/* ============ 说明行 ============ */
 .card-caption {
   display: flex;
   align-items: flex-start;
@@ -654,6 +707,10 @@ onBeforeUnmount(() => {
   color: #60a5fa;
   opacity: 0;
   transition: opacity 0.3s ease-out;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 55%;
 }
 
 .music-card:hover .caption-song {
@@ -690,32 +747,8 @@ onBeforeUnmount(() => {
 
 /* ============ 移动端 ============ */
 @media (max-width: 768px) {
-  .player {
-    flex-wrap: wrap;
-    gap: 18px;
-    padding: 20px 22px;
-  }
-
-  .info {
-    flex: 1 1 calc(100% - 122px);
-  }
-
-  .song-title {
-    font-size: 18px;
-  }
-
-  .ctrl {
-    flex: 1 1 100%;
-    justify-content: space-between;
-  }
-
-  .progress {
-    flex: 1;
-    width: auto;
-  }
-
-  .vol {
-    width: 64px;
+  .queue li:nth-child(n + 5) {
+    display: none;
   }
 
   .caption-song {

@@ -142,6 +142,16 @@ export const musicApi = {
   delete: (id: number) => api.delete(`/admin/music/${id}`),
 }
 
+export const animeApi = {
+  getList: () => api.get('/anime/list'),
+  getAdminList: () => api.get('/admin/anime'),
+  create: (data: { title: string; coverUrl?: string; status?: string; rating?: number; comment?: string; sortOrder?: number }) =>
+    api.post('/admin/anime', data),
+  update: (id: number, data: { title: string; coverUrl?: string; status?: string; rating?: number; comment?: string; sortOrder?: number }) =>
+    api.put(`/admin/anime/${id}`, data),
+  delete: (id: number) => api.delete(`/admin/anime/${id}`),
+}
+
 export const authApi = {
   login: (data: any) => api.post('/admin/auth/login', data),
   logout: () => api.post('/admin/auth/logout'),

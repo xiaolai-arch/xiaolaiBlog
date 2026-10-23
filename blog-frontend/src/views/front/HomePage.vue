@@ -108,8 +108,9 @@
         </div>
       </router-link>
 
-      <!-- 我喜欢的音乐：通栏播放卡（黑胶 + 歌词 + 进度） -->
+      <!-- 我喜欢的音乐 + 我的番剧：并排的小组件行 -->
       <MusicCard />
+      <AnimeCard />
     </div>
   </div>
 </template>
@@ -119,6 +120,7 @@ import { ref, onMounted } from 'vue'
 import { siteApi } from '@/api'
 import LivePreview from '@/components/LivePreview.vue'
 import MusicCard from '@/components/MusicCard.vue'
+import AnimeCard from '@/components/AnimeCard.vue'
 
 const siteTitle = ref('咲来的 Blog')
 
@@ -359,9 +361,10 @@ onMounted(async () => {
   animation: projectCardEnter 450ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 
-/* 音乐卡：横向通栏，占满网格一整行 */
-.music-card {
-  grid-column: 1 / -1;
+/* 小组件行（音乐/番剧）：与项目卡同规格的半宽卡 */
+.music-card,
+.anime-card {
+  cursor: default;
 }
 
 /* 媒体区：参考站同款——悬停无位移/缩放，动效全部来自循环播放的演示视频 */
