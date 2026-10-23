@@ -57,7 +57,7 @@ function enter() {
 const songs = ref<Song[]>([])
 const featured = ref(0)
 
-/* 书架展示全部歌曲（最多 8 本，4×2 小书封，同图书页的密集书架感） */
+/* 书架展示全部歌曲（最多 8 本，4×2 小书封，同图书页的密集书架感）；聚光灯每 2s 轮一首 */
 const displaySongs = computed(() => songs.value.slice(0, 8))
 const featuredSong = computed(
   () => displaySongs.value[featured.value] || { title: '', artist: '' },
@@ -81,7 +81,7 @@ onMounted(async () => {
   if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches && displaySongs.value.length > 1) {
     timer = window.setInterval(() => {
       featured.value = (featured.value + 1) % displaySongs.value.length
-    }, 3200)
+    }, 2000)
   }
 })
 

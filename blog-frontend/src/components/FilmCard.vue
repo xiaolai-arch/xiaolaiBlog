@@ -123,7 +123,7 @@ let reduced = false
 function startAuto() {
   if (reduced || photos.value.length < 2) return
   stopAuto()
-  timer = window.setInterval(() => next(1), 5000)
+  timer = window.setInterval(() => next(1), 2800)
 }
 
 function stopAuto() {
