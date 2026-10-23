@@ -34,10 +34,8 @@ const props = withDefaults(
     drift?: boolean
     /** 下行巡览速度（px/s，按预览视口坐标）：博客等文字页用慢速，胶片等大步进页面按网站节奏提速 */
     scrollSpeed?: number
-    /** 导览模式：适用于页面自身无滚动的体验页（如 3D 展厅），定时“按”页内导览按钮驱动运镜 */
+    /** 导览模式：适用于页面自身无滚动的体验页（如 3D 展厅），按脚本定时“按”页内导览按钮驱动运镜 */
     tour?: boolean
-    /** 导览模式下两次步进之间的间隔（ms） */
-    tourIntervalMs?: number
   }>(),
   {
     title: '实时预览',
@@ -48,7 +46,6 @@ const props = withDefaults(
     drift: true,
     scrollSpeed: 26,
     tour: false,
-    tourIntervalMs: 3600,
   },
 )
 
@@ -58,6 +55,20 @@ const scale = ref(0.5)
 const loaded = ref(false)
 // 离屏时隐藏 iframe：不渲染的 iframe 里 rAF/WebGL 会停掉，省 GPU
 const hiddenForOffscreen = ref(false)
+
+/* ================= 展厅导览脚本（tour 模式） ================= */
+/** sel 为预览页内的按钮选择器，holdMs 为按下后的停留时长 */
+const GALLERY_TOUR_SCRIPT: Array<{ sel: string; holdMs: number }> = [
+  { sel: '[aria-label="Next painting"]', holdMs: 2300 },
+  { sel: '[aria-label="Next painting"]', holdMs: 2300 },
+  { sel: '[aria-label="Zoom in"]', holdMs: 1900 },
+  { sel: '[aria-label="Zoom in"]', holdMs: 2300 },
+  { sel: '[aria-label="Next painting"]', holdMs: 2300 },
+  { sel: '[aria-label="Zoom out"]', holdMs: 1900 },
+  { sel: '[aria-label="Zoom out"]', holdMs: 2300 },
+  { sel: '[aria-label="Next painting"]', holdMs: 2300 },
+]
+let tourStep = 0
 
 /* ================= 缩放 ================= */
 let resizeObserver: ResizeObserver | null = null
@@ -74,6 +85,7 @@ const PREVIEW_CSS =
 
 function onLoad() {
   loaded.value = true
+  tourStep = 0
   const win = iframeEl.value?.contentWindow
   if (!win || !win.document) return
   try {
@@ -125,14 +137,15 @@ function frameLoop(now: number) {
   if (now < st.holdUntil) return
 
   if (props.tour) {
-    // 导览模式：页面本身没有文档滚动（如 3D 展厅），定时点击页内导览控件，
-    // 运镜动画与真实用户按按钮完全一致；步进按环形顺序自动绕展厅一整圈。
-    const btn = win.document.querySelector<HTMLButtonElement>(
-      '[aria-label="Next painting"]',
-    )
+    // 导览模式：页面本身没有文档滚动（如 3D 展厅），按脚本点击页内导览控件，
+    // 运镜动画与真实用户按按钮完全一致。脚本节奏：两幅一停的快速巡馆，
+    // 每圈插一段“放大两级 → 保持放大平移到下一幅 → 缩回两级”的缩放演示。
+    const step = GALLERY_TOUR_SCRIPT[tourStep % GALLERY_TOUR_SCRIPT.length]
+    const btn = win.document.querySelector<HTMLButtonElement>(step.sel)
     if (btn) {
       btn.click()
-      st.holdUntil = now + props.tourIntervalMs
+      tourStep++
+      st.holdUntil = now + step.holdMs
     } else {
       st.holdUntil = now + 1500
     }
