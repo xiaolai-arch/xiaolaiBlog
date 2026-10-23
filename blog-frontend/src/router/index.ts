@@ -24,7 +24,6 @@ const routes: RouteRecordRaw[] = [
       { path: 'study', name: 'Study', component: () => import('@/views/front/StudyPage.vue') },
       { path: 'about', name: 'About', component: () => import('@/views/front/AboutPage.vue') },
       { path: 'changelog', name: 'Changelog', component: () => import('@/views/front/ChangelogPage.vue') },
-      { path: 'toys/polaroid', name: 'ToyPolaroid', component: () => import('@/views/front/toys/PolaroidStudioPage.vue') },
       { path: 'toys/sketchbook', name: 'ToySketchbook', component: () => import('@/views/front/toys/SketchbookPage.vue') },
     ]
   },
@@ -46,6 +45,14 @@ const routes: RouteRecordRaw[] = [
     path: '/gallery/3d',
     name: 'Gallery3D',
     component: () => import('@/views/front/GalleryRoomPage.vue'),
+  },
+  {
+    // 拍立得工作室：React 岛全屏沉浸式（原版自带返回/信息按钮），与 3D 展厅同级；
+    // alias 保持原版 Restart 按钮的 /project/polaroid 路径可用
+    path: '/toys/polaroid',
+    alias: '/project/polaroid',
+    name: 'ToyPolaroid',
+    component: () => import('@/views/front/toys/PolaroidStudioPage.vue'),
   },
   {
     path: '/login',
