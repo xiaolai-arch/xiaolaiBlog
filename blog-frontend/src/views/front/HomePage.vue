@@ -49,7 +49,10 @@
         @mouseenter="card.live ? (galleryHovered = true) : undefined"
         @mouseleave="card.live ? (galleryHovered = false) : undefined"
       >
-        <div class="media" :class="'grad-' + card.grad">
+        <div
+          class="media"
+          :class="[card.grad ? 'grad-' + card.grad : '', card.shimmer ? 'shimmer-media' : '']"
+        >
           <!-- live 卡（3D 美术馆）：媒体区为展厅页实时预览，导览运镜与真实操作一致 -->
           <LivePreview
             v-if="card.live"
@@ -62,6 +65,32 @@
             tour
             :drift="false"
           />
+          <!-- shimmer 卡（拍立得）：参考站同款「封面图 + 自动播放视频 + 微光加载层」视频卡 -->
+          <template v-else-if="card.shimmer">
+            <img
+              class="shimmer-poster"
+              :class="{ 'is-hidden': videoReady[card.title] }"
+              :src="card.poster"
+              alt=""
+              decoding="async"
+            />
+            <video
+              class="media-video"
+              :src="card.video"
+              autoplay
+              muted
+              loop
+              playsinline
+              preload="auto"
+              disablepictureinpicture
+              @loadeddata="videoReady[card.title] = true"
+            ></video>
+            <div
+              class="shimmer-overlay"
+              :class="{ 'is-off': videoReady[card.title] }"
+              aria-hidden="true"
+            ></div>
+          </template>
           <video
             v-else
             class="media-video"
@@ -131,7 +160,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { siteApi } from '@/api'
 import LivePreview from '@/components/LivePreview.vue'
 import MusicCard from '@/components/MusicCard.vue'
@@ -147,6 +176,9 @@ const blogHovered = ref(false)
 const galleryLiveReady = ref(false)
 const galleryHovered = ref(false)
 
+/* shimmer 卡：视频首帧就绪后，封面图与微光层一并淡出 */
+const videoReady = reactive<Record<string, boolean>>({})
+
 interface HomeCard {
   title: string
   year: string
@@ -157,6 +189,9 @@ interface HomeCard {
   video?: string
   /** 实时预览路由（优先于 video） */
   live?: string
+  /** 参考站同款视频卡：封面图 + 视频就绪前淡出的微光加载层 */
+  shimmer?: boolean
+  poster?: string
   featured: boolean
   tryIt?: boolean
 }
@@ -178,8 +213,11 @@ const cards: HomeCard[] = [
     year: 'NEW',
     desc: '',
     to: '/toys/polaroid',
-    grad: 'butter',
+    // 参考站同款视频卡：封面图兜底 + 微光加载层（无渐变底）
+    grad: '',
     video: '/videos/polaroid.webm',
+    poster: '/videos/polaroid-poster.jpg',
+    shimmer: true,
     featured: false,
     tryIt: true,
   },
@@ -422,6 +460,58 @@ onMounted(async () => {
   display: block;
   border-radius: inherit;
 }
+/* ============ shimmer 卡（参考站同款视频卡） ============ */
+.shimmer-media {
+  aspect-ratio: 678 / 367.625;
+  background: #e4e4e7;
+}
+.shimmer-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 10;
+  transition: opacity 0.5s ease-out;
+}
+.shimmer-poster.is-hidden {
+  opacity: 0;
+}
+.shimmer-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 20;
+  background-color: #e4e4e7;
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: cardShimmer 1.6s ease-in-out infinite;
+  transition: opacity 0.5s ease-out;
+}
+.shimmer-overlay.is-off {
+  opacity: 0;
+}
+@keyframes cardShimmer {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -80% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shimmer-overlay {
+    animation: none;
+  }
+}
 
 .media-ring {
   position: absolute;
@@ -598,6 +688,11 @@ onMounted(async () => {
 
   .media {
     aspect-ratio: 16 / 10;
+  }
+
+  /* shimmer 卡保持参考站比例，移动端不压扁 */
+  .media.shimmer-media {
+    aspect-ratio: 678 / 367.625;
   }
 
   .tp-dot,
