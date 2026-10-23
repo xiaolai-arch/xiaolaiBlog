@@ -1,8 +1,27 @@
 /* Tailwind island: theme + utilities only (no preflight, so zero impact on the Vue app).
-   @source limits class scanning to the React island sources. */
+   @source limits class scanning to the React island sources.
+   utilities 不分层：主站 global.scss 有未分层的 * { margin:0; padding:0 }，
+   分层工具类会整体输给它；岛样式注入晚于主站，未分层时按顺序胜出。 */
 @import "tailwindcss/theme.css" layer(theme);
-@import "tailwindcss/utilities.css" layer(utilities);
+@import "tailwindcss/utilities.css";
 @source "./**/*.{tsx,ts}";
+
+/* 岛内最小 preflight（限定在岛宿主，等效原版 preflight 的 button/input 重置，
+   否则按钮露出 UA 的 2px outset 黑框） */
+.film-island-host button,
+.film-island-host input,
+.polaroid-island-host button,
+.polaroid-island-host input {
+  border: 0 solid;
+  background-color: transparent;
+  background-image: none;
+  font-family: inherit;
+  font-feature-settings: inherit;
+  font-variation-settings: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  border-radius: 0;
+}
 
 /* ============================================================
    以下整段搬运自原版 src/index.css / globals.css（michelletliu/michelle-liu, MIT）：
@@ -305,5 +324,3 @@
   0%, 40%, 100% { opacity: 1; }
   60%, 80% { opacity: 0; }
 }
-
-/* transform-kick */
