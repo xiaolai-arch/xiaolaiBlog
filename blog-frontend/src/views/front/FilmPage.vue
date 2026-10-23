@@ -232,7 +232,7 @@ function layout() {
     acc += w + GAP
   }
 
-  // 轨道平移：把焦点照片中心（floor/ceil 插值）锚定屏幕中线
+  // 轨道平移：把焦点照片中心（floor/ceil 插值）锚定屏幕正中（参考站实测焦点中心=vw/2）
   const i0 = Math.max(0, Math.min(n - 1, Math.floor(p)))
   const i1 = Math.max(0, Math.min(n - 1, Math.ceil(p)))
   const frac = Math.abs(p - Math.floor(p))

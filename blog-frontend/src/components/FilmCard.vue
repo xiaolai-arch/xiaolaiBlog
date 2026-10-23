@@ -105,7 +105,7 @@ let reduced = false
 function startAuto() {
   if (reduced || photos.value.length < 2) return
   stopAuto()
-  timer = window.setInterval(() => next(1), 2800)
+  timer = window.setInterval(() => next(1), 1800)
 }
 
 function stopAuto() {
@@ -194,14 +194,14 @@ onBeforeUnmount(stopAuto)
 .frame {
   position: absolute;
   top: 50%;
-  left: 14%;
-  width: 42%;
+  left: 50%;
+  width: 52%;
   aspect-ratio: 4 / 3;
   border-radius: 6px;
   overflow: hidden;
   box-shadow: 0 14px 34px rgba(24, 24, 27, 0.16);
   cursor: pointer;
-  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.7s ease, left 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.5s ease, left 0.5s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform, left, opacity;
 }
 
@@ -213,16 +213,16 @@ onBeforeUnmount(stopAuto)
   pointer-events: none;
 }
 
-/* 主图：垂直居中 */
+/* 主图：卡内水平居中（对齐 /film 整页焦点居中构图） */
 .pos-0 {
-  transform: translateY(-50%);
+  transform: translate(-50%, -50%);
   z-index: 5;
   opacity: 1;
 }
 
-/* 右侧等距渐远：像一串从远处飘来的照片 */
+/* 右侧渐远带（同整页比例 0.76/0.58/0.44） */
 .pos-1 {
-  left: 38%;
+  left: 82%;
   transform: translateY(-50%) scale(0.76);
   z-index: 4;
   opacity: 0.85;
@@ -230,7 +230,7 @@ onBeforeUnmount(stopAuto)
 }
 
 .pos-2 {
-  left: 55%;
+  left: 102%;
   transform: translateY(-50%) scale(0.58);
   z-index: 3;
   opacity: 0.55;
@@ -238,7 +238,7 @@ onBeforeUnmount(stopAuto)
 }
 
 .pos-3 {
-  left: 68%;
+  left: 118%;
   transform: translateY(-50%) scale(0.44);
   z-index: 2;
   opacity: 0.3;
@@ -250,7 +250,7 @@ onBeforeUnmount(stopAuto)
   opacity: 0;
   z-index: 1;
   pointer-events: none;
-  left: 78%;
+  left: 130%;
   transform: translateY(-50%) scale(0.34);
 }
 
