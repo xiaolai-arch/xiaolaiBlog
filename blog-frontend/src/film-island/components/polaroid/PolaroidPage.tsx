@@ -28,7 +28,8 @@ const DEFAULT_POLAROID_PROJECT = {
   videoSrc: 'https://stream.mux.com/XJFJ1P3u9pKsFYvH9lTtOp4gPRydSpMkRrX9dRmNE5w.m3u8',
   xLink: 'https://x.com/michelletliu/status/1991201412072734777',
   tryItOutHref: '/polaroid',
-  backgroundColor: '#eff6ff',
+  // 线上版实际底色为 sky-50（代码兜底 #eff6ff 不会走到）
+  backgroundColor: '#f0f9ff',
   toolCategories: [
     { label: 'Design', tools: ['Figma'] },
     { label: 'Frontend', tools: ['TypeScript', 'React', 'Vite'] },
