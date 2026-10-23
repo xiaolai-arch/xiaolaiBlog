@@ -57,8 +57,8 @@ function enter() {
 const songs = ref<Song[]>([])
 const featured = ref(0)
 
-/* 书架最多展示 6 本（2×3），聚光灯每 3.2s 轮到下一首 */
-const displaySongs = computed(() => songs.value.slice(0, 6))
+/* 书架展示全部歌曲（最多 8 本，4×2 小书封，同图书页的密集书架感） */
+const displaySongs = computed(() => songs.value.slice(0, 8))
 const featuredSong = computed(
   () => displaySongs.value[featured.value] || { title: '', artist: '' },
 )
@@ -107,8 +107,8 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 22px;
-  padding: 22px 24px;
+  gap: 20px;
+  padding: 20px 22px;
   border-radius: 26px;
   overflow: hidden;
   isolation: isolate;
@@ -131,20 +131,21 @@ onBeforeUnmount(() => {
   pointer-events: none;
 }
 
-/* ============ 迷你书架：2×3 书封 ============ */
+/* ============ 迷你书架：4×2 小书封（同 /music 书架的密集感） ============ */
 .mini-shelf {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(4, 104px);
+  justify-content: center;
+  gap: 18px 12px;
 }
 
 .mini-book {
   position: relative;
   aspect-ratio: 2 / 3;
-  border-radius: 3px;
+  border-radius: 2.5px;
   overflow: hidden;
   background: linear-gradient(150deg, #3f3f46, #2c2c31 60%, #26262b);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
   opacity: 0.72;
   transform: translateY(0);
   transition:
@@ -168,7 +169,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 15px;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.3);
 }
@@ -176,28 +177,28 @@ onBeforeUnmount(() => {
 /* 聚光灯：上提、放大、点亮 */
 .mini-book.featured {
   opacity: 1;
-  transform: translateY(-8px) scale(1.04);
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.5);
+  transform: translateY(-7px) scale(1.05);
+  box-shadow: 0 9px 22px rgba(0, 0, 0, 0.5);
   z-index: 2;
 }
 
 /* 封面右下角均衡器角标 */
 .mini-eq {
   position: absolute;
-  right: 6px;
-  bottom: 6px;
+  right: 5px;
+  bottom: 5px;
   display: flex;
   align-items: flex-end;
   gap: 2px;
-  height: 11px;
-  padding: 3px 5px;
+  height: 9px;
+  padding: 2.5px 4px;
   border-radius: 999px;
   background: rgba(24, 24, 27, 0.55);
   backdrop-filter: blur(4px);
 }
 
 .mini-eq i {
-  width: 2.5px;
+  width: 2px;
   border-radius: 1px;
   background: #60a5fa;
   animation: miniEq 0.9s ease-in-out infinite;
@@ -344,8 +345,11 @@ onBeforeUnmount(() => {
 
 /* ============ 移动端 ============ */
 @media (max-width: 768px) {
-  .showcase {
-    min-height: 320px;
+  .mini-shelf {
+    grid-template-columns: repeat(4, 1fr);
+    max-width: 440px;
+    width: 100%;
+    margin: 0 auto;
   }
 
   .caption-more {
