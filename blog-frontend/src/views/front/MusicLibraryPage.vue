@@ -6,40 +6,42 @@
       <span class="ml-brand">Library</span>
     </header>
 
-    <!-- 页头：标题 + 数量 -->
-    <div class="ml-head">
-      <h1 class="ml-title">我喜欢的音乐</h1>
-      <span class="ml-count">{{ songs.length }} 首</span>
-    </div>
+    <!-- 页头 + 书架：同一内容宽度，聚拢居中 -->
+    <div class="ml-shelf-wrap">
+      <div class="ml-head">
+        <h1 class="ml-title">我喜欢的音乐</h1>
+        <span class="ml-count">{{ songs.length }} 首</span>
+      </div>
 
-    <!-- 书架墙（复刻 BookCard/LibraryPage 网格） -->
-    <div v-if="loading" class="ml-empty">加载中…</div>
-    <div v-else-if="!songs.length" class="ml-empty">
-      <p>书架还是空的</p>
-      <p class="sub">后台「音乐」里上传后展示在这里</p>
-    </div>
-    <div v-else class="ml-shelf">
-      <button
-        v-for="(s, i) in songs"
-        :key="s.id ?? i"
-        class="ml-book"
-        :class="{ playing: i === current }"
-        :aria-label="`播放 ${s.title}`"
-        @click="playAt(i)"
-      >
-        <div class="ml-cover">
-          <img v-if="s.cover" :src="s.cover" :alt="s.title" loading="lazy" />
-          <span v-else class="ml-cover-fallback">{{ s.title.slice(0, 1) }}</span>
-          <span v-if="i === current" class="ml-playing-badge">
-            <i v-for="n in 3" :key="n" :style="{ animationDelay: (n - 1) * 0.18 + 's' }"></i>
-          </span>
-        </div>
-        <div class="ml-meta">
-          <p class="ml-book-title">{{ s.title }}</p>
-          <p class="ml-book-artist">{{ s.artist || '未知歌手' }}</p>
-          <p class="ml-book-extra">{{ fmt(s.duration) }}</p>
-        </div>
-      </button>
+      <!-- 书架墙（复刻 BookCard/LibraryPage 网格） -->
+      <div v-if="loading" class="ml-empty">加载中…</div>
+      <div v-else-if="!songs.length" class="ml-empty">
+        <p>书架还是空的</p>
+        <p class="sub">后台「音乐」里上传后展示在这里</p>
+      </div>
+      <div v-else class="ml-shelf">
+        <button
+          v-for="(s, i) in songs"
+          :key="s.id ?? i"
+          class="ml-book"
+          :class="{ playing: i === current }"
+          :aria-label="`播放 ${s.title}`"
+          @click="playAt(i)"
+        >
+          <div class="ml-cover">
+            <img v-if="s.cover" :src="s.cover" :alt="s.title" loading="lazy" />
+            <span v-else class="ml-cover-fallback">{{ s.title.slice(0, 1) }}</span>
+            <span v-if="i === current" class="ml-playing-badge">
+              <i v-for="n in 3" :key="n" :style="{ animationDelay: (n - 1) * 0.18 + 's' }"></i>
+            </span>
+          </div>
+          <div class="ml-meta">
+            <p class="ml-book-title">{{ s.title }}</p>
+            <p class="ml-book-artist">{{ s.artist || '未知歌手' }}</p>
+            <p class="ml-book-extra">{{ fmt(s.duration) }}</p>
+          </div>
+        </button>
+      </div>
     </div>
 
     <!-- 底部播放条 -->
@@ -209,7 +211,13 @@ onBeforeUnmount(() => {
 .ml-page {
   min-height: 100vh;
   background: #fff;
-  padding: 0 36px 150px;
+  padding: 0 64px 150px;
+}
+
+/* 书架不摊满全宽：参考站在书少时同样聚拢居中 */
+.ml-shelf-wrap {
+  max-width: 1080px;
+  margin: 0 auto;
 }
 
 [data-theme='dark'] .ml-page {
@@ -281,12 +289,12 @@ onBeforeUnmount(() => {
   color: #a1a1aa;
 }
 
-/* ============ 书架（网格复刻：4/5/6 列两端对齐） ============ */
+/* ============ 书架（网格复刻：4/5/6 列，行距同参考站 ~135px） ============ */
 .ml-shelf {
   display: grid;
   grid-template-columns: repeat(4, 148px);
   justify-content: space-between;
-  row-gap: 76px;
+  row-gap: 136px;
   padding-top: 8px;
 }
 
@@ -613,6 +621,10 @@ onBeforeUnmount(() => {
     padding: 0 20px 140px;
   }
 
+  .ml-shelf-wrap {
+    max-width: none;
+  }
+
   .ml-title {
     font-size: 24px;
   }
@@ -624,7 +636,7 @@ onBeforeUnmount(() => {
   .ml-shelf {
     grid-template-columns: repeat(3, 1fr);
     column-gap: 14px;
-    row-gap: 64px;
+    row-gap: 96px;
   }
 
   .ml-meta {
