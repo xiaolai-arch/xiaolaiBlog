@@ -1,17 +1,17 @@
 <template>
   <div class="login-page">
     <div class="login-card">
-      <h1 class="login-title">Xiaolai Blog</h1>
+      <h1 class="login-title">咲来的 Blog · 管理登录</h1>
       <el-form :model="form" label-position="top" @keyup.enter="handleLogin">
-        <el-form-item label="Username">
-          <el-input v-model="form.username" placeholder="Username" size="large" />
+        <el-form-item label="用户名">
+          <el-input v-model="form.username" placeholder="用户名" size="large" />
         </el-form-item>
-        <el-form-item label="Password">
-          <el-input v-model="form.password" type="password" placeholder="Password" size="large" show-password />
+        <el-form-item label="密码">
+          <el-input v-model="form.password" type="password" placeholder="密码" size="large" show-password />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" size="large" :loading="loading" @click="handleLogin" style="width: 100%">
-            {{ loading ? 'Logging in...' : 'Login' }}
+            {{ loading ? '登录中…' : '登录' }}
           </el-button>
         </el-form-item>
         <p v-if="error" class="error">{{ error }}</p>
@@ -47,7 +47,7 @@ async function handleLogin() {
       error.value = 'Invalid username or password'
     }
   } catch (e: any) {
-    error.value = e.response?.data?.message || 'Login failed'
+    error.value = e.response?.data?.message || '登录失败'
   }
   loading.value = false
 }

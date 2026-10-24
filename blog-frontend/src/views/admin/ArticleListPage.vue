@@ -1,37 +1,37 @@
 <template>
   <div class="article-list-page">
     <div class="page-header">
-      <h2>Articles</h2>
+      <h2>文章管理</h2>
       <el-button type="primary" @click="$router.push('/admin/articles/create')">
-        <el-icon><Plus /></el-icon> New Article
+        <el-icon><Plus /></el-icon> 新建文章
       </el-button>
     </div>
 
     <el-card>
       <div class="table-toolbar">
-        <el-input v-model="keyword" placeholder="Search title..." clearable style="width: 280px" @clear="loadArticles" @keyup.enter="loadArticles" />
-        <el-select v-model="statusFilter" placeholder="Status" clearable @change="loadArticles" style="width: 140px">
-          <el-option label="Published" :value="1" />
-          <el-option label="Draft" :value="0" />
+        <el-input v-model="keyword" placeholder="搜索标题…" clearable style="width: 280px" @clear="loadArticles" @keyup.enter="loadArticles" />
+        <el-select v-model="statusFilter" placeholder="状态" clearable @change="loadArticles" style="width: 140px">
+          <el-option label="已发布" :value="1" />
+          <el-option label="草稿" :value="0" />
         </el-select>
-        <el-button @click="loadArticles">Search</el-button>
+        <el-button @click="loadArticles">搜索</el-button>
       </div>
 
       <el-table :data="articles" v-loading="loading" stripe>
-        <el-table-column prop="title" label="Title" min-width="250" show-overflow-tooltip />
-        <el-table-column prop="status" label="Status" width="100">
+        <el-table-column prop="title" label="标题" min-width="250" show-overflow-tooltip />
+        <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
-              {{ row.status === 1 ? 'Published' : 'Draft' }}
+              {{ row.status === 1 ? '已发布' : '草稿' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="views" label="Views" width="80" />
-        <el-table-column prop="createTime" label="Created" width="170" />
-        <el-table-column label="Actions" width="180" fixed="right">
+        <el-table-column prop="views" label="浏览量" width="80" />
+        <el-table-column prop="createTime" label="创建时间" width="170" />
+        <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" @click="$router.push(`/admin/articles/${row.id}/edit`)">Edit</el-button>
-            <el-button size="small" type="danger" @click="handleDelete(row)">Delete</el-button>
+            <el-button size="small" @click="$router.push(`/admin/articles/${row.id}/edit`)">编辑</el-button>
+            <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -78,10 +78,10 @@ async function loadArticles() {
 }
 
 function handleDelete(row: any) {
-  ElMessageBox.confirm(`Delete "${row.title}"?`, 'Confirm', { type: 'warning' })
+  ElMessageBox.confirm(`确定删除「${row.title}」？`, '确认', { type: 'warning' })
     .then(async () => {
       await articleApi.delete(row.id)
-      ElMessage.success('Deleted')
+      ElMessage.success('已删除')
       loadArticles()
     }).catch(() => {})
 }

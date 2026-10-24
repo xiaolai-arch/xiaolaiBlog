@@ -1,46 +1,46 @@
 <template>
   <div class="settings-page">
-    <h2 class="page-title">Site Settings</h2>
+    <h2 class="page-title">站点设置</h2>
 
     <el-card v-loading="loading">
       <el-form :model="form" label-position="top">
-        <el-divider>Basic Info</el-divider>
+        <el-divider>基本信息</el-divider>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="Site Title">
+            <el-form-item label="站点标题">
               <el-input v-model="form.site_title" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="Site Subtitle">
+            <el-form-item label="站点副标题">
               <el-input v-model="form.site_subtitle" />
             </el-form-item>
           </el-col>
         </el-row>
-        <el-form-item label="Site Description">
+        <el-form-item label="站点描述">
           <el-input v-model="form.site_description" type="textarea" :rows="2" />
         </el-form-item>
         <el-form-item label="Announcement（侧边栏公告，留空则不显示）">
           <el-input v-model="form.announcement" placeholder="例如：正在学习微服务，欢迎交流！" />
         </el-form-item>
 
-        <el-divider>Copyright & Social</el-divider>
-        <el-form-item label="Copyright">
+        <el-divider>版权与社交</el-divider>
+        <el-form-item label="版权信息">
           <el-input v-model="form.copyright" />
         </el-form-item>
         <el-row :gutter="20">
           <el-col :span="8">
-            <el-form-item label="GitHub URL">
+            <el-form-item label="GitHub 地址">
               <el-input v-model="form.social_github" placeholder="https://github.com/username" />
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="Bilibili URL">
+            <el-form-item label="B 站地址">
               <el-input v-model="form.social_bilibili" placeholder="https://space.bilibili.com/xxxx" />
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="Email">
+            <el-form-item label="邮箱">
               <el-input v-model="form.social_email" placeholder="email@example.com" />
             </el-form-item>
           </el-col>
@@ -56,22 +56,22 @@
 
         <el-form-item>
           <el-button type="primary" @click="save" :loading="saving">
-            {{ saving ? 'Saving...' : 'Save Settings' }}
+            {{ saving ? '保存中…' : '保存设置' }}
           </el-button>
         </el-form-item>
       </el-form>
     </el-card>
 
     <el-card class="password-card">
-      <template #header>Change Password</template>
+      <template #header>修改密码</template>
       <el-form :model="pwForm" label-position="top" class="password-form" @submit.prevent="changePassword">
-        <el-form-item label="Current Password">
+        <el-form-item label="当前密码">
           <el-input v-model="pwForm.oldPassword" type="password" show-password autocomplete="current-password" />
         </el-form-item>
-        <el-form-item label="New Password (at least 8 characters)">
+        <el-form-item label="新密码（至少 8 位）">
           <el-input v-model="pwForm.newPassword" type="password" show-password autocomplete="new-password" />
         </el-form-item>
-        <el-form-item label="Confirm New Password">
+        <el-form-item label="确认新密码">
           <el-input v-model="pwForm.confirm" type="password" show-password autocomplete="new-password" />
         </el-form-item>
         <el-form-item>
@@ -95,21 +95,21 @@ const changingPw = ref(false)
 
 async function changePassword() {
   const { oldPassword, newPassword, confirm } = pwForm.value
-  if (!oldPassword || !newPassword) return ElMessage.warning('Please fill in all password fields')
-  if (newPassword.length < 8) return ElMessage.warning('New password must be at least 8 characters')
-  if (newPassword !== confirm) return ElMessage.warning('The two new passwords do not match')
+  if (!oldPassword || !newPassword) return ElMessage.warning('请填写所有密码字段')
+  if (newPassword.length < 8) return ElMessage.warning('新密码至少 8 位')
+  if (newPassword !== confirm) return ElMessage.warning('两次输入的新密码不一致')
 
   changingPw.value = true
   try {
     const res = await authApi.changePassword({ oldPassword, newPassword })
     if (res.data.code === 200) {
-      ElMessage.success('Password updated')
+      ElMessage.success('密码已更新')
       pwForm.value = { oldPassword: '', newPassword: '', confirm: '' }
     } else {
-      ElMessage.error(res.data.message || 'Update failed')
+      ElMessage.error(res.data.message || '更新失败')
     }
   } catch (e: any) {
-    ElMessage.error(e.response?.data?.message || 'Update failed')
+    ElMessage.error(e.response?.data?.message || '更新失败')
   }
   changingPw.value = false
 }
@@ -129,8 +129,8 @@ async function save() {
   saving.value = true
   try {
     await siteApi.updateConfig(form.value)
-    ElMessage.success('Settings saved')
-  } catch (_) { ElMessage.error('Save failed') }
+    ElMessage.success('设置已保存')
+  } catch (_) { ElMessage.error('保存失败') }
   saving.value = false
 }
 </script>

@@ -68,7 +68,7 @@
             <div class="header-left">
               <el-breadcrumb>
                 <el-breadcrumb-item :to="'/'">前台</el-breadcrumb-item>
-                <el-breadcrumb-item>Admin</el-breadcrumb-item>
+                <el-breadcrumb-item>管理后台</el-breadcrumb-item>
               </el-breadcrumb>
             </div>
             <div class="header-right">

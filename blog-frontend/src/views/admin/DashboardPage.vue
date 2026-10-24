@@ -1,22 +1,22 @@
 <template>
   <div class="dashboard">
-    <h2 class="page-title">Dashboard</h2>
+    <h2 class="page-title">仪表盘</h2>
     <div class="stats-grid">
       <el-card class="stat-card">
         <div class="stat-value">{{ stats.articles }}</div>
-        <div class="stat-label">Articles</div>
+        <div class="stat-label">文章</div>
       </el-card>
       <el-card class="stat-card">
         <div class="stat-value">{{ stats.categories }}</div>
-        <div class="stat-label">Categories</div>
+        <div class="stat-label">分类</div>
       </el-card>
       <el-card class="stat-card">
         <div class="stat-value">{{ stats.tags }}</div>
-        <div class="stat-label">Tags</div>
+        <div class="stat-label">标签</div>
       </el-card>
       <el-card class="stat-card">
         <div class="stat-value">{{ stats.comments }}</div>
-        <div class="stat-label">Comments</div>
+        <div class="stat-label">评论</div>
       </el-card>
     </div>
   </div>

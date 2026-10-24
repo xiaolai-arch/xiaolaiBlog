@@ -1,25 +1,25 @@
 <template>
   <div class="article-edit-page">
-    <h2 class="page-title">{{ isEdit ? 'Edit Article' : 'New Article' }}</h2>
+    <h2 class="page-title">{{ isEdit ? '编辑文章' : '新建文章' }}</h2>
 
     <el-form :model="form" label-position="top" v-loading="loading">
       <el-row :gutter="20">
         <el-col :span="16">
           <el-card>
-            <el-form-item label="Title" required>
-              <el-input v-model="form.title" placeholder="Article title" size="large" />
+            <el-form-item label="标题" required>
+              <el-input v-model="form.title" placeholder="文章标题" size="large" />
             </el-form-item>
 
-            <el-form-item label="Slug">
-              <el-input v-model="form.slug" placeholder="URL-friendly identifier (auto-generated if empty)" />
+            <el-form-item label="URL 别名">
+              <el-input v-model="form.slug" placeholder="URL 标识（留空自动生成）" />
             </el-form-item>
 
-            <el-form-item label="Content (Markdown)">
+            <el-form-item label="内容（Markdown）">
               <el-input
                 v-model="form.contentMd"
                 type="textarea"
                 :rows="20"
-                placeholder="Write your article in Markdown..."
+                placeholder="用 Markdown 写作……"
               />
             </el-form-item>
           </el-card>
@@ -27,45 +27,45 @@
 
         <el-col :span="8">
           <el-card style="margin-bottom: 16px">
-            <template #header>Publish</template>
-            <el-form-item label="Status">
+            <template #header>发布</template>
+            <el-form-item label="状态">
               <el-radio-group v-model="form.status">
-                <el-radio :value="0">Draft</el-radio>
-                <el-radio :value="1">Published</el-radio>
+                <el-radio :value="0">草稿</el-radio>
+                <el-radio :value="1">已发布</el-radio>
               </el-radio-group>
             </el-form-item>
-            <el-form-item label="Pin to top">
+            <el-form-item label="置顶">
               <el-switch v-model="isTop" />
             </el-form-item>
             <el-button type="primary" @click="save" :loading="saving" style="width: 100%">
-              {{ saving ? 'Saving...' : 'Save' }}
+              {{ saving ? '保存中…' : '保存' }}
             </el-button>
           </el-card>
 
           <el-card style="margin-bottom: 16px">
-            <template #header>Category</template>
-            <el-select v-model="form.categoryId" placeholder="Select category" style="width: 100%">
+            <template #header>分类</template>
+            <el-select v-model="form.categoryId" placeholder="选择分类" style="width: 100%">
               <el-option v-for="cat in categories" :key="cat.id" :label="cat.name" :value="cat.id" />
             </el-select>
           </el-card>
 
           <el-card style="margin-bottom: 16px">
-            <template #header>Tags</template>
-            <el-select v-model="form.tagIds" multiple placeholder="Select tags" style="width: 100%">
+            <template #header>标签</template>
+            <el-select v-model="form.tagIds" multiple placeholder="选择标签" style="width: 100%">
               <el-option v-for="tag in tags" :key="tag.id" :label="tag.name" :value="tag.id" />
             </el-select>
           </el-card>
 
           <el-card>
-            <template #header>Cover Image</template>
-            <el-input v-model="form.coverUrl" placeholder="Cover image URL" />
+            <template #header>封面图片</template>
+            <el-input v-model="form.coverUrl" placeholder="封面图片地址" />
             <el-upload
               class="upload-btn"
               :http-request="handleUpload"
               :show-file-list="false"
               accept="image/*"
             >
-              <el-button size="small">Upload</el-button>
+              <el-button size="small">上传</el-button>
             </el-upload>
           </el-card>
         </el-col>
@@ -126,7 +126,7 @@ async function loadArticle() {
       }
       isTop.value = a.isTop === 1
     }
-  } catch (_) { ElMessage.error('Failed to load article') }
+  } catch (_) { ElMessage.error('文章加载失败') }
   loading.value = false
 }
 
@@ -136,14 +136,14 @@ async function save() {
   try {
     if (isEdit.value) {
       await articleApi.update(Number(route.params.id), payload)
-      ElMessage.success('Article updated')
+      ElMessage.success('文章已更新')
     } else {
       await articleApi.create(payload)
-      ElMessage.success('Article created')
+      ElMessage.success('文章已创建')
     }
     router.push('/admin/articles')
   } catch (e: any) {
-    ElMessage.error(e.response?.data?.message || 'Save failed')
+    ElMessage.error(e.response?.data?.message || '保存失败')
   }
   saving.value = false
 }
@@ -153,9 +153,9 @@ async function handleUpload(options: any) {
     const res = await mediaApi.upload(options.file)
     if (res.data.code === 200) {
       form.value.coverUrl = res.data.data.url
-      ElMessage.success('Uploaded')
+      ElMessage.success('上传成功')
     }
-  } catch (_) { ElMessage.error('Upload failed') }
+  } catch (_) { ElMessage.error('上传失败') }
 }
 </script>
 
