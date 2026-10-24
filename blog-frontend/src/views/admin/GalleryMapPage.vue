@@ -3,7 +3,7 @@
     <div class="page-header">
       <div>
         <h2>画廊映射</h2>
-        <p class="page-sub">为 3D 美术馆的 12 个画框指定挂画，按导览顺序排列；未配置的画框沿用自动填充（本站上传优先，其次内置藏品）。</p>
+        <p class="page-sub">为 3D 美术馆的 12 个画框指定挂画，按导览顺序排列；未配置的画框沿用自动填充（本站上传优先，其次内置藏品）。选图后可按画框比例裁剪。</p>
       </div>
       <div class="header-actions">
         <el-button @click="loadAll" :loading="loading">刷新</el-button>
@@ -13,21 +13,28 @@
 
     <div class="frame-grid" v-loading="loading">
       <div v-for="frame in frames" :key="frame.id" class="frame-card" :class="{ filled: Boolean(model[frame.id]) }">
-        <div class="frame-thumb">
+        <div class="frame-thumb" :style="{ aspectRatio: frameRatio(frame) }">
           <img v-if="model[frame.id]?.imageUrl" :src="model[frame.id]?.imageUrl" :alt="frame.id" />
           <span v-else class="empty-hint">自动填充</span>
+          <button
+            v-if="model[frame.id]?.imageUrl"
+            class="crop-btn"
+            type="button"
+            @click="openCrop(frame)"
+          >✂ 裁剪</button>
         </div>
         <div class="frame-meta">
-          <p class="frame-name">{{ frameTitle(frame) }}</p>
-          <p class="frame-id">{{ frame.id }}</p>
+          <p class="frame-name">{{ frameTitle(frame) }}<span class="frame-aspect">{{ frame.aspect === 'portrait' ? '3:4' : '3:2' }}</span></p>
+          <p class="frame-id">{{ frame.id }}<span v-if="model[frame.id]?.label" class="frame-label"> · {{ model[frame.id]?.label }}</span></p>
           <el-select
-            v-model="model[frame.id]"
+            :model-value="model[frame.id]"
             placeholder="选择媒体库图片"
             size="small"
             filterable
             clearable
             value-key="imageUrl"
             class="frame-select"
+            @update:model-value="(v: FrameValue | null) => onPick(frame, v)"
           >
             <el-option
               v-for="m in mediaList"
@@ -44,6 +51,28 @@
         </div>
       </div>
     </div>
+
+    <!-- 裁剪对话框：取景框比例锁定为画框比例 -->
+    <el-dialog
+      v-model="cropOpen"
+      :title="`裁剪挂画 — ${cropFrame ? frameTitle(cropFrame) : ''}`"
+      width="460px"
+      :close-on-click-modal="false"
+      destroy-on-close
+    >
+      <div v-if="cropOpen && cropFrame" class="crop-body">
+        <ImageCropper
+          ref="cropperRef"
+          :src="cropSourceUrl"
+          :ratio="frameRatioNum(cropFrame)"
+          @crop="onCropDone"
+        />
+      </div>
+      <template #footer>
+        <el-button @click="useOriginal">使用原图</el-button>
+        <el-button type="primary" :loading="cropping" @click="confirmCrop">确认裁剪</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -52,6 +81,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import api, { galleryFrameApi } from '@/api'
 import { GALLERY_PAINTINGS } from '@/gallery/galleryPaintings'
+import ImageCropper from '@/components/ImageCropper.vue'
 
 interface MediaItem {
   id: number
@@ -79,8 +109,84 @@ const model = reactive<Record<string, FrameValue | null | undefined>>({})
 const loading = ref(false)
 const saving = ref(false)
 
+/* ================= 裁剪流程 ================= */
+const cropOpen = ref(false)
+const cropping = ref(false)
+const cropFrame = ref<(typeof frames)[number] | null>(null)
+const cropSourceUrl = ref('')
+const cropPendingValue = ref<FrameValue | null>(null)
+const cropperRef = ref<InstanceType<typeof ImageCropper> | null>(null)
+
 function frameTitle(frame: (typeof frames)[number]) {
   return `${WALL_NAMES[frame.wall]} 第 ${frame.slot + 1} 幅`
+}
+
+/* 画框宽高比（w/h）：竖幅 3:4，横幅 3:2 */
+function frameRatioNum(frame: (typeof frames)[number]) {
+  return frame.aspect === 'portrait' ? 3 / 4 : 3 / 2
+}
+
+function frameRatio(frame: (typeof frames)[number]) {
+  return String(frameRatioNum(frame))
+}
+
+function onPick(frame: (typeof frames)[number], value: FrameValue | null) {
+  model[frame.id] = value
+  // 选了新图 → 直接进入裁剪（比例已按该画框锁定）；清空则不动
+  if (value?.imageUrl) openCrop(frame)
+}
+
+function openCrop(frame: (typeof frames)[number]) {
+  const current = model[frame.id]
+  if (!current?.imageUrl) return
+  cropFrame.value = frame
+  cropSourceUrl.value = current.imageUrl
+  cropPendingValue.value = current
+  cropOpen.value = true
+}
+
+function useOriginal() {
+  cropOpen.value = false
+}
+
+async function confirmCrop() {
+  if (!cropFrame.value || !cropperRef.value) return
+  cropping.value = true
+  try {
+    await cropperRef.value.exportCrop()
+  } finally {
+    cropping.value = false
+  }
+}
+
+async function onCropDone(blob: Blob) {
+  const frame = cropFrame.value
+  if (!frame) return
+  const base = cropPendingValue.value?.label || '画框挂画'
+  const file = new File([blob], `frame-${frame.id}.jpg`, { type: 'image/jpeg' })
+  try {
+    const res = await api.post('/admin/gallery-frames/upload', toFormData(file), {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    if (res.data.code === 200 && res.data.data) {
+      model[frame.id] = {
+        imageUrl: res.data.data,
+        label: `${base}（裁剪）`,
+      }
+      ElMessage.success('已裁剪，记得保存映射')
+      cropOpen.value = false
+    } else {
+      ElMessage.error(res.data.message || '裁剪上传失败')
+    }
+  } catch (_) {
+    ElMessage.error('裁剪上传失败')
+  }
+}
+
+function toFormData(file: File) {
+  const fd = new FormData()
+  fd.append('file', file)
+  return fd
 }
 
 async function loadAll() {
@@ -173,7 +279,6 @@ onMounted(loadAll)
 
 .frame-thumb {
   position: relative;
-  aspect-ratio: 4 / 3;
   border-radius: 10px;
   overflow: hidden;
   background: var(--bg-secondary, #f4f4f5);
@@ -193,6 +298,29 @@ onMounted(loadAll)
   color: var(--text-muted, #a1a1aa);
 }
 
+.crop-btn {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 4px 10px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(24, 24, 27, 0.72);
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.frame-thumb:hover .crop-btn {
+  opacity: 1;
+}
+
+.crop-btn:hover {
+  background: rgba(24, 24, 27, 0.9);
+}
+
 .frame-meta {
   display: flex;
   flex-direction: column;
@@ -206,10 +334,21 @@ onMounted(loadAll)
   color: var(--text-primary, #18181b);
 }
 
+.frame-aspect {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #a1a1aa;
+}
+
 .frame-id {
   margin: -4px 0 0;
   font-size: 12px;
   color: var(--text-muted, #a1a1aa);
+}
+
+.frame-label {
+  color: #86efac;
 }
 
 .frame-select {
@@ -233,5 +372,10 @@ onMounted(loadAll)
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.crop-body {
+  display: flex;
+  justify-content: center;
 }
 </style>
