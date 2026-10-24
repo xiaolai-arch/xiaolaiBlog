@@ -69,7 +69,7 @@ import {
   type GalleryPainting,
 } from '@/gallery/galleryPaintings'
 import { downloadImage, generatedImageFilename } from '@/gallery/downloadImage'
-import { galleryApi } from '@/api'
+import { galleryApi, galleryFrameApi } from '@/api'
 
 /** Artwork hung on a frame — label feeds the download filename. */
 export type PaintingSelection = {
@@ -170,14 +170,39 @@ async function loadMetCollection(): Promise<PaintingSelection[]> {
   }
 }
 
+/**
+ * 后台「画廊映射」优先：管理员为画框指定的挂画直接采用；
+ * 未配置的画框在 hangOpeningCollection 里沿用 uploads + MET 自动填充。
+ */
+async function hangFrameMap() {
+  try {
+    const res = await galleryFrameApi.getFrames()
+    if (res.data.code !== 200 || !res.data.data) return
+    const map = res.data.data as Record<string, { imageUrl: string; label?: string | null }>
+    const nextImages: Record<string, string> = { ...imageById.value }
+    const nextSelections: Record<string, PaintingSelection> = { ...selectionById.value }
+    GALLERY_PAINTINGS.forEach((painting) => {
+      const mapped = map[painting.id]
+      if (mapped?.imageUrl) {
+        nextImages[painting.id] = mapped.imageUrl
+        nextSelections[painting.id] = { label: mapped.label || '未命名', imageUrl: mapped.imageUrl }
+      }
+    })
+    imageById.value = nextImages
+    selectionById.value = nextSelections
+  } catch (_) {}
+}
+
 async function hangOpeningCollection() {
-  if (filledHangCount.value > 0) return
+  await hangFrameMap()
   const [uploads, met] = await Promise.all([loadUploads(), loadMetCollection()])
   const arts = [...uploads, ...met]
   if (!arts.length) return
   const nextImages: Record<string, string> = { ...imageById.value }
   const nextSelections: Record<string, PaintingSelection> = { ...selectionById.value }
-  GALLERY_PAINTINGS.forEach((painting, i) => {
+  // 只填还没被映射覆盖的画框
+  const emptyFrames = GALLERY_PAINTINGS.filter((painting) => !nextImages[painting.id])
+  emptyFrames.forEach((painting, i) => {
     const art = arts[i % arts.length]
     nextImages[painting.id] = art.imageUrl
     nextSelections[painting.id] = art

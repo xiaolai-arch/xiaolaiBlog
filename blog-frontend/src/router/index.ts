@@ -73,6 +73,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'tags', name: 'AdminTags', component: () => import('@/views/admin/TagManagePage.vue'), meta: { requiresAuth: true } },
       { path: 'comments', name: 'CommentManage', component: () => import('@/views/admin/CommentManagePage.vue'), meta: { requiresAuth: true } },
       { path: 'media', name: 'MediaManage', component: () => import('@/views/admin/MediaManagePage.vue'), meta: { requiresAuth: true } },
+      { path: 'gallery', name: 'GalleryMap', component: () => import('@/views/admin/GalleryMapPage.vue'), meta: { requiresAuth: true } },
       { path: 'music', name: 'MusicManage', component: () => import('@/views/admin/MusicManagePage.vue'), meta: { requiresAuth: true } },
       { path: 'settings', name: 'SiteSettings', component: () => import('@/views/admin/SiteSettingsPage.vue'), meta: { requiresAuth: true } },
     ]

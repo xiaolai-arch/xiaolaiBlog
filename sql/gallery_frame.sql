@@ -1,0 +1,9 @@
+-- 画廊画框映射表：后台「画廊映射」为 12 个画框指定挂画
+CREATE TABLE IF NOT EXISTS gallery_frame (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  frame_id VARCHAR(32) NOT NULL UNIQUE COMMENT '画框 id：left-1..3/back-1..3/right-1..3/front-1..3',
+  image_url VARCHAR(512) NOT NULL COMMENT '挂画图片地址',
+  label VARCHAR(255) NULL COMMENT '作品名（下载文件名用）',
+  create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+  update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='3D 画廊画框映射';

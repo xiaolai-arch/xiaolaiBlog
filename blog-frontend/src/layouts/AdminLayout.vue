@@ -42,6 +42,10 @@
               <el-icon><Picture /></el-icon>
               <span>媒体</span>
             </el-menu-item>
+            <el-menu-item index="/admin/gallery">
+              <el-icon><Printer /></el-icon>
+              <span>画廊映射</span>
+            </el-menu-item>
             <el-menu-item index="/admin/music">
               <el-icon><Headset /></el-icon>
               <span>音乐</span>

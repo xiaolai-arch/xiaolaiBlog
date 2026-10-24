@@ -106,6 +106,14 @@ export const galleryApi = {
   getImages: (params?: { categoryId?: number; page?: number; size?: number }) => api.get('/gallery/images', { params }),
 }
 
+export const galleryFrameApi = {
+  /** 公开：3D 展厅读取画框映射（frameId -> {imageUrl,label}） */
+  getFrames: () => api.get('/gallery-frames'),
+  adminList: () => api.get('/admin/gallery-frames'),
+  adminSave: (frames: Array<{ frameId: string; imageUrl: string; label?: string | null }>) =>
+    api.put('/admin/gallery-frames', frames),
+}
+
 export const siteApi = {
   getConfig: () => api.get('/site/config'),
   getAbout: () => api.get('/site/about'),
