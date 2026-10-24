@@ -6,21 +6,38 @@
 @import "tailwindcss/utilities.css";
 @source "./**/*.{tsx,ts}";
 
-/* 岛内最小 preflight（限定在岛宿主，等效原版 preflight 的 button/input 重置，
-   否则按钮露出 UA 的 2px outset 黑框） */
-.film-island-host button,
-.film-island-host input,
-.polaroid-island-host button,
-.polaroid-island-host input {
-  border: 0 solid;
+/* 最小 preflight（元素级，等效原版 preflight 的表单控件重置）。
+   必须元素级：岛的弹窗/提示经 React Portal 挂在 body 下，宿主作用域够不到；
+   类选择器优先级高于元素选择器，主站自带样式的按钮不受影响。 */
+button,
+input,
+optgroup,
+select,
+textarea {
+  font-family: inherit;
+  font-size: 100%;
+  font-weight: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+button,
+[type='button'],
+[type='reset'],
+[type='submit'] {
+  -webkit-appearance: button;
+  appearance: button;
   background-color: transparent;
   background-image: none;
-  font-family: inherit;
-  font-feature-settings: inherit;
-  font-variation-settings: inherit;
-  letter-spacing: inherit;
-  color: inherit;
-  border-radius: 0;
+  border: 0 solid;
+  cursor: pointer;
+}
+
+button:disabled,
+[type='button']:disabled,
+[type='reset']:disabled,
+[type='submit']:disabled {
+  cursor: default;
 }
 
 /* ============================================================
