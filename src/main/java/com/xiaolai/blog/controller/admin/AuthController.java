@@ -6,6 +6,8 @@ import com.xiaolai.blog.dto.LoginDTO;
 import com.xiaolai.blog.entity.User;
 import com.xiaolai.blog.mapper.UserMapper;
 import com.xiaolai.blog.security.JwtTokenProvider;
+import com.xiaolai.blog.security.LoginRateLimiter;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -23,17 +25,24 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserMapper userMapper;
+    private final LoginRateLimiter loginRateLimiter;
 
     public AuthController(AuthenticationManager authenticationManager,
                           JwtTokenProvider jwtTokenProvider,
-                          UserMapper userMapper) {
+                          UserMapper userMapper,
+                          LoginRateLimiter loginRateLimiter) {
         this.authenticationManager = authenticationManager;
         this.jwtTokenProvider = jwtTokenProvider;
         this.userMapper = userMapper;
+        this.loginRateLimiter = loginRateLimiter;
     }
 
     @PostMapping("/login")
-    public Result<Map<String, Object>> login(@Valid @RequestBody LoginDTO dto) {
+    public Result<Map<String, Object>> login(@Valid @RequestBody LoginDTO dto, HttpServletRequest request) {
+        // 按 IP 限频：防止绕过单账号锁定换用户名喷洒
+        if (!loginRateLimiter.tryAcquire(LoginRateLimiter.clientIp(request))) {
+            return Result.forbidden("尝试过于频繁，请 10 分钟后再试");
+        }
         User user = userMapper.selectByUsername(dto.getUsername());
         if (user == null) {
             return Result.unauthorized("Invalid username or password");

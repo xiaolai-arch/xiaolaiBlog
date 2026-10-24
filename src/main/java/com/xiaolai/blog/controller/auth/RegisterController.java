@@ -56,6 +56,9 @@ public class RegisterController {
         if (!username.matches("[A-Za-z0-9_\\-\\u4e00-\\u9fa5]+")) {
             return Result.badRequest("用户名只能包含中文、字母、数字、下划线或中划线");
         }
+        if (dto.getPassword() == null || dto.getPassword().length() < 8) {
+            return Result.badRequest("密码至少需要 8 位");
+        }
         if (userMapper.selectByUsername(username) != null) {
             return Result.badRequest("用户名已被占用");
         }
