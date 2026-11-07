@@ -92,5 +92,5 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-      - run: bash -n deploy.sh tools/deploy_backend.sh tools/deploy_frontend.sh tools/verify_mysql.sh
+      - run: bash -n deploy.sh tools/deploy_backend.sh tools/deploy_frontend.sh tools/verify_mysql.sh tools/backup_server.sh tools/verify_backup.sh
       - run: python3 -m unittest discover -s tools/tests -v

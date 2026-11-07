@@ -21,7 +21,7 @@ done
 [[ "$SITE_URL" =~ ^https?://[A-Za-z0-9.:-]+$ ]] || { echo 'Invalid site URL.' >&2; exit 1; }
 
 deploy_backend() {
-  mvn -B verify
+  "${MVN:-mvn}" -B verify
   local stage="$BACKEND_DIR/$release_id"
   ssh "$SERVER" mkdir -p "$stage"
   scp target/blog-1.0.0.jar sql/note.sql sql/progress.sql sql/migration_token_version.sql "$SERVER:$stage/"
@@ -29,10 +29,10 @@ deploy_backend() {
 }
 
 deploy_frontend() {
-  (cd blog-frontend && npm test && npm run build)
+  (cd blog-frontend && npm ci && npm audit --audit-level=low && npm test && npm run build)
   local archive
   archive=$(mktemp /tmp/xiaolai-dist.XXXXXX)
-  tar czf "$archive" -C blog-frontend/dist .
+  COPYFILE_DISABLE=1 tar czf "$archive" -C blog-frontend/dist .
   local stage="$FRONTEND_DIR/$release_id"
   ssh "$SERVER" mkdir -p "$stage"
   scp "$archive" "$SERVER:$stage/dist.tgz"

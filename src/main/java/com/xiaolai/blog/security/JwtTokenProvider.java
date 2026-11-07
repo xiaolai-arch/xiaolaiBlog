@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.core.env.Environment;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
@@ -23,7 +24,11 @@ public class JwtTokenProvider {
     private final long expiration;
 
     public JwtTokenProvider(@Value("${jwt.secret}") String secret,
-                            @Value("${jwt.expiration}") long expiration) {
+                            @Value("${jwt.expiration}") long expiration,
+                            Environment environment) {
+        if (DEFAULT_DEV_SECRET.equals(secret) && environment.matchesProfiles("prod", "production")) {
+            throw new IllegalStateException("Production requires an independent JWT_SECRET; the development default is forbidden");
+        }
         if (DEFAULT_DEV_SECRET.equals(secret)) {
             log.warn("================================================================");
             log.warn("JWT 正在使用代码库内置的默认密钥！任何拿到源码的人都能伪造管理员");

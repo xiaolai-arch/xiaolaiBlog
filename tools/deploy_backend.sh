@@ -11,7 +11,7 @@ set +a
 command -v mysql >/dev/null
 export MYSQL_PWD=${DB_PASSWORD:-}
 for migration in note.sql progress.sql migration_token_version.sql; do
-  mysql --host="${DB_HOST:-127.0.0.1}" --user="${DB_USERNAME:?DB_USERNAME is required}" \
+  mysql --host="${DB_HOST:-127.0.0.1}" --port="${DB_PORT:-3306}" --user="${DB_USERNAME:?DB_USERNAME is required}" \
     "${DB_NAME:-xiaolai_blog}" < "$stage_dir/$migration"
 done
 unset MYSQL_PWD

@@ -1,0 +1,9 @@
+[Unit]
+Description=Back up Xiaolai Blog database, uploads and release
+After=network.target
+
+[Service]
+Type=oneshot
+User=root
+UMask=0077
+ExecStart=/bin/bash /opt/xiaolai-ops/backup_server.sh /www/wwwroot/backend /www/wwwroot/fronted /var/backups/xiaolai-blog /data/blog/uploads /www/wwwroot/backend/uploads

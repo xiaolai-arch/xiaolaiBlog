@@ -1,0 +1,10 @@
+[Unit]
+Description=Check Xiaolai Blog public pages and API
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=nobody
+NoNewPrivileges=true
+PrivateTmp=true
+ExecStart=/usr/bin/python3 /opt/xiaolai-ops/check_site.py http://www.xiaolai.cyou

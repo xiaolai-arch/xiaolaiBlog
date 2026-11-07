@@ -79,6 +79,8 @@ GitHub Actions 会在推送到 `main`、创建/更新 PR 或手动触发时执�
 
 ## 发布
 
+现有服务器的实际端口、备份定时器、恢复演练结果与发布验收见 [生产运维记录](ops/README.md)。
+
 缺陷与修复对应关系见 [PROJECT_REVIEW.md](PROJECT_REVIEW.md) 和 [REPAIR_NOTES.md](REPAIR_NOTES.md)。
 
 发布前需要备份生产数据库、上传目录和服务器环境配置，并检查备份可读取；保存当前 jar、前端首页和实际服务端口。GitHub 源码仓库不包含用户数据备份。数据库备份可以使用 `mysqldump --single-transaction --routines --triggers`，密码通过受保护的客户端配置提供；备份应保存到服务器之外，定期在独立数据库演练恢复。
