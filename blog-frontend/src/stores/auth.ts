@@ -40,12 +40,17 @@ export const useAuthStore = defineStore('auth', () => {
     throw new Error(res.data.message || '注册失败')
   }
 
-  function logout() {
+  async function logout() {
+    const currentToken = token.value
+    const request = currentToken ? axios.post('/api/v1/admin/auth/logout', {}, {
+      headers: { Authorization: `Bearer ${currentToken}` },
+    }).catch(() => {}) : Promise.resolve()
     token.value = ''
     user.value = null
     isLoggedIn.value = false
     localStorage.removeItem('token')
     localStorage.removeItem('user')
+    await request
   }
 
   return { token, user, isLoggedIn, isAdmin, login, register, logout }

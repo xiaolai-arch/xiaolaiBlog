@@ -5,6 +5,8 @@ import com.xiaolai.blog.entity.Article;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
 import java.util.List;
 
@@ -19,14 +21,14 @@ public interface ArticleMapper extends BaseMapper<Article> {
     @Select("SELECT * FROM article WHERE deleted = 0 AND status = 1 ORDER BY create_time DESC LIMIT 20")
     List<Article> selectPublished();
 
-    @Select("SELECT id, title FROM article WHERE category_id = #{categoryId} AND status = 1 AND deleted = 0 " +
-            "AND create_time < (SELECT create_time FROM article WHERE id = #{articleId}) " +
-            "ORDER BY create_time DESC LIMIT 1")
+    @Select("SELECT id, title, slug FROM article WHERE (category_id = #{categoryId} OR (category_id IS NULL AND #{categoryId} IS NULL)) AND status = 1 AND deleted = 0 " +
+            "AND (create_time, id) < (SELECT create_time, id FROM article WHERE id = #{articleId}) " +
+            "ORDER BY create_time DESC, id DESC LIMIT 1")
     Article selectPreviousArticle(@Param("articleId") Long articleId, @Param("categoryId") Long categoryId);
 
-    @Select("SELECT id, title FROM article WHERE category_id = #{categoryId} AND status = 1 AND deleted = 0 " +
-            "AND create_time > (SELECT create_time FROM article WHERE id = #{articleId}) " +
-            "ORDER BY create_time ASC LIMIT 1")
+    @Select("SELECT id, title, slug FROM article WHERE (category_id = #{categoryId} OR (category_id IS NULL AND #{categoryId} IS NULL)) AND status = 1 AND deleted = 0 " +
+            "AND (create_time, id) > (SELECT create_time, id FROM article WHERE id = #{articleId}) " +
+            "ORDER BY create_time ASC, id ASC LIMIT 1")
     Article selectNextArticle(@Param("articleId") Long articleId, @Param("categoryId") Long categoryId);
 
     @Select("SELECT * FROM article WHERE deleted = 0 AND status = 1 AND is_top = 1 ORDER BY create_time DESC")
@@ -42,13 +44,13 @@ public interface ArticleMapper extends BaseMapper<Article> {
             "ORDER BY a.create_time DESC")
     List<Article> selectByYearMonth(@Param("yearMonth") String yearMonth);
 
+    @Update("UPDATE article SET deleted = 0 WHERE id = #{id} AND deleted = 1")
+    int restoreDeleted(@Param("id") Long id);
+
+    Page<Article> selectPublicPage(Page<Article> page, @Param("category") String category,
+                                   @Param("tag") String tag, @Param("keyword") String keyword);
+
     void incrementViews(@Param("id") Long id);
-
-    List<Article> searchArticles(@Param("keyword") String keyword);
-
-    List<Article> selectByCategorySlug(@Param("slug") String slug);
-
-    List<Article> selectByTagSlug(@Param("slug") String slug);
 
     void physicalDelete(@Param("id") Long id);
 }

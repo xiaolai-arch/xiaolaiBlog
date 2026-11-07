@@ -130,7 +130,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { articleApi, commentApi, siteApi } from '@/api'
 import { ElMessage } from 'element-plus'
@@ -159,9 +159,13 @@ const activeToc = ref(0)
 const showToc = ref(false)
 const tocLeft = ref(0)
 
+let generation = 0
+let disposed = false
+watch(() => route.params.slug, () => { void loadArticle() }, { immediate: true })
+
 onMounted(async () => {
-  await loadArticle()
-  await loadComments()
+  window.addEventListener('scroll', onScroll, { passive: true })
+  window.addEventListener('resize', updateTocPos)
   try {
     const res = await siteApi.getConfig()
     if (res.data.code === 200 && res.data.data.copyright) {
@@ -171,21 +175,36 @@ onMounted(async () => {
 })
 
 async function loadArticle() {
+  const current = ++generation
+  const slug = route.params.slug as string
+  const valid = () => !disposed && current === generation
+  loading.value = true
+  article.value = null
+  comments.value = []
+  prev.value = next.value = null
+  related.value = []
+  toc.value = []
+  activeToc.value = 0
+  commentSubmitted.value = false
+  submitting.value = false
+  commentForm.value = { nickname: '', email: '', website: '', contentMd: '' }
   try {
-    const slug = route.params.slug as string
     const res = await articleApi.getBySlug(slug)
-    if (res.data.code === 200) {
-      article.value = res.data.data
-      document.title = article.value.title + ' - 小来博客'
-    }
+    if (!valid()) return
+    article.value = res.data.data
+    document.title = article.value.title + ' - 小来博客'
+    void commentApi.getByArticleSlug(slug).then(response => { if (valid()) comments.value = response.data.data || [] }).catch(() => {})
+    void articleApi.getNavigation(slug).then(response => {
+      if (valid()) { prev.value = response.data.data.previous; next.value = response.data.data.next }
+    }).catch(() => {})
+    void loadRelated(slug, current)
   } catch (_) {}
+  if (!valid()) return
   loading.value = false
   await highlightCode()
+  if (!valid()) return
   buildToc()
-  loadRelated()
   updateTocPos()
-  window.addEventListener('scroll', onScroll, { passive: true })
-  window.addEventListener('resize', updateTocPos)
 }
 
 // 目录锚定正文容器右边缘：位置不随视口居中假设漂移，放不下就隐藏
@@ -224,13 +243,13 @@ function onScroll() {
 }
 
 // 同分类的相关文章
-async function loadRelated() {
-  const slug = route.params.slug as string
+async function loadRelated(slug: string, current: number) {
   const catSlug = article.value?.categorySlug
   if (!catSlug) return
   try {
     const res = await articleApi.getList({ page: 1, size: 4, category: catSlug })
     if (res.data.code === 200) {
+      if (disposed || current !== generation) return
       related.value = (res.data.data.list || []).filter((a: any) => a.slug !== slug).slice(0, 3)
     }
   } catch (_) {}
@@ -248,22 +267,14 @@ async function highlightCode() {
   })
 }
 
-async function loadComments() {
-  try {
-    const slug = route.params.slug as string
-    const res = await commentApi.getByArticleSlug(slug)
-    if (res.data.code === 200) {
-      comments.value = res.data.data || []
-    }
-  } catch (_) {}
-}
-
 async function submitComment() {
+  const slug = route.params.slug as string
+  const submittedGeneration = generation
   submitting.value = true
   commentSubmitted.value = false
   try {
-    const slug = route.params.slug as string
-    const res = await commentApi.create(slug, commentForm.value)
+    const res = await commentApi.create(slug, { ...commentForm.value })
+    if (submittedGeneration !== generation || disposed) return
     if (res.data.code === 200) {
       commentSubmitted.value = true
       commentForm.value = { nickname: '', email: '', website: '', contentMd: '' }
@@ -273,9 +284,10 @@ async function submitComment() {
       ElMessage.error(res.data.message || '提交失败')
     }
   } catch (e: any) {
-    ElMessage.error(e.response?.data?.message || '提交失败，请检查填写内容')
+    if (submittedGeneration === generation && !disposed) ElMessage.error(e.response?.data?.message || '提交失败，请检查填写内容')
+  } finally {
+    if (submittedGeneration === generation) submitting.value = false
   }
-  submitting.value = false
 }
 
 // Backend already escapes comment HTML; this is a second line of defence for the v-html sink.
@@ -303,6 +315,8 @@ function getAvatar(emailHash?: string) {
 }
 
 onBeforeUnmount(() => {
+  disposed = true
+  generation++
   window.removeEventListener('scroll', onScroll)
   window.removeEventListener('resize', updateTocPos)
 })

@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import org.springframework.security.core.Authentication;
 
 @RestController
 @RequestMapping("/api/v1/admin/auth")
@@ -65,8 +66,14 @@ public class AuthController {
                     .set(User::getLockTime, null)
             );
 
-            String token = jwtTokenProvider.generateToken(dto.getUsername(), user.getRole());
+            User latest = userMapper.selectByUsername(dto.getUsername());
+            if (latest == null || !java.util.Objects.equals(latest.getPassword(), user.getPassword())
+                    || !java.util.Objects.equals(latest.getTokenVersion(), user.getTokenVersion())) {
+                return Result.unauthorized("账号状态已变化，请重新登录");
+            }
+            String token = jwtTokenProvider.generateToken(dto.getUsername(), user.getRole(), user.getTokenVersion());
             Map<String, Object> userMap = new HashMap<>();
+            userMap.put("id", user.getId());
             userMap.put("username", user.getUsername());
             userMap.put("role", user.getRole());
             userMap.put("nickname", user.getNickname());
@@ -86,7 +93,8 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public Result<Void> logout() {
+    public Result<Void> logout(Authentication authentication) {
+        if (authentication != null) userMapper.revokeTokens(authentication.getName());
         return Result.success();
     }
 }

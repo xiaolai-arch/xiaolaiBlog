@@ -85,7 +85,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { Search } from '@element-plus/icons-vue'
-import { progressApi } from '@/api'
+import { createStudyProgress, offerGuestProgressImport } from '@/utils/studyProgress'
 import { requireLoginForAction } from '@/utils/requireLogin'
 import { logStudy, unlogStudy } from '@/utils/studyLog'
 
@@ -104,7 +104,7 @@ interface Chapter {
   sections: Section[]
 }
 
-const DONE_KEY = 'cet4:done'
+const progress = createStudyProgress('cet4')
 
 const index = ref<any>(null)
 const cache = ref<Record<string, { name: string; itemsTotal: number; duration: string; chapters: Chapter[] }>>({})
@@ -117,7 +117,7 @@ const doneSet = ref<Set<string>>(new Set())
 const doneSeconds = ref(0)
 const openChapters = ref<Set<string>>(new Set())
 const cloudActive = ref(false)
-let pushTimer: number | undefined
+
 
 const activeData = computed(() => cache.value[activeKey.value])
 const totalItems = computed(() => index.value?.totalItems || 0)
@@ -201,41 +201,19 @@ function toggle(id: string, sec: number) {
     logStudy(`cet4:${id}`, sec)
   }
   doneSet.value = next
-  localStorage.setItem(DONE_KEY, JSON.stringify([...next]))
+  doneSet.value = progress.toggle(id, next.has(id))
   recalcSeconds()
-  if (cloudActive.value) pushDone(next)
+  if (localStorage.getItem('token')) void progress.sync().then(value => { doneSet.value = value; cloudActive.value = true }).catch(() => { cloudActive.value = false })
   else if (!localStorage.getItem('token')) requireLoginForAction('云端同步打卡进度')
 }
 
-function pushDone(set: Set<string>) {
-  window.clearTimeout(pushTimer)
-  pushTimer = window.setTimeout(() => {
-    progressApi.put('cet4', JSON.stringify([...set])).catch(() => { cloudActive.value = false })
-  }, 1500)
-}
-
-// 登录时合并云端进度（并集）
 async function loadDone() {
-  let local: string[] = []
+  await offerGuestProgressImport()
+  doneSet.value = progress.read()
   try {
-    local = (JSON.parse(localStorage.getItem(DONE_KEY) || '[]') as any[]).map(String)
-  } catch (_) {}
-  const merged = new Set<string>(local)
-  if (localStorage.getItem('token')) {
-    try {
-      const res = await progressApi.get('cet4')
-      if (res.data.code === 200) {
-        cloudActive.value = true
-        const cloud = JSON.parse(res.data.data.value || '[]')
-        if (Array.isArray(cloud)) cloud.forEach(x => merged.add(String(x)))
-        if (merged.size !== local.length) {
-          localStorage.setItem(DONE_KEY, JSON.stringify([...merged]))
-          pushDone(merged)
-        }
-      }
-    } catch (_) {}
-  }
-  doneSet.value = merged
+    doneSet.value = await progress.sync()
+    cloudActive.value = !!localStorage.getItem('token')
+  } catch (_) { cloudActive.value = false }
 }
 
 onMounted(async () => {

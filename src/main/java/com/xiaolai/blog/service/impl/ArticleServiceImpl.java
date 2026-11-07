@@ -40,57 +40,27 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     public Page<Article> getPublishedArticles(int page, int size, String category, String tag, String keyword) {
-        Page<Article> pageObj = new Page<>(page, size);
-
-        if (keyword != null && !keyword.isBlank()) {
-            List<Article> records = articleMapper.searchArticles(keyword);
-            List<Article> paginated = records.stream()
-                    .skip((long) (page - 1) * size)
-                    .limit(size)
-                    .toList();
-            Page<Article> result = new Page<>(page, size, records.size());
-            result.setRecords(paginated);
-            result.getRecords().forEach(a -> a.setTags(tagMapper.selectByArticleId(a.getId())));
-            return result;
-        }
-
-        if (category != null && !category.isBlank()) {
-            List<Article> records = articleMapper.selectByCategorySlug(category);
-            List<Article> paginated = records.stream()
-                    .skip((long) (page - 1) * size)
-                    .limit(size)
-                    .toList();
-            Page<Article> result = new Page<>(page, size, records.size());
-            result.setRecords(paginated);
-            result.getRecords().forEach(a -> a.setTags(tagMapper.selectByArticleId(a.getId())));
-            return result;
-        }
-
-        if (tag != null && !tag.isBlank()) {
-            List<Article> records = articleMapper.selectByTagSlug(tag);
-            List<Article> paginated = records.stream()
-                    .skip((long) (page - 1) * size)
-                    .limit(size)
-                    .toList();
-            Page<Article> result = new Page<>(page, size, records.size());
-            result.setRecords(paginated);
-            result.getRecords().forEach(a -> a.setTags(tagMapper.selectByArticleId(a.getId())));
-            return result;
-        }
-
-        LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<Article>()
-                .eq(Article::getStatus, BlogConstant.ARTICLE_STATUS_PUBLISHED)
-                .eq(Article::getDeleted, 0)
-                .orderByDesc(Article::getIsTop)
-                .orderByDesc(Article::getCreateTime);
-
-        Page<Article> result = articleMapper.selectPage(pageObj, wrapper);
-        result.getRecords().forEach(a -> a.setTags(tagMapper.selectByArticleId(a.getId())));
+        validatePagination(page, size);
+        if (keyword != null && keyword.length() > 256) throw new BlogException(422, "搜索词过长");
+        Page<Article> result = articleMapper.selectPublicPage(new Page<>(page, size), category, tag, keyword);
+        attachTags(result.getRecords());
         return result;
+    }
+
+    private void validatePagination(int page, int size) {
+        if (page < 1 || size < 1 || size > 100) throw new BlogException(422, "page 必须为正数，size 需要在 1-100 之间");
+    }
+
+    private void attachTags(List<Article> articles) {
+        if (articles.isEmpty()) return;
+        var byArticle = tagMapper.selectByArticleIds(articles.stream().map(Article::getId).toList())
+                .stream().collect(java.util.stream.Collectors.groupingBy(com.xiaolai.blog.entity.Tag::getArticleId));
+        articles.forEach(article -> article.setTags(byArticle.getOrDefault(article.getId(), List.of())));
     }
 
     @Override
     public Page<Article> getAdminArticles(int page, int size, String keyword, Integer status) {
+        validatePagination(page, size);
         Page<Article> pageObj = new Page<>(page, size);
         LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<Article>()
                 .eq(Article::getDeleted, 0);
@@ -104,9 +74,7 @@ public class ArticleServiceImpl implements ArticleService {
         wrapper.orderByDesc(Article::getCreateTime);
 
         Page<Article> result = articleMapper.selectPage(pageObj, wrapper);
-        result.getRecords().forEach(a -> {
-            a.setTags(tagMapper.selectByArticleId(a.getId()));
-        });
+        attachTags(result.getRecords());
         return result;
     }
 
@@ -199,11 +167,7 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     public void restore(Long id) {
-        Article article = articleMapper.selectById(id);
-        if (article != null) {
-            article.setDeleted(0);
-            articleMapper.updateById(article);
-        }
+        if (articleMapper.restoreDeleted(id) != 1) throw new BlogException(404, "Deleted article not found");
     }
 
     @Override

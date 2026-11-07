@@ -1,3 +1,4 @@
+import { accountKey } from './accountStorage'
 // 学习活动日志：给学习仪表盘的热力图/连击统计用。
 // 每条记录 = { d: 'YYYY-MM-DD', k: 唯一条目标识 }，存 localStorage。
 const KEY = 'study:log'
@@ -17,7 +18,7 @@ function today(): string {
 
 export function getStudyLog(): StudyEntry[] {
   try {
-    const arr = JSON.parse(localStorage.getItem(KEY) || '[]')
+    const arr = JSON.parse(localStorage.getItem(accountKey(KEY)) || '[]')
     return Array.isArray(arr) ? arr : []
   } catch (_) {
     return []
@@ -25,7 +26,7 @@ export function getStudyLog(): StudyEntry[] {
 }
 
 function save(entries: StudyEntry[]) {
-  localStorage.setItem(KEY, JSON.stringify(entries))
+  localStorage.setItem(accountKey(KEY), JSON.stringify(entries))
 }
 
 export function logStudy(k: string, s?: number) {

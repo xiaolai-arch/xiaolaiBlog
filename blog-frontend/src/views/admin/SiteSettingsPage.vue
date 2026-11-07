@@ -86,6 +86,10 @@
 import { ref, onMounted } from 'vue'
 import { siteApi, authApi } from '@/api'
 import { ElMessage } from 'element-plus'
+import { useAuthStore } from '@/stores/auth'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const form = ref<Record<string, string>>({})
 const loading = ref(false)
@@ -103,8 +107,10 @@ async function changePassword() {
   try {
     const res = await authApi.changePassword({ oldPassword, newPassword })
     if (res.data.code === 200) {
-      ElMessage.success('密码已更新')
+      ElMessage.success('密码已更新，请重新登录')
       pwForm.value = { oldPassword: '', newPassword: '', confirm: '' }
+      await useAuthStore().logout()
+      await router.replace('/admin/login')
     } else {
       ElMessage.error(res.data.message || '更新失败')
     }

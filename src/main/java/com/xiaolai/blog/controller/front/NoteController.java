@@ -3,6 +3,8 @@ package com.xiaolai.blog.controller.front;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.xiaolai.blog.common.response.Result;
 import com.xiaolai.blog.dto.NoteDTO;
+import com.xiaolai.blog.dto.NoteSummary;
+import com.xiaolai.blog.common.exception.BlogException;
 import com.xiaolai.blog.entity.Note;
 import com.xiaolai.blog.entity.User;
 import com.xiaolai.blog.mapper.NoteMapper;
@@ -30,13 +32,13 @@ public class NoteController {
     }
 
     @GetMapping
-    public Result<List<Note>> list() {
+    public Result<List<NoteSummary>> list() {
         Long userId = currentUserId();
         List<Note> notes = noteMapper.selectList(new LambdaQueryWrapper<Note>()
                 .select(Note.class, f -> !"content".equals(f.getColumn()))
                 .eq(Note::getUserId, userId)
                 .orderByDesc(Note::getUpdateTime));
-        return Result.success(notes);
+        return Result.success(notes.stream().map(NoteSummary::from).toList());
     }
 
     @GetMapping("/{id}")
@@ -85,6 +87,7 @@ public class NoteController {
     private Long currentUserId() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userMapper.selectByUsername(username);
-        return user == null ? -1L : user.getId();
+        if (user == null) throw new BlogException(401, "请重新登录");
+        return user.getId();
     }
 }

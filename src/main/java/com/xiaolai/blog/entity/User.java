@@ -17,6 +17,7 @@ User {
     private String avatar;
     private String bio;
     private String role;
+    private Long tokenVersion;
     private Integer loginAttempts;
     private LocalDateTime lockTime;
     @TableField(fill = FieldFill.INSERT)

@@ -1,9 +1,7 @@
 package com.xiaolai.blog.controller.front;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.xiaolai.blog.common.response.Result;
-import com.xiaolai.blog.entity.UserProgress;
-import com.xiaolai.blog.mapper.UserProgressMapper;
+import com.xiaolai.blog.service.ActivityCache;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -21,7 +19,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -52,80 +49,37 @@ public class GithubActivityController {
             .followRedirects(HttpClient.Redirect.NORMAL)
             .build();
 
-    private final UserProgressMapper progressMapper;
+    private final ActivityCache cache;
 
-    public GithubActivityController(UserProgressMapper progressMapper) {
-        this.progressMapper = progressMapper;
-    }
+    public GithubActivityController(ActivityCache cache) { this.cache = cache; }
 
-    /** 简易内存缓存：user -> (到期时间, 数据) */
-    private final Map<String, CacheEntry> cache = new ConcurrentHashMap<>();
-
-    /** 正在后台刷新的 key，防重复触发 */
-    private final java.util.Set<String> refreshing = ConcurrentHashMap.newKeySet();
-
-    private record CacheEntry(long expireAt, List<DayData> data) {}
     public record DayData(String date, int count, int level) {}
 
     @GetMapping("/contributions")
     public Result<List<DayData>> contributions(
             @RequestParam(value = "user", defaultValue = "xiaolai-arch") String user) {
-        String key = user.replaceAll("[^A-Za-z0-9-]", "");
-        if (key.isBlank()) return Result.badRequest("Invalid user");
-
-        long now = System.currentTimeMillis();
-        CacheEntry hit = cache.get(key);
-        // 空数据是失败时的负缓存，不拦截——继续走磁盘兜底
-        if (hit != null && now < hit.expireAt() && !hit.data().isEmpty()) {
-            return Result.success(hit.data());
-        }
-
-        // 磁盘上有最后已知数据：立即返回，后台静默刷新（不阻塞请求）
-        List<DayData> disk = loadDisk(key);
-        if (!disk.isEmpty()) {
-            boolean expired = hit == null || now > hit.expireAt();
-            if (expired && refreshing.add(key)) {
-                final String k = key;
-                Thread t = new Thread(() -> {
-                    try {
-                        List<DayData> fresh = fetchWithRetry(k);
-                        saveDisk(k, fresh);
-                        cache.put(k, new CacheEntry(System.currentTimeMillis() + Duration.ofHours(3).toMillis(), fresh));
-                    } catch (Exception ignored) {
-                        // 刷新失败：保留磁盘数据，10 分钟后再试
-                    } finally {
-                        refreshing.remove(k);
-                    }
-                });
-                t.setDaemon(true);
-                t.start();
-            }
-            cache.put(key, new CacheEntry(now + Duration.ofMinutes(5).toMillis(), disk));
-            return Result.success(disk);
-        }
-
-        // 冷启动且无任何缓存：同步抓取一次
-        try {
-            List<DayData> days = fetchWithRetry(key);
-            saveDisk(key, days);
-            cache.put(key, new CacheEntry(now + Duration.ofHours(3).toMillis(), days));
-            return Result.success(days);
-        } catch (Exception e) {
-            cache.put(key, new CacheEntry(now + Duration.ofMinutes(10).toMillis(), List.of()));
-            return Result.error(502, "Failed to load GitHub contributions");
-        }
+        if (!validUser(user)) return Result.badRequest("Invalid user");
+        return cache.get("github:" + user, () -> loadDisk(user), () -> {
+            List<DayData> days = fetchWithRetry(user);
+            saveDisk(user, days);
+            return days;
+        });
     }
 
-    /** 连试 3 次，间隔递增——服务器到 GitHub 的链路时好时坏。 */
+    private boolean validUser(String user) {
+        return user != null && user.matches("[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?");
+    }
+
+    /** Two bounded attempts, shared by concurrent callers through ActivityCache. */
     private List<DayData> fetchWithRetry(String key) throws Exception {
         IllegalStateException last = null;
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 2; i++) {
             try {
                 HttpRequest req = HttpRequest.newBuilder()
                         .uri(URI.create("https://github.com/users/" + key + "/contributions"))
                         .header("User-Agent", UA)
                         .header("Accept-Language", "en-US,en;q=0.9")
-                        .timeout(Duration.ofSeconds(15))
+                        .timeout(Duration.ofSeconds(8))
                         .GET()
                         .build();
                 HttpResponse<String> resp = http.send(req, HttpResponse.BodyHandlers.ofString());
@@ -136,7 +90,7 @@ public class GithubActivityController {
                 return days;
             } catch (Exception e) {
                 last = new IllegalStateException(e.getMessage(), e);
-                try { Thread.sleep(1500L * (i + 1)); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+                if (e instanceof InterruptedException) { Thread.currentThread().interrupt(); throw e; }
             }
         }
         throw last;
@@ -148,6 +102,7 @@ public class GithubActivityController {
     }
 
     private void saveDisk(String key, List<DayData> days) {
+        if (!key.equals("xiaolai-arch") && !key.equals("leetcode-elo9uent-turing29l")) return;
         try {
             StringBuilder sb = new StringBuilder("[");
             for (int i = 0; i < days.size(); i++) {
@@ -163,6 +118,7 @@ public class GithubActivityController {
     }
 
     private List<DayData> loadDisk(String key) {
+        if (!key.equals("xiaolai-arch") && !key.equals("leetcode-elo9uent-turing29l")) return List.of();
         try {
             String s = java.nio.file.Files.readString(diskFile(key));
             List<DayData> days = new ArrayList<>();
@@ -223,17 +179,26 @@ public class GithubActivityController {
     /**
      * 力扣活跃度（真实提交记录）：调 leetcode.cn 的 noj-go GraphQL 接口
      * userCalendar(userSlug, year) 拿官方 submissionCalendar（时间戳→次数），
-     * 按亚洲/上海时区折算日期，合并当前年与上一年；接口失败时回退到打卡日志 lc-log。
+     * 按亚洲/上海时区折算日期，合并当前年与上一年；接口失败时仅返回同一公开账号的缓存。
      */
     @GetMapping("/leetcode")
     public Result<List<DayData>> leetcode(
             @RequestParam(value = "user", defaultValue = "elo9uent-turing29l") String user) {
-        String slug = user.replaceAll("[^A-Za-z0-9-]", "");
+        if (!validUser(user)) return Result.badRequest("Invalid user");
+        String diskKey = "leetcode-" + user;
+        return cache.get("leetcode:" + user, () -> loadDisk(diskKey), () -> {
+            List<DayData> days = fetchLeetcode(user);
+            saveDisk(diskKey, days);
+            return days;
+        });
+    }
+
+    private List<DayData> fetchLeetcode(String slug) {
         int year = LocalDate.now().getYear();
         ZoneId cn = ZoneId.of("Asia/Shanghai");
 
         Map<String, Integer> perDay = new HashMap<>();
-        boolean any = false;
+        int successfulYears = 0;
         for (int y : new int[]{year, year - 1}) {
             try {
                 String payload = "{\"query\":\"query userProfileCalendar($userSlug: String!, $year: Int) { "
@@ -243,7 +208,7 @@ public class GithubActivityController {
                         .uri(URI.create("https://leetcode.cn/graphql/noj-go/"))
                         .header("Content-Type", "application/json")
                         .header("Referer", "https://leetcode.cn/u/" + slug + "/")
-                        .timeout(Duration.ofSeconds(12))
+                        .timeout(Duration.ofSeconds(8))
                         .POST(HttpRequest.BodyPublishers.ofString(payload))
                         .build();
                 HttpResponse<String> resp = http.send(req, HttpResponse.BodyHandlers.ofString());
@@ -258,20 +223,11 @@ public class GithubActivityController {
                     int n = Integer.parseInt(kv.group(2));
                     if (n > 0) perDay.merge(date, n, Math::max);
                 }
-                any = true;
+                successfulYears++;
             } catch (Exception ignored) {}
         }
 
-        // 官方接口不可用时，回退到本站手动打卡日志（lc-log）
-        if (!any) {
-            for (UserProgress row : progressMapper.selectList(new LambdaQueryWrapper<UserProgress>()
-                    .eq(UserProgress::getProgKey, "lc-log"))) {
-                String v = row.getValue();
-                if (v == null || v.isBlank()) continue;
-                Matcher mm = Pattern.compile("\"date\"\\s*:\\s*\"(\\d{4}-\\d{2}-\\d{2})\"").matcher(v);
-                while (mm.find()) perDay.merge(mm.group(1), 1, Integer::sum);
-            }
-        }
+        if (successfulYears != 2) throw new IllegalStateException("Incomplete LeetCode calendar");
 
         LocalDate today = LocalDate.now();
         LocalDate start = today.minusDays(364);
@@ -282,6 +238,6 @@ public class GithubActivityController {
             int c = perDay.getOrDefault(ds, 0);
             days.add(new DayData(ds, c, levelOf(c)));
         }
-        return Result.success(days);
+        return days;
     }
 }

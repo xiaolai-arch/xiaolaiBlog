@@ -190,7 +190,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { progressApi } from '@/api'
+import { createStudyProgress, offerGuestProgressImport } from '@/utils/studyProgress'
 import { requireLoginForAction } from '@/utils/requireLogin'
 import { logStudy, unlogStudy } from '@/utils/studyLog'
 
@@ -217,7 +217,7 @@ interface ResItem { id: string; name: string; link: string; note: string; desc: 
 interface ResGroup { key: string; title: string; stars: string; sub: string; items: ResItem[] }
 interface Resources { groups: ResGroup[] }
 
-const DONE_KEY = 'agent:done'
+const progress = createStudyProgress('agent')
 
 const loading = ref(true)
 const tab = ref('p1')
@@ -225,7 +225,7 @@ const status = ref<'all' | 'todo' | 'done'>('all')
 const doneSet = ref<Set<string>>(new Set())
 const openWeeks = ref<Set<string>>(new Set())
 const cloudActive = ref(false)
-let pushTimer: number | undefined
+
 
 const phase = ref<Phase | null>(null)
 const phase3 = ref<Phase3 | null>(null)
@@ -262,40 +262,18 @@ function toggle(id: string) {
     logStudy(`agent:${id}`)
   }
   doneSet.value = next
-  localStorage.setItem(DONE_KEY, JSON.stringify([...next]))
-  if (cloudActive.value) pushDone(next)
+  doneSet.value = progress.toggle(id, next.has(id))
+  if (localStorage.getItem('token')) void progress.sync().then(value => { doneSet.value = value; cloudActive.value = true }).catch(() => { cloudActive.value = false })
   else if (!localStorage.getItem('token')) requireLoginForAction('云端同步打卡进度')
 }
 
-function pushDone(set: Set<string>) {
-  window.clearTimeout(pushTimer)
-  pushTimer = window.setTimeout(() => {
-    progressApi.put('agent', JSON.stringify([...set])).catch(() => { cloudActive.value = false })
-  }, 1500)
-}
-
-// 登录时合并云端进度（并集）
 async function loadDone() {
-  let local: string[] = []
+  await offerGuestProgressImport()
+  doneSet.value = progress.read()
   try {
-    local = (JSON.parse(localStorage.getItem(DONE_KEY) || '[]') as any[]).map(String)
-  } catch (_) {}
-  const merged = new Set<string>(local)
-  if (localStorage.getItem('token')) {
-    try {
-      const res = await progressApi.get('agent')
-      if (res.data.code === 200) {
-        cloudActive.value = true
-        const cloud = JSON.parse(res.data.data.value || '[]')
-        if (Array.isArray(cloud)) cloud.forEach((x) => merged.add(String(x)))
-        if (merged.size !== local.length) {
-          localStorage.setItem(DONE_KEY, JSON.stringify([...merged]))
-          pushDone(merged)
-        }
-      }
-    } catch (_) {}
-  }
-  doneSet.value = merged
+    doneSet.value = await progress.sync()
+    cloudActive.value = !!localStorage.getItem('token')
+  } catch (_) { cloudActive.value = false }
 }
 
 /* ---------------- 统计 ---------------- */

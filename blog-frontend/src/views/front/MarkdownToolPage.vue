@@ -59,11 +59,13 @@
         <div class="note-title-bar">
           <input
             v-model="activeTitle"
+            :disabled="!editorReady || (mode === 'cloud' && activeNote?.content == null)"
             class="note-title-input"
             placeholder="笔记标题…"
             @input="touchActive"
           />
         </div>
+        <p v-if="loadError" role="alert">{{ loadError }} <button @click="retryContent">重试加载</button></p>
         <div ref="editorRef" class="editor-host"></div>
       </section>
     </div>
@@ -79,16 +81,21 @@ import dayjs from 'dayjs'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
 import { noteApi } from '@/api'
+import { accountKey, accountScope } from '@/utils/accountStorage'
+import { createNoteSaveQueue } from '@/utils/noteSaveQueue'
+import { useAuthStore } from '@/stores/auth'
 
-const NOTES_KEY = 'tools:notes'
-const ACTIVE_KEY = 'tools:notes:active'
+const scope = accountScope()
+const sessionToken = localStorage.getItem('token')
+const NOTES_KEY = scope === 'guest' ? 'tools:notes' : accountKey('tools:notes', scope)
+const ACTIVE_KEY = `${NOTES_KEY}:active`
 const LEGACY_DRAFT_KEY = 'tools:markdown-draft'
-const MIGRATED_FLAG = 'tools:notes:migrated'
+const MIGRATED_FLAG = accountKey('tools:notes:migrated', scope)
 
 interface Note {
   id: string | number
   title: string
-  content?: string
+  content?: string | null
   updateTime: number | string
   createTime?: number | string
 }
@@ -103,7 +110,20 @@ const savedLabel = ref('已同步')
 const pendingLocalCount = ref(0)
 const migrating = ref(false)
 let vditor: Vditor | null = null
-let saveTimer: number | undefined
+const editorReady = ref(false)
+const loadError = ref('')
+let disposed = false
+let switching = false
+const outbox = createNoteSaveQueue({
+  storage: localStorage,
+  key: accountKey('notes:outbox', scope),
+  save: async draft => {
+    if (!sessionToken || localStorage.getItem('token') !== sessionToken) throw new Error('Session changed')
+    const res = await noteApi.update(Number(draft.id), { title: draft.title, content: draft.content })
+    if (res.data.code !== 200) throw new Error(res.data.message || '保存失败')
+  },
+  onState: state => { savedLabel.value = state === 'saved' ? `已保存 ${dayjs().format('HH:mm:ss')}` : state === 'failed' ? '保存失败，草稿已保留' : '待同步' },
+})
 
 const activeNote = computed(() => notes.value.find(n => n.id === activeId.value))
 const activeTitle = computed({
@@ -121,7 +141,7 @@ const filteredNotes = computed(() => {
 
 /* ---------------- 本地存储 ---------------- */
 function loadLocalNotes(): Note[] {
-  const legacy = localStorage.getItem(LEGACY_DRAFT_KEY)
+  const legacy = scope === 'guest' ? localStorage.getItem(LEGACY_DRAFT_KEY) : null
   const existing = localStorage.getItem(NOTES_KEY)
   if (!existing && legacy && legacy.trim()) {
     const migrated: Note[] = [{
@@ -181,38 +201,46 @@ async function tryCloudMode() {
     }
     activeId.value = notes.value[0].id
     // 本地未迁移的笔记提醒
-    const flag = localStorage.getItem(MIGRATED_FLAG)
-    const localNotes = loadLocalNotes().filter(n => (n.content || '').trim())
-    pendingLocalCount.value = !flag && localNotes.length ? localNotes.length : 0
-    savedLabel.value = '已同步'
+    pendingLocalCount.value = migrationCandidates().length
+    for (const draft of outbox.pending()) {
+      const note = notes.value.find(n => String(n.id) === String(draft.id))
+      if (note) Object.assign(note, draft)
+    }
+    void outbox.flush()
   } catch (_) {
     initLocalMode()
   }
 }
 
 async function migrateLocal() {
-  const localNotes = loadLocalNotes().filter(n => (n.content || '').trim() || (n.title || '').trim())
-  if (!localNotes.length) {
+  const candidates = migrationCandidates()
+  if (!candidates.length) {
     localStorage.setItem(MIGRATED_FLAG, '1')
     pendingLocalCount.value = 0
     return
   }
   migrating.value = true
   try {
-    for (const n of localNotes) {
-      await noteApi.create({ title: n.title || '无标题笔记', content: n.content || '' })
+    for (const { note, storageKey } of candidates) {
+      await noteApi.create({ title: note.title || '无标题笔记', content: note.content || '' })
+      // Keep not-yet-uploaded drafts on partial failure; do not upload successful ones twice.
+      const remaining = readStoredNotes(storageKey).filter(n => n.id !== note.id)
+      localStorage.setItem(storageKey, JSON.stringify(remaining))
     }
-    localStorage.removeItem(NOTES_KEY)
-    localStorage.removeItem(ACTIVE_KEY)
     localStorage.setItem(MIGRATED_FLAG, '1')
     const res = await noteApi.list()
     notes.value = res.data.data || []
+    for (const draft of outbox.pending()) {
+      const note = notes.value.find(n => String(n.id) === String(draft.id))
+      if (note) Object.assign(note, draft)
+    }
     activeId.value = notes.value[0]?.id ?? ''
     if (activeId.value !== '') await ensureContent(activeNote.value!)
     pendingLocalCount.value = 0
-    ElMessage.success(`已上传 ${localNotes.length} 篇到云端`)
+    ElMessage.success(`已上传 ${candidates.length} 篇到云端`)
   } catch (e: any) {
     ElMessage.error(e?.response?.data?.message || '上传失败，请稍后再试')
+    pendingLocalCount.value = migrationCandidates().length
   }
   migrating.value = false
 }
@@ -222,21 +250,55 @@ function dismissMigration() {
   pendingLocalCount.value = 0
 }
 
-async function ensureContent(note: Note) {
-  if (note.content !== undefined) return
+function readStoredNotes(key: string): Note[] {
   try {
-    const res = await noteApi.detail(Number(note.id))
-    if (res.data.code === 200 && activeNote.value?.id === note.id) {
-      const content: string = res.data.data.content || ''
-      note.content = content
-      vditor?.setValue(content, true)
-    }
-  } catch (_) {}
+    const value = JSON.parse(localStorage.getItem(key) || '[]')
+    return Array.isArray(value) ? value : []
+  } catch (_) { return [] }
 }
 
-function logoutCloud() {
-  localStorage.removeItem('token')
-  localStorage.removeItem('user')
+function migrationCandidates() {
+  const keys = [NOTES_KEY]
+  if (NOTES_KEY !== 'tools:notes' && !localStorage.getItem(MIGRATED_FLAG)) keys.push('tools:notes')
+  return keys.flatMap(storageKey => readStoredNotes(storageKey)
+    .filter(note => (note.content || '').trim() || (note.title || '').trim())
+    .map(note => ({ note, storageKey })))
+}
+
+function displayContent(content: string) {
+  switching = true
+  vditor?.setValue(content, true)
+  switching = false
+}
+
+async function ensureContent(note: Note) {
+  loadError.value = ''
+  if (note.content != null) {
+    if (activeNote.value?.id === note.id) {
+      displayContent(note.content)
+      if (editorReady.value) vditor?.enable()
+    }
+    return
+  }
+  vditor?.disabled()
+  try {
+    const res = await noteApi.detail(Number(note.id))
+    if (res.data.code !== 200) throw new Error(res.data.message || '加载失败')
+    if (disposed) return
+    note.content = res.data.data.content || ''
+    if (activeNote.value?.id === note.id) displayContent(note.content!)
+  } catch (_) {
+    if (activeNote.value?.id === note.id) loadError.value = '正文加载失败，暂时不能编辑。'
+  } finally {
+    if (!disposed && activeNote.value?.content != null && editorReady.value) vditor?.enable()
+  }
+}
+
+function retryContent() { if (activeNote.value) void ensureContent(activeNote.value) }
+
+async function logoutCloud() {
+  await outbox.flush()
+  await useAuthStore().logout()
   location.reload()
 }
 
@@ -264,41 +326,25 @@ async function createNote() {
 function setActive(id: string | number) {
   if (activeId.value === id) return
   activeId.value = id
-  const note = notes.value.find(n => n.id === id)
-  if (mode.value === 'cloud') {
-    vditor?.setValue('', true)
-    if (note) ensureContent(note)
-  } else {
-    vditor?.setValue(note?.content || '', true)
-  }
+  loadError.value = ''
+  const note = activeNote.value
+  displayContent(note?.content || '')
+  if (mode.value === 'cloud' && note) void ensureContent(note)
   if (mode.value === 'local') persistLocal()
 }
 
 function scheduleSave() {
-  const id = activeId.value
-  window.clearTimeout(saveTimer)
-  saveTimer = window.setTimeout(async () => {
-    const note = notes.value.find(n => n.id === id)
-    if (!note) return
-    note.content = vditor?.getValue() || ''
-    note.updateTime = Date.now()
-    if (mode.value === 'local') {
-      persistLocal()
-    } else {
-      try {
-        await noteApi.update(Number(id), { title: note.title, content: note.content })
-        savedLabel.value = `已保存 ${dayjs().format('HH:mm:ss')}`
-      } catch (_) {
-        savedLabel.value = '保存失败'
-      }
-    }
-  }, 600)
+  if (switching || !editorReady.value) return
+  const note = activeNote.value
+  if (!note || (mode.value === 'cloud' && note.content == null)) return
+  // Snapshot now: after a route or note switch the editor belongs to another note.
+  note.content = vditor?.getValue() || ''
+  note.updateTime = Date.now()
+  if (mode.value === 'local') persistLocal()
+  else outbox.enqueue({ id: note.id, title: note.title, content: note.content })
 }
 
-function touchActive() {
-  if (activeNote.value) activeNote.value.updateTime = Date.now()
-  scheduleSave()
-}
+function touchActive() { scheduleSave() }
 
 async function removeNote(id: string | number) {
   const note = notes.value.find(n => n.id === id)
@@ -313,7 +359,10 @@ async function removeNote(id: string | number) {
   }
   if (mode.value === 'cloud') {
     try {
-      await noteApi.remove(Number(id))
+      await outbox.flush()
+      const res = await noteApi.remove(Number(id))
+      if (res.data.code !== 200) throw new Error('删除失败')
+      await outbox.discard(id)
     } catch (_) {
       ElMessage.error('删除失败')
       return
@@ -349,12 +398,12 @@ async function exportAll() {
   const list = [...notes.value].sort((a, b) => dayjs(a.updateTime).valueOf() - dayjs(b.updateTime).valueOf())
   for (const n of list) {
     let content = n.content
-    if (content === undefined) {
+    if (content == null) {
       try {
         const res = await noteApi.detail(Number(n.id))
         content = res.data.data.content || ''
         n.content = content
-      } catch (_) { content = '' }
+      } catch (_) { ElMessage.error('部分笔记未能加载，请重试导出'); return }
     }
     md += `# ${n.title || '无标题笔记'}\n\n${content || ''}\n\n---\n\n`
   }
@@ -379,6 +428,7 @@ onMounted(async () => {
     initLocalMode()
   }
 
+  if (disposed) return
   vditor = new Vditor(editorRef.value!, {
     mode: 'ir',
     // 运行期资源（lute/高亮/katex）已拷贝到 public/vendor/vditor，离线可用
@@ -396,23 +446,25 @@ onMounted(async () => {
       'undo', 'redo', '|',
       'edit-mode', 'outline', 'preview', 'fullscreen', 'export',
     ],
-    after: applyTheme,
+    after: () => {
+      editorReady.value = true
+      applyTheme()
+      if (mode.value === 'cloud' && activeNote.value) void ensureContent(activeNote.value)
+    },
     input: scheduleSave,
   })
 
-  // 云端模式下列表不含正文，编辑器就绪后拉取当前笔记内容
-  if (mode.value === 'cloud' && activeNote.value && activeNote.value.content === undefined) {
-    ensureContent(activeNote.value)
-  }
+  window.addEventListener('pagehide', onPageHide)
 })
 
 watch(() => themeStore.isDark, applyTheme)
 
+function onPageHide() { void outbox.flush() }
 onBeforeUnmount(() => {
-  window.clearTimeout(saveTimer)
-  const note = activeNote.value
-  if (note) note.content = vditor?.getValue() || ''
-  if (mode.value === 'local') persistLocal()
+  disposed = true
+  window.removeEventListener('pagehide', onPageHide)
+  // Pending snapshots have already been persisted; requests may finish after unmount.
+  void outbox.flush()
   vditor?.destroy()
   vditor = null
 })

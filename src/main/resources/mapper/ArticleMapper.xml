@@ -12,31 +12,21 @@
         UPDATE article SET views = views + 1 WHERE id = #{id}
     </update>
 
-    <select id="searchArticles" resultMap="articleWithCategory">
-        SELECT a.*, c.name as category_name, c.slug as category_slug
-        FROM article a
-        LEFT JOIN category c ON a.category_id = c.id
+    <select id="selectPublicPage" resultMap="articleWithCategory">
+        SELECT a.id, a.title, a.slug, a.summary, a.cover_url, a.category_id, a.status,
+               a.is_top, a.views, a.create_time, a.update_time,
+               c.name AS category_name, c.slug AS category_slug
+        FROM article a LEFT JOIN category c ON a.category_id = c.id
         WHERE a.deleted = 0 AND a.status = 1
-        AND (a.title LIKE CONCAT('%', #{keyword}, '%') OR a.content_md LIKE CONCAT('%', #{keyword}, '%'))
-        ORDER BY a.create_time DESC
-    </select>
-
-    <select id="selectByCategorySlug" resultMap="articleWithCategory">
-        SELECT a.*, c.name as category_name, c.slug as category_slug
-        FROM article a
-        LEFT JOIN category c ON a.category_id = c.id
-        WHERE a.deleted = 0 AND a.status = 1 AND c.slug = #{slug}
-        ORDER BY a.create_time DESC
-    </select>
-
-    <select id="selectByTagSlug" resultMap="articleWithCategory">
-        SELECT a.*, c.name as category_name, c.slug as category_slug
-        FROM article a
-        LEFT JOIN category c ON a.category_id = c.id
-        JOIN article_tag at ON a.id = at.article_id
-        JOIN tag t ON at.tag_id = t.id
-        WHERE a.deleted = 0 AND a.status = 1 AND t.slug = #{slug}
-        ORDER BY a.create_time DESC
+        <if test="category != null and category != ''">AND c.slug = #{category}</if>
+        <if test="tag != null and tag != ''">
+            AND EXISTS (SELECT 1 FROM article_tag at JOIN tag t ON t.id = at.tag_id
+                        WHERE at.article_id = a.id AND t.slug = #{tag})
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (a.title LIKE CONCAT('%', #{keyword}, '%') OR a.content_md LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY a.is_top DESC, a.create_time DESC, a.id DESC
     </select>
 
     <delete id="physicalDelete">

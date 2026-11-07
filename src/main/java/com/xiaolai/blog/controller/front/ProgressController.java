@@ -7,6 +7,9 @@ import com.xiaolai.blog.entity.User;
 import com.xiaolai.blog.entity.UserProgress;
 import com.xiaolai.blog.mapper.UserMapper;
 import com.xiaolai.blog.mapper.UserProgressMapper;
+import com.xiaolai.blog.service.ProgressMerger;
+import com.xiaolai.blog.common.exception.BlogException;
+import org.springframework.transaction.annotation.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -23,35 +26,35 @@ public class ProgressController {
 
     private final UserProgressMapper progressMapper;
     private final UserMapper userMapper;
+    private final ProgressMerger merger;
 
-    public ProgressController(UserProgressMapper progressMapper, UserMapper userMapper) {
+    public ProgressController(UserProgressMapper progressMapper, UserMapper userMapper, ProgressMerger merger) {
         this.progressMapper = progressMapper;
         this.userMapper = userMapper;
+        this.merger = merger;
     }
 
     @GetMapping("/{key}")
     public Result<Map<String, String>> get(@PathVariable String key) {
+        validateKey(key);
         UserProgress row = ownedRow(key);
         return Result.success(Map.of("value", row == null ? "" : row.getValue() == null ? "" : row.getValue()));
     }
 
     @PutMapping("/{key}")
-    public Result<Void> put(@PathVariable String key, @Valid @RequestBody ProgressDTO dto) {
+    @Transactional
+    public Result<Map<String, String>> put(@PathVariable String key, @Valid @RequestBody ProgressDTO dto) {
+        validateKey(key);
         Long userId = currentUserId();
-        UserProgress row = progressMapper.selectOne(new LambdaQueryWrapper<UserProgress>()
-                .eq(UserProgress::getUserId, userId)
-                .eq(UserProgress::getProgKey, key));
-        if (row == null) {
-            row = new UserProgress();
-            row.setUserId(userId);
-            row.setProgKey(key);
-            row.setValue(dto.getValue());
-            progressMapper.insert(row);
-        } else {
-            row.setValue(dto.getValue());
-            progressMapper.updateById(row);
-        }
-        return Result.success();
+        progressMapper.ensureRow(userId, key);
+        UserProgress row = progressMapper.lockRow(userId, key);
+        row.setValue(merger.merge(key, row.getValue(), dto.getValue()));
+        progressMapper.updateById(row);
+        return Result.success(Map.of("value", row.getValue()));
+    }
+
+    private void validateKey(String key) {
+        if (!key.matches("[A-Za-z0-9_-]{1,64}")) throw new BlogException(422, "进度键格式不正确");
     }
 
     private UserProgress ownedRow(String key) {
@@ -64,6 +67,7 @@ public class ProgressController {
     private Long currentUserId() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userMapper.selectByUsername(username);
-        return user == null ? -1L : user.getId();
+        if (user == null) throw new BlogException(401, "请重新登录");
+        return user.getId();
     }
 }

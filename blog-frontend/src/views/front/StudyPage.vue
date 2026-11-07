@@ -105,6 +105,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { getStudyLog } from '@/utils/studyLog'
 import { noteApi } from '@/api'
+import { readCompleted } from '@/utils/studyProgress'
 
 const loggedIn = ref(false)
 const index = ref<any>(null)
@@ -248,9 +249,9 @@ async function findAgentTask() {
 onMounted(async () => {
   loggedIn.value = !!localStorage.getItem('token')
   try {
-    doneSets.value.leetcode = new Set((JSON.parse(localStorage.getItem('leetcode:done') || '[]') as any[]).map(String))
-    doneSets.value.cet4 = new Set((JSON.parse(localStorage.getItem('cet4:done') || '[]') as any[]).map(String))
-    doneSets.value.agent = new Set((JSON.parse(localStorage.getItem('agent:done') || '[]') as any[]).map(String))
+    doneSets.value.leetcode = readCompleted('leetcode')
+    doneSets.value.cet4 = readCompleted('cet4')
+    doneSets.value.agent = readCompleted('agent')
   } catch (_) {}
   log.value = getStudyLog()
   try {

@@ -47,3 +47,14 @@ uploads/
 .DS_Store
 # 后端运行时缓存（GitHub 贡献数据磁盘兜底）
 github-cache-*.json
+
+### Python test caches ###
+__pycache__/
+*.pyc
+
+### Local secrets and database dumps ###
+.env
+.env.*
+!.env.example
+blog.env
+*.sql.gz

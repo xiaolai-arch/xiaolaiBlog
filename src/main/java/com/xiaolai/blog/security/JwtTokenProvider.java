@@ -34,15 +34,25 @@ public class JwtTokenProvider {
         this.expiration = expiration;
     }
 
-    public String generateToken(String username, String role) {
+    public String generateToken(String username, String role, long tokenVersion) {
         Date now = new Date();
         return Jwts.builder()
                 .subject(username)
                 .claim("role", role)
+                .claim("version", tokenVersion)
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + expiration))
                 .signWith(key)
                 .compact();
+    }
+
+    public Long getVersionFromToken(String token) {
+        return Jwts.parser().verifyWith(key).build().parseSignedClaims(token)
+                .getPayload().get("version", Long.class);
+    }
+
+    public Claims parseClaims(String token) {
+        return Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
     }
 
     public String getUsernameFromToken(String token) {

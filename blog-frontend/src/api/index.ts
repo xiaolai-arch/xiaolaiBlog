@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { AxiosError } from 'axios'
 import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios'
 
 const api: AxiosInstance = axios.create({
@@ -15,10 +15,17 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config
 })
 
+api.interceptors.response.use(response => {
+  if (response.data?.code >= 400) {
+    throw new AxiosError(response.data.message, String(response.data.code), response.config, response.request, response)
+  }
+  return response
+})
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 || error.response?.data?.code === 401) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       if (window.location.pathname !== '/login') {
@@ -42,6 +49,7 @@ export const articleApi = {
   getList: (params?: any) => api.get('/articles', { params }),
   getTop: () => api.get('/articles/top'),
   getBySlug: (slug: string) => api.get(`/articles/${slug}`),
+  getNavigation: (slug: string) => api.get(`/articles/${slug}/navigation`),
   getAdminList: (params?: any) => api.get('/admin/articles', { params }),
   getAdminDetail: (id: number) => api.get(`/admin/articles/${id}`),
   create: (data: any) => api.post('/admin/articles', data),

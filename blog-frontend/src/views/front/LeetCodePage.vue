@@ -96,6 +96,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import { progressApi } from '@/api'
+import { createStudyProgress, offerGuestProgressImport } from '@/utils/studyProgress'
+import { accountKey, accountScope } from '@/utils/accountStorage'
+import { mergeSubmissions } from '@/utils/progressModel'
 import { requireLoginForAction } from '@/utils/requireLogin'
 import { logStudy, unlogStudy } from '@/utils/studyLog'
 
@@ -115,9 +118,11 @@ interface Chapter {
   sections: Section[]
 }
 
-const DONE_KEY = 'leetcode:done'
+const progress = createStudyProgress('leetcode')
 /* 打卡提交日志：[{pid, date}]，带日期，供 About 页刷题活跃度热力图使用 */
-const LC_LOG_KEY = 'lc-log'
+const logScope = accountScope()
+const logToken = localStorage.getItem('token')
+const LC_LOG_KEY = accountKey('lc-log', logScope)
 
 const index = ref<any>(null)
 const cache = ref<Record<string, { name: string; source: string; itemsTotal: number; uniqueTotal: number; chapters: Chapter[] }>>({})
@@ -129,8 +134,8 @@ const status = ref<'all' | 'todo' | 'done'>('all')
 const doneSet = ref<Set<string>>(new Set())
 const openChapters = ref<Set<string>>(new Set())
 const cloudActive = ref(false)
-let pushTimer: number | undefined
-let logTimer: number | undefined
+
+let logChain = Promise.resolve()
 
 interface LcLogEntry { pid: string; date: string }
 const lcLog = ref<LcLogEntry[]>([])
@@ -159,12 +164,18 @@ function logLcSubmission(pid: string) {
   const log = getLcLog()
   log.push({ pid, date: todayStr() })
   saveLcLog(log)
-  if (cloudActive.value) {
-    window.clearTimeout(logTimer)
-    logTimer = window.setTimeout(() => {
-      progressApi.put('lc-log', JSON.stringify(lcLog.value)).catch(() => { cloudActive.value = false })
-    }, 1500)
-  }
+  if (logToken) void syncLcLog().catch(() => { cloudActive.value = false })
+}
+
+function syncLcLog() {
+  logChain = logChain.catch(() => {}).then(async () => {
+    if (accountScope() !== logScope || localStorage.getItem('token') !== logToken) return
+    const response = await progressApi.put('lc-log', JSON.stringify(getLcLog()))
+    if (accountScope() === logScope && response.data.data?.value) {
+      saveLcLog(mergeSubmissions(getLcLog(), JSON.parse(response.data.data.value)))
+    }
+  })
+  return logChain
 }
 
 const activeData = computed(() => cache.value[activeKey.value])
@@ -257,56 +268,27 @@ function toggle(pid: string) {
     logLcSubmission(pid)
   }
   doneSet.value = next
-  localStorage.setItem(DONE_KEY, JSON.stringify([...next]))
-  if (cloudActive.value) pushDone(next)
+  doneSet.value = progress.toggle(pid, next.has(pid))
+  if (localStorage.getItem('token')) void progress.sync().then(value => { doneSet.value = value; cloudActive.value = true }).catch(() => { cloudActive.value = false })
   else if (!localStorage.getItem('token')) requireLoginForAction('云端同步打卡进度')
 }
 
-function pushDone(set: Set<string>) {
-  window.clearTimeout(pushTimer)
-  pushTimer = window.setTimeout(() => {
-    progressApi.put('leetcode', JSON.stringify([...set])).catch(() => { cloudActive.value = false })
-  }, 1500)
-}
-
-// 登录时把云端进度与本地合并（并集：条目只会由未做变已做，不会回退）
 async function loadDone() {
-  let local: string[] = []
+  await offerGuestProgressImport()
+  doneSet.value = progress.read()
   try {
-    local = (JSON.parse(localStorage.getItem(DONE_KEY) || '[]') as any[]).map(String)
-  } catch (_) {}
-  const merged = new Set<string>(local)
-  if (localStorage.getItem('token')) {
-    try {
-      const res = await progressApi.get('leetcode')
-      if (res.data.code === 200) {
-        cloudActive.value = true
-        const cloud = JSON.parse(res.data.data.value || '[]')
-        if (Array.isArray(cloud)) cloud.forEach(x => merged.add(String(x)))
-        if (JSON.stringify([...merged].sort()) !== JSON.stringify([...new Set(local)].sort())) {
-          localStorage.setItem(DONE_KEY, JSON.stringify([...merged]))
-          pushDone(merged)
-        }
-      }
-    } catch (_) {}
-  }
+    doneSet.value = await progress.sync()
+    cloudActive.value = !!localStorage.getItem('token')
+  } catch (_) { cloudActive.value = false }
   if (localStorage.getItem('token')) {
     try {
       const res = await progressApi.get('lc-log')
-        if (res.data.code === 200) {
-          const cloud = JSON.parse(res.data.data.value || '[]')
-          if (Array.isArray(cloud)) {
-            const seen = new Set(getLcLog().map(e => e.pid + '@' + e.date))
-            const mergedLog = [...getLcLog(), ...cloud.filter((e: LcLogEntry) => e && e.pid && e.date && !seen.has(e.pid + '@' + e.date))]
-            saveLcLog(mergedLog)
-            if (mergedLog.length !== getLcLog().length) {
-              progressApi.put('lc-log', JSON.stringify(mergedLog)).catch(() => { cloudActive.value = false })
-            }
-          }
-        }
-      } catch (_) {}
-    }
-  doneSet.value = merged
+      const cloud = JSON.parse(res.data.data.value || '[]')
+      const merged = mergeSubmissions(getLcLog(), Array.isArray(cloud) ? cloud : [])
+      saveLcLog(merged)
+      if (JSON.stringify(merged) !== JSON.stringify(cloud)) await syncLcLog()
+    } catch (_) { cloudActive.value = false }
+  }
 }
 
 onMounted(async () => {

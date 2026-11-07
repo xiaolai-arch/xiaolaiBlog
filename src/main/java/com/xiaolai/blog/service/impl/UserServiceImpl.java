@@ -43,6 +43,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void changePassword(String oldPassword, String newPassword) {
+        if (newPassword.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72) {
+            throw new BlogException(422, "密码的 UTF-8 编码不能超过 72 字节");
+        }
         User current = getCurrentUser();
         if (current == null) throw new BlogException(401, "Not authenticated");
         if (!passwordEncoder.matches(oldPassword, current.getPassword())) {
@@ -52,6 +55,7 @@ public class UserServiceImpl implements UserService {
         userMapper.update(null, new LambdaUpdateWrapper<User>()
                 .eq(User::getId, current.getId())
                 .set(User::getPassword, current.getPassword())
+                .setSql("token_version = token_version + 1")
         );
     }
 }

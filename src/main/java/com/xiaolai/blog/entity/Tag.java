@@ -18,4 +18,8 @@ public class Tag {
 
     @TableField(exist = false)
     private Integer articleCount;
+
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @TableField(exist = false)
+    private Long articleId;
 }

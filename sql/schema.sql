@@ -6,6 +6,7 @@ USE xiaolai_blog;
 
 -- User table (single admin)
 CREATE TABLE `user` (
+    `token_version` BIGINT NOT NULL DEFAULT 0 COMMENT 'JWT revocation version',
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `username` VARCHAR(50) NOT NULL COMMENT 'Username',
     `password` VARCHAR(255) NOT NULL COMMENT 'Bcrypt encrypted password',
