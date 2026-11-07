@@ -23,7 +23,7 @@
 
 ## 验证方式
 
-最终结果：后端 24 项测试、前端 7 项测试、部署脚本 5 项测试全部通过；后端 `mvn verify` 打包和前端生产构建成功。另在隔离的本地 MySQL 9.6 实例中通过 9 项接口回归，以及实际建表、旧表升级和重复迁移验证。
+最终结果：后端 26 项测试、前端 7 项测试、部署脚本 5 项测试全部通过；后端 `mvn verify` 打包和前端生产构建成功。另在隔离的本地 MySQL 9.6 实例中通过 9 项接口回归，以及实际建表、旧表升级和重复迁移验证；GitHub Actions 的 MySQL 8.0 同样通过这些检查。
 
 后端使用 Java 21：
 
@@ -38,6 +38,8 @@ mvn -B verify
 GitHub Actions 工作流 `.github/workflows/ci.yml` 持续执行后端、独立 MySQL 8.0、前端和部署脚本四组检查；不自动部署生产。
 
 前端依赖审计原有 17 项告警；已更新 Vue、Axios 及相关传递依赖，升级 Vite 7、Vue 插件 6、vue-tsc 3、TypeScript 5.9、组件自动导入插件和 KaTeX。升级后 `npm audit --audit-level=low` 为 0 项漏洞，数据安全测试与生产构建通过。前端现要求 Node.js 22.12+，`.nvmrc` 与 CI 均采用 Node.js 22；CI 会持续检查依赖告警。
+
+首次 CI 暴露原 RSS 测试只接受数字时区，导致 UTC 环境的合法 GMT 输出被误判；现改为解析 RFC 1123 日期并校验时间及对应瞬间，覆盖 UTC、Asia/Shanghai 和 America/New_York。工作流固定 Ubuntu 24.04，并更新为使用 Node.js 24 运行时的 Actions 版本。
 
 前端：
 

@@ -3,10 +3,16 @@ package com.xiaolai.blog.controller.front;
 import com.xiaolai.blog.entity.Article;
 import com.xiaolai.blog.mapper.ArticleMapper;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.TimeZone;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -43,8 +49,19 @@ class FeedControllerTest {
         assertThat(controller.summaryOf(a)).hasSize(FeedController.SUMMARY_LENGTH + 1).endsWith("…");
     }
 
-    @Test
-    void rssRendersValidDatesAndEncodedLinks() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"UTC", "Asia/Shanghai", "America/New_York"})
+    void rssRendersValidDatesAndEncodedLinks(String timeZone) throws Exception {
+        TimeZone originalTimeZone = TimeZone.getDefault();
+        try {
+            TimeZone.setDefault(TimeZone.getTimeZone(timeZone));
+            assertRssRendersValidDatesAndEncodedLinks();
+        } finally {
+            TimeZone.setDefault(originalTimeZone);
+        }
+    }
+
+    private void assertRssRendersValidDatesAndEncodedLinks() throws Exception {
         Article a = new Article();
         a.setTitle("A & B");
         a.setSlug("中文 slug");
@@ -58,6 +75,10 @@ class FeedControllerTest {
 
         assertThat(xml).contains("<title>A &amp; B</title>");
         assertThat(xml).contains("https://www.xiaolai.cyou/articles/%E4%B8%AD%E6%96%87%20slug");
-        assertThat(xml).containsPattern("<pubDate>Thu, 30 Apr 2026 10:43:18 [+-]\\d{4}</pubDate>");
+        // RFC 1123 uses GMT for UTC and numeric offsets for other time zones.
+        String date = xml.substring(xml.indexOf("<pubDate>") + "<pubDate>".length(), xml.indexOf("</pubDate>"));
+        ZonedDateTime parsedDate = ZonedDateTime.parse(date, DateTimeFormatter.RFC_1123_DATE_TIME);
+        assertThat(parsedDate.toLocalDateTime()).isEqualTo(a.getCreateTime());
+        assertThat(parsedDate.toInstant()).isEqualTo(a.getCreateTime().atZone(ZoneId.systemDefault()).toInstant());
     }
 }
