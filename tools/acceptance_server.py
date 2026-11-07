@@ -73,10 +73,20 @@ try:
     assert not state['device-a']['done'] and state['device-b']['done']
     assert api('GET', '/progress/leetcode', token=b)['value'] == ''
     checks.append('simultaneous device progress, cancellation and private progress isolation')
-    # Give only this newly created account temporary admin rights to test password changes.
-    sql("UPDATE `user` SET role='admin' WHERE username='{}';".format(names[0]))
+    revisions = api('GET', '/notes/' + str(note['id']) + '/revisions', token=a)
+    assert revisions
+    api('POST', '/notes/' + str(note['id']) + '/revisions/' + str(revisions[0]['id']) + '/restore', {}, a)
+    assert api('GET', '/notes/' + str(note['id']), token=a)['content'] == 'draft A'
+    api('DELETE', '/notes/' + str(note['id']), token=a)
+    assert any(item['id'] == note['id'] for item in api('GET', '/notes/trash', token=a))
+    api('POST', '/notes/' + str(note['id']) + '/restore', {}, a)
+    assert api('GET', '/notes/' + str(note['id']), token=a)['content'] == 'draft A'
+    plans = api('POST', '/study-items', {'title': 'QA review', 'state': 'review', 'noteId': note['id'], 'sourceUrl': '/study'}, a)
+    assert len(plans) == 1 and not api('GET', '/study-items', token=b)
+    api('GET', '/account', token=a)
+    checks.append('note revisions, recycle bin, own account and isolated study plans')
     new_password = secrets.token_hex(16)
-    api('PUT', '/admin/profile/password', {'oldPassword': password, 'newPassword': new_password}, a)
+    api('PUT', '/account/password', {'oldPassword': password, 'newPassword': new_password}, a)
     api('GET', '/notes', token=a, expected=401)
     a = login(names[0], new_password)
     api('GET', '/notes', token=a)
@@ -89,7 +99,11 @@ try:
 finally:
     # Generated names are alphanumeric/underscore only; never touch existing account names.
     quoted = ','.join("'{}'".format(name) for name in names)
-    sql('DELETE n FROM note n JOIN `user` u ON u.id=n.user_id WHERE u.username IN (' + quoted + ');'
+    sql('DELETE r FROM content_revision r JOIN `user` u ON u.id=r.owner_id WHERE u.username IN (' + quoted + ');'
+        'DELETE s FROM study_item s JOIN `user` u ON u.id=s.user_id WHERE u.username IN (' + quoted + ');'
+        'DELETE t FROM account_token t JOIN `user` u ON u.id=t.user_id WHERE u.username IN (' + quoted + ');'
+        'DELETE e FROM account_email e JOIN `user` u ON u.id=e.user_id WHERE u.username IN (' + quoted + ');'
+        'DELETE n FROM note n JOIN `user` u ON u.id=n.user_id WHERE u.username IN (' + quoted + ');'
         'DELETE p FROM user_progress p JOIN `user` u ON u.id=p.user_id WHERE u.username IN (' + quoted + ');'
         'DELETE FROM login_log WHERE username IN (' + quoted + ');'
         'DELETE FROM `user` WHERE username IN (' + quoted + ');')

@@ -1,79 +1,41 @@
 <template>
-  <div class="search-page">
-    <div class="container">
-      <h1 class="page-title">搜索: "{{ keyword }}"</h1>
-      <div v-if="loading" class="loading">搜索中...</div>
-      <div v-else-if="articles.length === 0" class="no-results">
-        <p>No results found for "{{ keyword }}".</p>
-      </div>
-      <template v-else>
-        <article v-for="article in articles" :key="article.id" class="article-card">
-          <div class="card-meta">
-            <span class="date">{{ formatDate(article.createTime) }}</span>
-            <span v-if="article.categoryName">{{ article.categoryName }}</span>
-          </div>
-          <h2 class="card-title">
-            <router-link :to="`/articles/${article.slug}`">{{ article.title }}</router-link>
-          </h2>
-          <p class="card-summary">{{ article.summary || stripHtml(article.contentHtml).substring(0, 200) }}</p>
-        </article>
-        <div class="pagination" v-if="total > size">
-          <el-pagination
-            v-model:current-page="page" :page-size="size" :total="total"
-            layout="prev, pager, next" @current-change="onPageChange" background small
-          />
-        </div>
-      </template>
-    </div>
-  </div>
+  <main class="search-page container"><h1>搜索文章</h1>
+    <form class="search-controls" @submit.prevent="apply"><el-input v-model="input" maxlength="256" placeholder="搜索标题和正文" clearable aria-label="搜索词" />
+      <el-select v-model="category" clearable placeholder="全部分类" aria-label="分类"><el-option v-for="c in categories" :key="c.id" :value="c.slug" :label="c.name" /></el-select>
+      <el-select v-model="tag" clearable placeholder="全部标签" aria-label="标签"><el-option v-for="t in tags" :key="t.id" :value="t.slug" :label="t.name" /></el-select>
+      <el-button native-type="submit" type="primary">搜索</el-button>
+    </form>
+    <p v-if="loading" role="status">搜索中…</p><p v-else-if="error" role="alert">{{ error }} <button @click="search">重试</button></p>
+    <p v-else-if="!articles.length">没有找到匹配文章。试试更短的关键词，或清除分类和标签筛选。<router-link to="/archives">浏览文章归档</router-link></p>
+    <template v-else><p>共 {{ total }} 篇文章 · 正文也参与搜索</p>
+      <article v-for="a in articles" :key="a.id" class="article-card"><p>{{ dayjs(a.createTime).format('YYYY-MM-DD') }} · {{ a.categoryName || '未分类' }}</p>
+        <h2><router-link :to="`/articles/${a.slug}`"><template v-for="(part,i) in highlight(a.title, keyword)" :key="i"><mark v-if="part.match">{{ part.text }}</mark><template v-else>{{ part.text }}</template></template></router-link></h2>
+        <p><template v-for="(part,i) in highlight(a.summary || '打开文章阅读全文', keyword)" :key="i"><mark v-if="part.match">{{ part.text }}</mark><template v-else>{{ part.text }}</template></template></p>
+      </article>
+      <el-pagination :current-page="page" :page-size="10" :total="total" layout="prev, pager, next" @current-change="changePage" />
+    </template>
+  </main>
 </template>
-
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
-import { articleApi } from '@/api'
+import { ref, watch, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { articleApi, categoryApi, tagApi } from '@/api'
+import { highlight } from '@/utils/searchHighlight'
 import dayjs from 'dayjs'
-
-const route = useRoute()
-const keyword = ref('')
-const articles = ref<any[]>([])
-const loading = ref(false)
-const page = ref(1)
-const size = ref(10)
-const total = ref(0)
-
-onMounted(() => search())
-watch(() => route.query.q, () => search())
-
+const route = useRoute(), router = useRouter(), input = ref(''), keyword = ref(''), category = ref(''), tag = ref(''), page = ref(1)
+const articles = ref<any[]>([]), categories = ref<any[]>([]), tags = ref<any[]>([]), loading = ref(false), error = ref(''), total = ref(0)
+let generation = 0
+function apply() { router.push({ query: { q: input.value.trim(), category: category.value || undefined, tag: tag.value || undefined } }) }
+function changePage(p: number) { router.push({ query: { ...route.query, page: p } }) }
 async function search() {
-  keyword.value = (route.query.q as string) || ''
-  if (!keyword.value) return
-  loading.value = true
-  try {
-    const res = await articleApi.getList({ page: page.value, size: size.value, keyword: keyword.value })
-    if (res.data.code === 200) { articles.value = res.data.data.list; total.value = res.data.data.total }
-  } catch (_) {}
-  loading.value = false
+  const current = ++generation
+  input.value = keyword.value = String(route.query.q || '').trim(); category.value = String(route.query.category || ''); tag.value = String(route.query.tag || '')
+  page.value = Math.max(1, Number(route.query.page) || 1); loading.value = true; error.value = ''; articles.value = []
+  try { const res = await articleApi.getList({ page: page.value, size: 10, keyword: keyword.value, category: category.value, tag: tag.value }); if (current === generation) { articles.value = res.data.data.list; total.value = res.data.data.total } }
+  catch { if (current === generation) error.value = '搜索失败，请稍后重试' }
+  finally { if (current === generation) loading.value = false }
 }
-
-function onPageChange(p: number) { page.value = p; search(); window.scrollTo(0, 0) }
-function formatDate(d: string) { return dayjs(d).format('YYYY-MM-DD') }
-function stripHtml(html: string) {
-  if (!html) return ''
-  const div = document.createElement('div'); div.innerHTML = html
-  return div.textContent || div.innerText || ''
-}
+watch(() => route.fullPath, search, { immediate: true })
+onMounted(async () => { const res = await Promise.allSettled([categoryApi.getList(), tagApi.getList()]); if (res[0].status === 'fulfilled') categories.value = res[0].value.data.data; if (res[1].status === 'fulfilled') tags.value = res[1].value.data.data })
 </script>
-
-<style scoped>
-.page-title { font-size: 24px; padding: 40px 0; }
-.card-meta { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; }
-.card-title { font-size: 20px; margin-bottom: 8px; }
-.card-title a { color: var(--text-primary); }
-.card-title a:hover { color: var(--accent-color); }
-.card-summary { color: var(--text-secondary); font-size: 14px; }
-.no-results { text-align: center; padding: 80px; color: var(--text-muted); }
-.pagination { display: flex; justify-content: center; padding: 40px 0; }
-.loading { text-align: center; padding: 80px; color: var(--text-muted); }
-.article-card { padding: 24px; border: 1px solid var(--border-color); border-radius: 12px; margin-bottom: 16px; }
-</style>
+<style scoped>.search-page { max-width: 900px; padding: 40px 16px; } .search-controls { display: flex; gap: 12px; margin: 24px 0; flex-wrap: wrap; } .search-controls .el-input { flex: 1 1 240px; } .search-controls .el-select { width: 160px; } .article-card { padding: 24px; border: 1px solid var(--border-color); border-radius: 12px; margin: 16px 0; } p { margin: 12px 0; } h2 { font-size: 22px; } mark { background: #fef08a; color: #18181b; }</style>

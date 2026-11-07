@@ -15,8 +15,10 @@ import java.util.*;
 public class ArticleController {
 
     private final ArticleService articleService;
+    private final com.xiaolai.blog.mapper.ArticleMapper mapper;
 
-    public ArticleController(ArticleService articleService) {
+    public ArticleController(ArticleService articleService, com.xiaolai.blog.mapper.ArticleMapper mapper) {
+        this.mapper = mapper;
         this.articleService = articleService;
     }
 
@@ -59,6 +61,12 @@ public class ArticleController {
         return Result.success(nav);
     }
 
+    @GetMapping("/series")
+    public Result<List<String>> seriesNames() { return Result.success(mapper.selectSeriesNames()); }
+
+    @GetMapping("/series/articles")
+    public Result<List<Article>> series(@RequestParam String name) { return Result.success(mapper.selectSeries(name)); }
+
     @GetMapping("/archives")
     public Result<Map<String, Object>> archives() {
         List<String> years = articleService.getArchiveYears();
@@ -81,7 +89,7 @@ public class ArticleController {
     /** Drafts must not be reachable from the public site, even by guessing the slug. */
     private Article getPublishedBySlug(String slug) {
         Article article = articleService.getBySlug(slug);
-        if (article == null || !Objects.equals(article.getStatus(), BlogConstant.ARTICLE_STATUS_PUBLISHED)) {
+        if (article == null || !Objects.equals(article.getStatus(), BlogConstant.ARTICLE_STATUS_PUBLISHED) || (article.getPublishAt() != null && article.getPublishAt().isAfter(java.time.LocalDateTime.now()))) {
             return null;
         }
         return article;

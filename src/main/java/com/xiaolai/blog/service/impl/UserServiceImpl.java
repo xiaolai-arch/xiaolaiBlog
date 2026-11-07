@@ -15,8 +15,10 @@ public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final org.springframework.jdbc.core.JdbcTemplate db;
 
-    public UserServiceImpl(UserMapper userMapper, PasswordEncoder passwordEncoder) {
+    public UserServiceImpl(UserMapper userMapper, PasswordEncoder passwordEncoder, org.springframework.jdbc.core.JdbcTemplate db) {
+        this.db = db;
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
     }
@@ -42,6 +44,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public void changePassword(String oldPassword, String newPassword) {
         if (newPassword.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72) {
             throw new BlogException(422, "密码的 UTF-8 编码不能超过 72 字节");
@@ -57,5 +60,6 @@ public class UserServiceImpl implements UserService {
                 .set(User::getPassword, current.getPassword())
                 .setSql("token_version = token_version + 1")
         );
+        db.update("DELETE FROM account_token WHERE user_id=?", current.getId());
     }
 }

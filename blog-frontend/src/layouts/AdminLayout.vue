@@ -1,7 +1,7 @@
 <template>
   <div class="admin-layout">
     <template v-if="route.name === 'AdminLogin'">
-      <router-view />
+      <router-view :key="$route.fullPath" />
     </template>
     <template v-else>
       <el-container style="height: 100vh">
@@ -89,7 +89,7 @@
 
           <!-- Content -->
           <el-main class="admin-main">
-            <router-view />
+            <router-view :key="$route.fullPath" />
           </el-main>
         </el-container>
       </el-container>

@@ -10,4 +10,7 @@ public class NoteDTO {
 
     @Size(max = 200000, message = "内容过长（上限 200KB）")
     private String content;
+
+    @Size(max = 100, message = "分类最多 100 字")
+    private String folder;
 }

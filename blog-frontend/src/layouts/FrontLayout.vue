@@ -14,6 +14,9 @@
             <span class="more-trigger" :class="{ active: moreActive }">More</span>
             <template #dropdown>
               <el-dropdown-menu>
+                <el-dropdown-item command="/series">文章系列</el-dropdown-item>
+                <el-dropdown-item command="/study/review">学习计划与复习</el-dropdown-item>
+                <el-dropdown-item command="/account">账号设置</el-dropdown-item>
                 <el-dropdown-item command="/study">学习</el-dropdown-item>
                 <el-dropdown-item command="/categories">分类</el-dropdown-item>
                 <el-dropdown-item command="/tags">标签</el-dropdown-item>
@@ -77,7 +80,7 @@
           </div>
 
           <!-- 列 3：导航 -->
-          <nav class="footer-col footer-nav">
+          <nav class="footer-col footer-nav"><a href="/api/v1/rss" target="_blank" rel="noopener">RSS 订阅</a>
             <router-link to="/">Work</router-link>
             <router-link to="/gallery">Art</router-link>
             <router-link to="/about">About</router-link>
@@ -151,7 +154,7 @@ const year = new Date().getFullYear()
 const isBare = computed(() => route.meta.bare === true)
 
 const moreActive = computed(() =>
-  ['/study', '/categories', '/tags', '/leetcode', '/cet4', '/agent', '/tools'].some((p) =>
+  ['/series', '/account', '/study', '/categories', '/tags', '/leetcode', '/cet4', '/agent', '/tools'].some((p) =>
     route.path === p || route.path.startsWith(p + '/')))
 
 let timer: number | undefined

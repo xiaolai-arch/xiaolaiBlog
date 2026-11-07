@@ -33,7 +33,7 @@ public class CommentController {
     @GetMapping("/articles/{slug}/comments")
     public Result<List<Comment>> list(@PathVariable String slug) {
         Article article = articleMapper.selectBySlug(slug);
-        if (article == null) return Result.notFound("Article not found");
+        if (!visible(article)) return Result.notFound("Article not found");
         return Result.success(commentService.getApprovedByArticleId(article.getId()));
     }
 
@@ -45,10 +45,14 @@ public class CommentController {
             return Result.error(429, "Too many comments, please try again later");
         }
         Article article = articleMapper.selectBySlug(slug);
-        if (article == null || !Objects.equals(article.getStatus(), BlogConstant.ARTICLE_STATUS_PUBLISHED)) {
+        if (!visible(article)) {
             return Result.notFound("Article not found");
         }
         Comment comment = commentService.create(article.getId(), dto);
         return Result.success(comment);
+    }
+    private boolean visible(Article article) {
+        return article != null && Objects.equals(article.getStatus(), 1)
+            && (article.getPublishAt() == null || !article.getPublishAt().isAfter(java.time.LocalDateTime.now()));
     }
 }

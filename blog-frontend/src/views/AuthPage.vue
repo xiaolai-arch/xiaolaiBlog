@@ -5,12 +5,20 @@
       <h1 class="auth-title">{{ mode === 'login' ? '登录' : '注册' }}</h1>
       <p class="auth-sub">学习工具（笔记 / 算法 / 四级 / Agent）注册后即可使用</p>
 
-      <div class="mode-tabs">
+      <div v-if="recoveryMode" class="auth-form">
+        <h2>{{ recoveryMode === 'reset' ? '设置新密码' : recoveryMode === 'verify' ? '验证邮箱' : '找回密码' }}</h2>
+        <input v-if="recoveryMode === 'request'" v-model="form.username" placeholder="用户名" autocomplete="username" />
+        <template v-if="recoveryMode === 'reset'"><input v-model="form.password" type="password" placeholder="新密码（8–64 位）" autocomplete="new-password" /><input v-model="confirmPassword" type="password" placeholder="再次输入新密码" autocomplete="new-password" /></template>
+        <p v-if="notice" role="status">{{ notice }}</p><p v-if="error" role="alert">{{ error }}</p>
+        <button class="auth-submit" :disabled="submitting" @click="recover">{{ submitting ? '处理中…' : recoveryMode === 'verify' ? '确认验证邮箱' : recoveryMode === 'reset' ? '重置密码' : '发送找回邮件' }}</button>
+        <button class="switch-link" @click="exitRecovery">返回登录</button>
+      </div>
+      <div v-show="!recoveryMode" class="mode-tabs">
         <button :class="{ on: mode === 'login' }" @click="mode = 'login'">登录</button>
         <button :class="{ on: mode === 'register' }" @click="mode = 'register'">注册</button>
       </div>
 
-      <form class="auth-form" @submit.prevent="submit">
+      <form v-if="!recoveryMode" class="auth-form" @submit.prevent="submit">
         <label class="field">
           <span>用户名</span>
           <input v-model.trim="form.username" autocomplete="username" placeholder="中文、字母、数字、下划线" required />
@@ -25,7 +33,7 @@
             v-model="form.password"
             type="password"
             :autocomplete="mode === 'login' ? 'current-password' : 'new-password'"
-            :placeholder="mode === 'register' ? '至少 6 位' : '密码'"
+            :placeholder="mode === 'register' ? '8–64 位' : '密码'"
             required
           />
         </label>
@@ -37,7 +45,8 @@
         </button>
       </form>
 
-      <p class="auth-hint">
+      <p v-if="!recoveryMode && recoveryEnabled" class="auth-hint"><button class="switch-link" @click="recoveryMode = 'request'">忘记密码？</button></p>
+      <p v-if="!recoveryMode" class="auth-hint">
         {{ mode === 'login' ? '还没有账号？' : '已有账号？' }}
         <button class="switch-link" @click="mode = mode === 'login' ? 'register' : 'login'">
           {{ mode === 'login' ? '去注册' : '去登录' }}
@@ -51,7 +60,7 @@
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { siteApi } from '@/api'
+import { siteApi, accountApi } from '@/api'
 
 const authStore = useAuthStore()
 const route = useRoute()
@@ -62,6 +71,22 @@ const siteTitle = ref('Xiaolai Blog')
 const form = ref({ username: '', password: '', nickname: '' })
 const error = ref('')
 const submitting = ref(false)
+const recoveryEnabled = ref(false), notice = ref(''), confirmPassword = ref('')
+const recoveryMode = ref<'request' | 'reset' | 'verify' | ''>(route.query.reset ? 'reset' : route.query.verify ? 'verify' : '')
+const recoveryToken = String(route.query.reset || route.query.verify || '')
+if (recoveryToken) { void router.replace({ path: '/login', query: {} }) }
+accountApi.recovery().then(res => { recoveryEnabled.value = !!res.data.data.enabled }).catch(() => {})
+function exitRecovery() { recoveryMode.value = ''; error.value = ''; notice.value = ''; form.value.password = ''; void router.replace('/login') }
+async function recover() {
+  if (submitting.value) return
+  submitting.value = true; error.value = ''; notice.value = ''
+  try {
+    if (recoveryMode.value === 'verify') { await accountApi.verify(recoveryToken); notice.value = '邮箱验证成功，可以返回登录或账号设置' }
+    else if (recoveryMode.value === 'reset') { if (form.value.password !== confirmPassword.value) throw new Error('两次输入的密码不一致'); await accountApi.confirm(recoveryToken, form.value.password); notice.value = '密码已重置，请返回登录'; form.value.password = ''; confirmPassword.value = '' }
+    else { await accountApi.reset(form.value.username); notice.value = '如果账号已绑定验证邮箱，将收到找回邮件，请在 30 分钟内使用' }
+  } catch (e: any) { error.value = e.response?.data?.message || e.message || '操作失败' }
+  finally { submitting.value = false }
+}
 
 siteApi.getConfig().then(res => {
   if (res.data.code === 200 && res.data.data.site_title) siteTitle.value = res.data.data.site_title
@@ -85,7 +110,7 @@ async function submit() {
   }
   if (!error.value) {
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
-    router.push(redirect)
+    router.push(redirect.startsWith('/') && !redirect.startsWith('//') && !redirect.includes('\\') ? redirect : '/')
   }
 }
 </script>

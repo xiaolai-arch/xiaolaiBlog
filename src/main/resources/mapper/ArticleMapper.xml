@@ -14,10 +14,10 @@
 
     <select id="selectPublicPage" resultMap="articleWithCategory">
         SELECT a.id, a.title, a.slug, a.summary, a.cover_url, a.category_id, a.status,
-               a.is_top, a.views, a.create_time, a.update_time,
+               a.is_top, a.views, a.publish_at, a.series_name, a.series_order, a.create_time, a.update_time,
                c.name AS category_name, c.slug AS category_slug
         FROM article a LEFT JOIN category c ON a.category_id = c.id
-        WHERE a.deleted = 0 AND a.status = 1
+        WHERE a.deleted = 0 AND a.status = 1 AND (a.publish_at IS NULL OR a.publish_at &lt;= CURRENT_TIMESTAMP)
         <if test="category != null and category != ''">AND c.slug = #{category}</if>
         <if test="tag != null and tag != ''">
             AND EXISTS (SELECT 1 FROM article_tag at JOIN tag t ON t.id = at.tag_id

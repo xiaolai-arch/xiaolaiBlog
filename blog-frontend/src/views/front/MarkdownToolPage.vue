@@ -6,7 +6,10 @@
         <p>Typora 式即时渲染 · {{ mode === 'cloud' ? '云端同步，多设备可用' : '自动保存到本地浏览器' }}</p>
       </div>
       <div class="header-actions">
-        <button v-if="mode === 'cloud'" class="ghost-btn" @click="exportAll">导出全部</button>
+        <label class="ghost-btn">导入 Markdown<input type="file" accept=".md,.markdown,text/markdown,text/plain" multiple hidden :disabled="importing" @change="importMarkdown" /></label>
+        <button class="ghost-btn" @click="openTrash">回收站</button>
+        <button class="ghost-btn" :disabled="!activeNote" @click="openHistory">版本历史</button>
+        <button class="ghost-btn" @click="exportAll">导出全部</button>
         <button v-if="mode === 'cloud'" class="ghost-btn danger" @click="logoutCloud">退出同步</button>
       </div>
     </div>
@@ -31,6 +34,8 @@
         <el-input v-model="search" placeholder="搜索笔记…" size="small" clearable class="note-search">
           <template #prefix><el-icon><Search /></el-icon></template>
         </el-input>
+        <el-select v-model="folderFilter" placeholder="全部文件夹" clearable size="small"><el-option v-for="f in folders" :key="f" :value="f" :label="f" /></el-select>
+        <p v-if="searchError" role="alert">{{ searchError }}</p>
         <div class="note-list">
           <div
             v-for="note in filteredNotes"
@@ -57,9 +62,10 @@
 
       <section class="note-editor">
         <div class="note-title-bar">
+          <input :value="activeNote?.folder || ''" :disabled="operationBusy || !editorReady || activeNote?.content == null" maxlength="100" aria-label="笔记文件夹" placeholder="文件夹（留空为未分类）" @change="changeFolder" />
           <input
             v-model="activeTitle"
-            :disabled="!editorReady || (mode === 'cloud' && activeNote?.content == null)"
+            :disabled="operationBusy || !editorReady || (mode === 'cloud' && activeNote?.content == null)"
             class="note-title-input"
             placeholder="笔记标题…"
             @input="touchActive"
@@ -69,11 +75,14 @@
         <div ref="editorRef" class="editor-host"></div>
       </section>
     </div>
+    <el-dialog v-model="trashOpen" title="笔记回收站" width="90%"><p>删除的笔记可以恢复；彻底删除后无法找回。</p><p v-if="!trashNotes.length">回收站为空</p><div v-for="n in trashNotes" :key="n.id" class="trash-row"><span>{{ n.title || '无标题笔记' }}</span><el-button :disabled="operationBusy" @click="restoreTrash(n)">恢复</el-button><el-button :disabled="operationBusy" @click="purgeTrash(n)">彻底删除</el-button></div></el-dialog>
+    <el-dialog v-model="historyOpen" title="笔记版本历史" width="90%"><p v-if="!history.length">还没有历史版本。编辑并保存后会保留修改前的正文。</p><el-select :disabled="operationBusy" v-model="historyId" placeholder="选择历史版本" @change="selectHistory"><el-option v-for="h in history" :key="h.id" :value="h.id" :label="`${h.createTime} · ${h.title || '无标题'}`" /></el-select><div class="history-compare"><div><h3>当前正文</h3><pre>{{ activeNote?.content }}</pre></div><div><h3>历史正文</h3><pre>{{ historySnapshot?.content }}</pre></div></div><el-button :disabled="!historySnapshot || operationBusy" @click="restoreHistory">恢复选中版本</el-button></el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useThemeStore } from '@/stores/theme'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
@@ -85,6 +94,7 @@ import { accountKey, accountScope } from '@/utils/accountStorage'
 import { createNoteSaveQueue } from '@/utils/noteSaveQueue'
 import { useAuthStore } from '@/stores/auth'
 
+const route = useRoute()
 const scope = accountScope()
 const sessionToken = localStorage.getItem('token')
 const NOTES_KEY = scope === 'guest' ? 'tools:notes' : accountKey('tools:notes', scope)
@@ -95,6 +105,7 @@ const MIGRATED_FLAG = accountKey('tools:notes:migrated', scope)
 interface Note {
   id: string | number
   title: string
+  folder?: string
   content?: string | null
   updateTime: number | string
   createTime?: number | string
@@ -105,7 +116,16 @@ const editorRef = ref<HTMLElement>()
 const mode = ref<'cloud' | 'local'>('local')
 const notes = ref<Note[]>([])
 const activeId = ref<string | number>('')
-const search = ref('')
+const search = ref(''), folderFilter = ref(''), searchError = ref('')
+const folders = computed(() => [...new Set(notes.value.map(n => n.folder || '').filter(Boolean))].sort())
+const serverMatches = ref<Set<string> | null>(null)
+let searchGeneration = 0, searchTimer: ReturnType<typeof setTimeout> | undefined
+watch(search, () => { clearTimeout(searchTimer); serverMatches.value = null; const current = ++searchGeneration; searchTimer = setTimeout(async () => {
+  searchError.value = ''
+  if (mode.value !== 'cloud' || !search.value.trim()) return
+  try { const res = await noteApi.list({ q: search.value.trim() }); if (current === searchGeneration && !disposed) serverMatches.value = new Set((res.data.data || []).map((n: Note) => String(n.id))) }
+  catch { if (current === searchGeneration) searchError.value = '云端全文搜索失败，请重新输入重试' }
+}, 300) })
 const savedLabel = ref('已同步')
 const pendingLocalCount = ref(0)
 const migrating = ref(false)
@@ -119,7 +139,7 @@ const outbox = createNoteSaveQueue({
   key: accountKey('notes:outbox', scope),
   save: async draft => {
     if (!sessionToken || localStorage.getItem('token') !== sessionToken) throw new Error('Session changed')
-    const res = await noteApi.update(Number(draft.id), { title: draft.title, content: draft.content })
+    const res = await noteApi.update(Number(draft.id), { title: draft.title, content: draft.content, folder: draft.folder })
     if (res.data.code !== 200) throw new Error(res.data.message || '保存失败')
   },
   onState: state => { savedLabel.value = state === 'saved' ? `已保存 ${dayjs().format('HH:mm:ss')}` : state === 'failed' ? '保存失败，草稿已保留' : '待同步' },
@@ -133,10 +153,10 @@ const activeTitle = computed({
 const filteredNotes = computed(() => {
   const kw = search.value.trim().toLowerCase()
   const ts = (n: Note) => dayjs(n.updateTime).valueOf()
-  const list = [...notes.value].sort((a, b) => ts(b) - ts(a))
+  const list = [...notes.value].filter(n => !folderFilter.value || n.folder === folderFilter.value).sort((a, b) => ts(b) - ts(a))
   if (!kw) return list
   return list.filter(n =>
-    (n.title || '').toLowerCase().includes(kw) || (n.content || '').toLowerCase().includes(kw))
+    serverMatches.value?.has(String(n.id)) || (n.title || '').toLowerCase().includes(kw) || (n.content || '').toLowerCase().includes(kw))
 })
 
 /* ---------------- 本地存储 ---------------- */
@@ -199,7 +219,7 @@ async function tryCloudMode() {
       const created = await noteApi.create({ title: '', content: '' })
       notes.value = [created.data.data]
     }
-    activeId.value = notes.value[0].id
+    activeId.value = notes.value.find(n => String(n.id) === String(route.query.note))?.id || notes.value[0].id
     // 本地未迁移的笔记提醒
     pendingLocalCount.value = migrationCandidates().length
     for (const draft of outbox.pending()) {
@@ -338,10 +358,11 @@ function scheduleSave() {
   const note = activeNote.value
   if (!note || (mode.value === 'cloud' && note.content == null)) return
   // Snapshot now: after a route or note switch the editor belongs to another note.
+  if (mode.value === 'local') rememberLocal(note)
   note.content = vditor?.getValue() || ''
   note.updateTime = Date.now()
   if (mode.value === 'local') persistLocal()
-  else outbox.enqueue({ id: note.id, title: note.title, content: note.content })
+  else outbox.enqueue({ id: note.id, title: note.title, content: note.content, folder: note.folder || '' })
 }
 
 function touchActive() { scheduleSave() }
@@ -349,7 +370,7 @@ function touchActive() { scheduleSave() }
 async function removeNote(id: string | number) {
   const note = notes.value.find(n => n.id === id)
   try {
-    await ElMessageBox.confirm(`确定删除「${note?.title || '无标题笔记'}」吗？删除后无法恢复。`, '删除笔记', {
+    await ElMessageBox.confirm(`确定删除「${note?.title || '无标题笔记'}」吗？笔记将移入回收站。`, '删除笔记', {
       confirmButtonText: '删除',
       cancelButtonText: '取消',
       type: 'warning',
@@ -360,6 +381,7 @@ async function removeNote(id: string | number) {
   if (mode.value === 'cloud') {
     try {
       await outbox.flush()
+      if (outbox.pending().some(n => String(n.id) === String(id))) throw new Error('存在未保存修改')
       const res = await noteApi.remove(Number(id))
       if (res.data.code !== 200) throw new Error('删除失败')
       await outbox.discard(id)
@@ -370,6 +392,7 @@ async function removeNote(id: string | number) {
   }
   const idx = notes.value.findIndex(n => n.id === id)
   if (idx === -1) return
+  if (mode.value === 'local') writeTrash([...readTrash(), { ...notes.value[idx] }])
   notes.value.splice(idx, 1)
   if (activeId.value === id) {
     const next = notes.value[idx] || notes.value[idx - 1]
@@ -390,7 +413,7 @@ async function removeNote(id: string | number) {
     }
   }
   if (mode.value === 'local') persistLocal()
-  ElMessage.success('已删除')
+  ElMessage.success('已移入回收站')
 }
 
 async function exportAll() {
@@ -415,6 +438,74 @@ async function exportAll() {
   URL.revokeObjectURL(a.href)
 }
 
+const TRASH_KEY = `${NOTES_KEY}:trash`
+const trashOpen = ref(false), trashNotes = ref<Note[]>([]), operationBusy = ref(false), importing = ref(false)
+const historyOpen = ref(false), history = ref<any[]>([]), historyId = ref<number>(), historySnapshot = ref<any>(null)
+let historyNoteId: string | number = ''
+function readTrash(): Note[] { return readStoredNotes(TRASH_KEY) }
+function writeTrash(list: Note[]) { localStorage.setItem(TRASH_KEY, JSON.stringify(list)) }
+const historyKey = (id: string | number) => `${NOTES_KEY}:history:${id}`
+const previousLocal = new Map<string | number, Note>()
+function rememberLocal(note: Note) {
+  const previous = previousLocal.get(note.id) || readStoredNotes(NOTES_KEY).find(n => n.id === note.id)
+  if (previous && (previous.title !== note.title || previous.content !== (vditor?.getValue() || ''))) {
+    const key = historyKey(note.id); let list: any[] = []
+    try { list = JSON.parse(localStorage.getItem(key) || '[]') } catch {}
+    list.unshift({ ...previous, id: Date.now(), createTime: dayjs().format('YYYY-MM-DD HH:mm:ss') })
+    localStorage.setItem(key, JSON.stringify(list.slice(0, 50)))
+  }
+  previousLocal.set(note.id, { ...note, content: vditor?.getValue() || '' })
+}
+function changeFolder(event: Event) { if (!activeNote.value) return; activeNote.value.folder = (event.target as HTMLInputElement).value.trim(); scheduleSave() }
+async function noteOperation(action: () => Promise<void>) {
+  if (operationBusy.value) return
+  operationBusy.value = true
+  vditor?.disabled()
+  try { await action() } catch (e: any) { if (e !== 'cancel' && e !== 'close') ElMessage.error(e.response?.data?.message || e.message || '操作失败') } finally { operationBusy.value = false; if (editorReady.value && activeNote.value?.content != null) vditor?.enable() }
+}
+async function openTrash() { await noteOperation(async () => { trashNotes.value = mode.value === 'cloud' ? (await noteApi.trash()).data.data : readTrash(); trashOpen.value = true }) }
+async function restoreTrash(note: Note) { await noteOperation(async () => {
+  if (mode.value === 'cloud') { await noteApi.restore(Number(note.id)); const restored = (await noteApi.detail(Number(note.id))).data.data; notes.value.unshift(restored) }
+  else { notes.value.unshift({ ...note }); writeTrash(readTrash().filter(n => n.id !== note.id)); persistLocal() }
+  trashNotes.value = trashNotes.value.filter(n => n.id !== note.id); ElMessage.success('笔记已恢复')
+}) }
+async function purgeTrash(note: Note) { await noteOperation(async () => {
+  await ElMessageBox.confirm('彻底删除后将无法恢复正文和历史，确定继续？', '彻底删除')
+  if (mode.value === 'cloud') await noteApi.purge(Number(note.id))
+  else { writeTrash(readTrash().filter(n => n.id !== note.id)); localStorage.removeItem(historyKey(note.id)) }
+  trashNotes.value = trashNotes.value.filter(n => n.id !== note.id)
+}) }
+async function openHistory() { await noteOperation(async () => {
+  if (!activeNote.value) return
+  await outbox.flush()
+  if (mode.value === 'cloud' && outbox.pending().length) throw new Error('请先重试同步待保存的草稿')
+  historyNoteId = activeNote.value.id; historySnapshot.value = null; historyId.value = undefined
+  history.value = mode.value === 'cloud' ? (await noteApi.revisions(Number(historyNoteId))).data.data : JSON.parse(localStorage.getItem(historyKey(historyNoteId)) || '[]')
+  historyOpen.value = true
+}) }
+async function selectHistory(id: number) { historySnapshot.value = null; await noteOperation(async () => { historySnapshot.value = mode.value === 'cloud' ? (await noteApi.revision(Number(historyNoteId), id)).data.data : history.value.find(h => h.id === id) }) }
+async function restoreHistory() { await noteOperation(async () => {
+  if (activeId.value !== historyNoteId) throw new Error('笔记已切换，请重新打开历史')
+  await ElMessageBox.confirm('当前内容将保留为历史版本，确定恢复？', '恢复笔记')
+  await outbox.flush()
+  if (mode.value === 'cloud' && outbox.pending().length) throw new Error('当前修改尚未同步，请稍后重试')
+  const note = activeNote.value!
+  if (mode.value === 'cloud') { await noteApi.restoreRevision(Number(note.id), historyId.value!); Object.assign(note, (await noteApi.detail(Number(note.id))).data.data) }
+  else { const key = historyKey(note.id); const list = JSON.parse(localStorage.getItem(key) || '[]'); list.unshift({ ...note, id: Date.now(), createTime: dayjs().format('YYYY-MM-DD HH:mm:ss') }); localStorage.setItem(key, JSON.stringify(list.slice(0,50))); note.title = historySnapshot.value.title; note.content = historySnapshot.value.content; note.updateTime = Date.now(); persistLocal(); previousLocal.delete(note.id) }
+  displayContent(note.content || ''); historyOpen.value = false; ElMessage.success('已恢复历史版本')
+}) }
+async function importMarkdown(event: Event) {
+  const input = event.target as HTMLInputElement, files = Array.from(input.files || [])
+  if (files.length > 50 || files.some(f => f.size > 200000 || !/\.(md|markdown)$/i.test(f.name))) { ElMessage.error('每次最多导入 50 个 Markdown 文件，单个不超过 200 KB'); input.value = ''; return }
+  importing.value = true; let count = 0
+  try { for (const file of files) {
+    const content = await file.text(); if (content.length > 200000) throw new Error('文件过大'); const title = file.name.replace(/\.(md|markdown)$/i, '').slice(0,200)
+    const note = mode.value === 'cloud' ? (await noteApi.create({ title, content, folder: folderFilter.value })).data.data : { ...blankNote(), title, content, folder: folderFilter.value }
+    note.content = content; notes.value.unshift(note); if (mode.value === 'local') persistLocal(); count++
+  }; ElMessage.success(`已导入 ${count} 篇笔记`) }
+  catch { ElMessage.error(`已导入 ${count} 篇，其余未导入，请保留原文件后重试`) }
+  finally { importing.value = false; input.value = '' }
+}
 /* ---------------- 编辑器 ---------------- */
 function applyTheme() {
   const dark = themeStore.isDark
@@ -461,6 +552,8 @@ watch(() => themeStore.isDark, applyTheme)
 
 function onPageHide() { void outbox.flush() }
 onBeforeUnmount(() => {
+  clearTimeout(searchTimer)
+  searchGeneration++
   disposed = true
   window.removeEventListener('pagehide', onPageHide)
   // Pending snapshots have already been persisted; requests may finish after unmount.
@@ -481,6 +574,13 @@ function timeAgo(ts: number | string) {
 </script>
 
 <style scoped>
+.header-actions { flex-wrap: wrap; }
+.trash-row { display: flex; gap: 12px; align-items: center; margin: 12px 0; }
+.trash-row span { flex: 1; }
+.history-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.history-compare pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 50vh; overflow: auto; }
+@media (max-width: 600px) { .history-compare { grid-template-columns: 1fr; } }
+
 .tool-header {
   display: flex;
   justify-content: space-between;

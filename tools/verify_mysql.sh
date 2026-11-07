@@ -26,7 +26,7 @@ done
 # Exercise the upgrade from a pre-versioned user table, then repeat it to check idempotency.
 mysql "${mysql_args[@]}" "$test_database" -e 'ALTER TABLE `user` DROP COLUMN token_version'
 for attempt in 1 2; do
-  for migration in migration_token_version.sql note.sql progress.sql; do
+  for migration in migration_token_version.sql migration_features.sql note.sql progress.sql; do
     mysql "${mysql_args[@]}" "$test_database" < "sql/$migration"
   done
 done

@@ -27,13 +27,19 @@ public class ArticleServiceImpl implements ArticleService {
     private final TagMapper tagMapper;
     private final Parser parser;
     private final HtmlRenderer htmlRenderer;
+    private final com.xiaolai.blog.service.RevisionService revisions;
+    private final com.fasterxml.jackson.databind.ObjectMapper json;
 
     public ArticleServiceImpl(ArticleMapper articleMapper,
                               ArticleTagMapper articleTagMapper,
-                              TagMapper tagMapper) {
+                              TagMapper tagMapper,
+                              com.xiaolai.blog.service.RevisionService revisions,
+                              com.fasterxml.jackson.databind.ObjectMapper json) {
         this.articleMapper = articleMapper;
         this.articleTagMapper = articleTagMapper;
         this.tagMapper = tagMapper;
+        this.revisions = revisions;
+        this.json = json;
         this.parser = Parser.builder().build();
         this.htmlRenderer = HtmlRenderer.builder().build();
     }
@@ -112,6 +118,7 @@ public class ArticleServiceImpl implements ArticleService {
         article.setSeoTitle(dto.getSeoTitle());
         article.setSeoDescription(dto.getSeoDescription());
         article.setViews(0);
+        applyPublication(article, dto);
 
         articleMapper.insert(article);
 
@@ -133,6 +140,15 @@ public class ArticleServiceImpl implements ArticleService {
         Article article = articleMapper.selectById(id);
         if (article == null) throw new BlogException(404, "Article not found");
 
+        try {
+            ArticleDTO previous = new ArticleDTO();
+            org.springframework.beans.BeanUtils.copyProperties(article, previous);
+            previous.setTagIds(tagMapper.selectByArticleId(id).stream().map(com.xiaolai.blog.entity.Tag::getId).toList());
+            revisions.save("article", id, 0, article.getTitle(), article.getContentMd(), json.writeValueAsString(previous));
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            throw new IllegalStateException("Unable to preserve article revision", e);
+        }
+
         article.setTitle(dto.getTitle());
         if (dto.getSlug() != null && !dto.getSlug().isBlank()) article.setSlug(dto.getSlug());
         article.setSummary(dto.getSummary());
@@ -144,6 +160,8 @@ public class ArticleServiceImpl implements ArticleService {
         article.setIsTop(dto.getIsTop() != null ? dto.getIsTop() : article.getIsTop());
         article.setSeoTitle(dto.getSeoTitle());
         article.setSeoDescription(dto.getSeoDescription());
+
+        applyPublication(article, dto);
 
         articleMapper.updateById(article);
 
@@ -171,8 +189,10 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     @Override
+    @Transactional
     public void deletePermanently(Long id) {
         articleMapper.physicalDelete(id);
+        revisions.purge("article", id, 0);
     }
 
     @Override
@@ -209,6 +229,13 @@ public class ArticleServiceImpl implements ArticleService {
         return title.toLowerCase()
                 .replaceAll("[^a-z0-9\\u4e00-\\u9fa5]+", "-")
                 .replaceAll("^-|-$", "");
+    }
+
+    private void applyPublication(Article article, ArticleDTO dto) {
+        if (article.getStatus() != 0 && article.getStatus() != 1) throw new BlogException(422, "文章状态无效");
+        article.setPublishAt(dto.getPublishAt());
+        article.setSeriesName(dto.getSeriesName() == null ? "" : dto.getSeriesName().trim());
+        article.setSeriesOrder(dto.getSeriesOrder() == null ? 0 : dto.getSeriesOrder());
     }
 
     private String renderHtml(String md) {

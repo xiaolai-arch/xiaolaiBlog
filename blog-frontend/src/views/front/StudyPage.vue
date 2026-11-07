@@ -1,4 +1,5 @@
 <template>
+  <p class="review-entry"><router-link to="/study/review">管理学习计划与复习队列 →</router-link></p>
   <div class="study-page">
     <div class="container">
       <header class="page-head">
@@ -6,7 +7,7 @@
           <h1>学习概览</h1>
           <p>刷题、看课、笔记的进度总览（{{ cloudLabel }}）。</p>
         </div>
-        <router-link v-if="!loggedIn" to="/admin/login" class="login-hint">登录后进度云端同步 →</router-link>
+        <router-link v-if="!loggedIn" to="/login" class="login-hint">登录后进度云端同步 →</router-link>
       </header>
 
       <!-- 三项进度摘要 -->

@@ -1,5 +1,6 @@
 <template>
   <div class="article-detail">
+    <div class="reading-progress" :style="{ width: progress + '%' }" aria-hidden="true"></div>
     <!-- 悬浮目录（正文右侧有足够空间才显示） -->
     <aside class="toc-panel" v-if="showToc && toc.length >= 2" :style="{ left: tocLeft + 'px' }">
       <div class="toc-title">目录</div>
@@ -33,8 +34,11 @@
           </div>
         </header>
 
+        <div class="reading-tools"><el-button @click="shareArticle">分享 / 复制链接</el-button><a href="/api/v1/rss" target="_blank" rel="noopener">RSS 订阅</a><span>阅读进度 {{ progress }}%</span><button @click="markRead">标记已读</button></div>
+        <details v-if="toc.length" class="mobile-toc"><summary>文章目录</summary><a v-for="h in toc" :key="h.id" :href="'#' + h.id" @click.prevent="scrollToToc(h.id)">{{ h.text }}</a></details>
+        <section v-if="series.length" class="series-toc"><router-link :to="{ path: '/series', query: { name: article.seriesName } }">系列：{{ article.seriesName }}</router-link><ol><li v-for="a in series" :key="a.id"><router-link :to="`/articles/${a.slug}`" :aria-current="a.slug === article.slug ? 'page' : undefined">{{ a.title }}</router-link></li></ol></section>
         <!-- Article content -->
-        <div class="article-content markdown-body" v-html="article.contentHtml"></div>
+        <div class="article-content markdown-body" v-html="sanitize(article.contentHtml)"></div>
 
         <!-- Copyright -->
         <div class="copyright-notice">
@@ -130,7 +134,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { articleApi, commentApi, siteApi } from '@/api'
 import { ElMessage } from 'element-plus'
@@ -143,6 +147,7 @@ import properties from 'highlight.js/lib/languages/properties'
 hljs.registerLanguage('dockerfile', dockerfile)
 hljs.registerLanguage('properties', properties)
 
+import { accountKey } from '@/utils/accountStorage'
 const route = useRoute()
 const article = ref<any>(null)
 const prev = ref<any>(null)
@@ -158,6 +163,16 @@ const toc = ref<{ id: string; text: string; level: number }[]>([])
 const activeToc = ref(0)
 const showToc = ref(false)
 const tocLeft = ref(0)
+const progress = ref(0), series = ref<any[]>([])
+const seriesIndex = computed(() => series.value.findIndex(a => a.slug === article.value?.slug))
+async function shareArticle() {
+  try { if (navigator.share) await navigator.share({ title: article.value.title, url: location.href }); else { await navigator.clipboard.writeText(location.href); ElMessage.success('链接已复制') } }
+  catch (e: any) { if (e.name !== 'AbortError') ElMessage.info('请复制地址栏中的链接分享') }
+}
+function markRead() {
+  if (!article.value) return
+  try { const key = accountKey('articles:read'); const read = JSON.parse(localStorage.getItem(key) || '{}'); read[article.value.slug] = true; localStorage.setItem(key, JSON.stringify(read)); ElMessage.success('已记录阅读进度') } catch { ElMessage.info('浏览器未能保存阅读记录') }
+}
 
 let generation = 0
 let disposed = false
@@ -179,6 +194,8 @@ async function loadArticle() {
   const slug = route.params.slug as string
   const valid = () => !disposed && current === generation
   loading.value = true
+  progress.value = 0
+  series.value = []
   article.value = null
   comments.value = []
   prev.value = next.value = null
@@ -195,7 +212,13 @@ async function loadArticle() {
     document.title = article.value.title + ' - 小来博客'
     void commentApi.getByArticleSlug(slug).then(response => { if (valid()) comments.value = response.data.data || [] }).catch(() => {})
     void articleApi.getNavigation(slug).then(response => {
-      if (valid()) { prev.value = response.data.data.previous; next.value = response.data.data.next }
+      if (valid() && !article.value.seriesName) { prev.value = response.data.data.previous; next.value = response.data.data.next }
+    }).catch(() => {})
+    if (article.value.seriesName) void articleApi.seriesArticles(article.value.seriesName).then(response => {
+      if (!valid()) return
+      series.value = response.data.data || []
+      const i = seriesIndex.value
+      if (i >= 0) { prev.value = series.value[i - 1] || null; next.value = series.value[i + 1] || null }
     }).catch(() => {})
     void loadRelated(slug, current)
   } catch (_) {}
@@ -205,6 +228,7 @@ async function loadArticle() {
   if (!valid()) return
   buildToc()
   updateTocPos()
+  onScroll()
 }
 
 // 目录锚定正文容器右边缘：位置不随视口居中假设漂移，放不下就隐藏
@@ -232,6 +256,9 @@ function scrollToToc(id: string) {
 }
 
 function onScroll() {
+  const body = document.querySelector<HTMLElement>('.article-content')
+  if (body) { const rect = body.getBoundingClientRect(); progress.value = Math.round(Math.min(100, Math.max(0, (window.innerHeight - rect.top) / Math.max(1, rect.height) * 100))) }
+
   const headings = toc.value
     .map(h => document.getElementById(h.id))
     .filter((el): el is HTMLElement => !!el)
@@ -263,6 +290,9 @@ async function highlightCode() {
     el.dataset.hl = '1'
     try {
       hljs.highlightElement(el)
+      const button = document.createElement('button'); button.textContent = '复制代码'; button.className = 'copy-code'; button.type = 'button'
+      button.onclick = async () => { try { await navigator.clipboard.writeText(el.textContent || ''); button.textContent = '已复制' } catch { ElMessage.info('请长按或选择代码复制') } }
+      el.parentElement?.appendChild(button)
     } catch (_) {}
   })
 }
@@ -323,6 +353,15 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.reading-progress { position: fixed; top: 0; left: 0; height: 3px; z-index: 999; background: var(--accent-color); }
+.reading-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-bottom: 24px; }
+.mobile-toc, .series-toc { border: 1px solid var(--border-color); padding: 16px; margin: 16px 0; border-radius: 10px; }
+.mobile-toc a { display: block; padding: 6px; }
+.series-toc li { margin: 8px 20px; }
+.series-toc [aria-current='page'] { font-weight: bold; }
+:deep(.article-content pre) { position: relative; overflow: auto; padding-top: 38px; }
+:deep(.copy-code) { position: absolute; top: 6px; right: 8px; border: 1px solid #aaa; border-radius: 5px; padding: 3px 8px; cursor: pointer; }
+
 .container {
   max-width: 760px;
 }

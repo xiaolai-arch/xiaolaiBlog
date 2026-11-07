@@ -14,8 +14,12 @@ import org.springframework.web.bind.annotation.*;
 public class ArticleController {
 
     private final ArticleService articleService;
+    private final com.xiaolai.blog.service.RevisionService revisions;
+    private final com.fasterxml.jackson.databind.ObjectMapper json;
 
-    public ArticleController(ArticleService articleService) {
+    public ArticleController(ArticleService articleService, com.xiaolai.blog.service.RevisionService revisions, com.fasterxml.jackson.databind.ObjectMapper json) {
+        this.revisions = revisions;
+        this.json = json;
         this.articleService = articleService;
     }
 
@@ -62,5 +66,27 @@ public class ArticleController {
     public Result<Void> deletePermanent(@PathVariable Long id) {
         articleService.deletePermanently(id);
         return Result.success();
+    }
+
+    @GetMapping("/{id}/revisions")
+    public Result<?> revisions(@PathVariable Long id) {
+        if (articleService.getById(id) == null) return Result.notFound("Article not found");
+        return Result.success(revisions.list("article", id, 0));
+    }
+
+    @GetMapping("/{id}/revisions/{revision}")
+    public Result<?> revision(@PathVariable Long id, @PathVariable Long revision) {
+        if (articleService.getById(id) == null) return Result.notFound("Article not found");
+        return Result.success(revisions.get("article", id, 0, revision));
+    }
+
+    @PostMapping("/{id}/revisions/{revision}/restore")
+    public Result<Article> restoreRevision(@PathVariable Long id, @PathVariable Long revision) throws Exception {
+        var row = revisions.get("article", id, 0, revision);
+        ArticleDTO dto = json.readValue((String) row.get("metadata"), ArticleDTO.class);
+        // Restored content remains a draft until the author explicitly publishes it.
+        dto.setStatus(0);
+        dto.setPublishAt(null);
+        return Result.success(articleService.update(id, dto));
     }
 }

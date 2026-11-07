@@ -22,7 +22,7 @@
         <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
-              {{ row.status === 1 ? '已发布' : '草稿' }}
+              {{ row.status === 1 ? (row.publishAt && new Date(row.publishAt).getTime() > Date.now() ? '定时发布' : '已发布') : '草稿' }}
             </el-tag>
           </template>
         </el-table-column>

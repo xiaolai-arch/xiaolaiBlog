@@ -72,3 +72,20 @@ python3 /opt/xiaolai-ops/acceptance_server.py
 ```
 
 验收脚本会短暂创建两个 `qa_` 随机账号，只提升其中一个临时账号以验证改密，结束时清理自己创建的数据。不要将该脚本作为高频巡检运行。
+
+## 本次功能升级与 HTTPS（2026-11-07 晚）
+
+文章写作、笔记管理、账号设置、系列阅读与学习计划升级已发布，详见 [功能说明](../FEATURE_UPGRADE.md)。发布前备份为 `/var/backups/xiaolai-blog/backup-20261107T121208Z-3614`；已在独立 socket-only MySQL 5.7 实例恢复并两次执行 `migration_features.sql`，保留既有行数。
+
+本次服务端与本机构建 SHA-256 一致：
+
+- 后端 jar：`bd1bf0d034330b009db978b0f84eb8abb7222e044e2e671bfa043ef4f9b8691d`
+- 前端 index：`a6075e610ffda4521068691d77a541ca0782e21aef22149d8066c8d561dee6ae`
+
+更新后的验收脚本不再提升临时账号权限，直接验证普通用户改密，并检查笔记版本恢复、回收站和学习计划。发布后运行通过，自己创建的用户、笔记、版本、计划、进度与登录记录均已清理。
+
+HTTPS 已取得 `www.xiaolai.cyou` 的 Let's Encrypt 证书，有效期至 **2027-02-05 11:18:10 UTC**。私钥及链位于 `/etc/nginx/ssl/www.xiaolai.cyou/`，仅在服务器保存。ACME 客户端为 `/root/.acme.sh/acme.sh`，源码取自 acmesh-official/acme.sh 提交 `7e87a310fda61afe92e3db6ac29f81efdf53b8c0`。`xiaolai-cert-renew.timer` 每日 03:30 加随机延迟检查续期，已启用并手动执行成功；签发使用 HTTP webroot，续期后验证并重载 Nginx。
+
+Nginx 已监听 443，服务器本机使用正确域名和证书校验访问 HTTPS 首页与 RSS 均为 200。firewalld 已允许 HTTPS。**外部网络访问 443 仍然超时**，需要检查腾讯云安全组/上游入站策略；当前凭据只可 SSH，未修改云端控制台。为保持网站可访问，没有启用强制 HTTPS 跳转，HTTP 首页和 API 继续为 200；巡检和发布仍用实际可达的 HTTP 地址。旧 Nginx 配置备份在 `/root/xiaolai-nginx-before-tls-20261107.conf`。
+
+服务器没有 SMTP 配置，`/api/v1/auth/recovery` 实际返回 `enabled:false`。不要把已实现邮件接口描述成已开通找回服务。公网 HTTPS 与 SMTP 投递均验收成功后，再启用 `APP_PUBLIC_URL` 及邮件配置，并更新巡检、RSS 站点地址及 HTTP 跳转策略。

@@ -31,6 +31,7 @@
       </nav>
     </div>
 
+    <nav class="home-entrances"><router-link to="/archives">文章归档 →</router-link><router-link to="/series">系列阅读 →</router-link><router-link to="/study">学习中心 →</router-link><router-link to="/study/review">复习计划 →</router-link></nav>
     <!-- ============ 项目网格（2 列） ============ -->
     <div class="project-grid">
       <component
@@ -594,3 +595,5 @@ onMounted(() => {
   }
 }
 </style>
+
+<style scoped>.home-entrances { display: flex; gap: 24px; flex-wrap: wrap; max-width: 1000px; margin: 24px auto; padding: 0 24px; }</style>

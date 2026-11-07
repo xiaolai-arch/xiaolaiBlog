@@ -1,4 +1,4 @@
-export interface NoteDraft { id: string | number; title: string; content: string }
+export interface NoteDraft { id: string | number; title: string; content: string; folder?: string }
 
 /** Durable per-note outbox. A save never reads from the currently displayed editor. */
 export function createNoteSaveQueue(options: {

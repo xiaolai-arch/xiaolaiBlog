@@ -22,6 +22,10 @@ public class Article {
     private String password;
     private String seoTitle;
     private String seoDescription;
+    @TableField(updateStrategy = FieldStrategy.ALWAYS)
+    private LocalDateTime publishAt;
+    private String seriesName;
+    private Integer seriesOrder;
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
     @TableField(fill = FieldFill.INSERT_UPDATE)

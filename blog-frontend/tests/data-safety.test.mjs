@@ -96,3 +96,22 @@ test('submission merge is idempotent and retains local-only logs for first uploa
   assert.deepEqual(mergeSubmissions(local, []), local)
   assert.deepEqual(mergeSubmissions(local, local), local)
 })
+
+const { highlight } = await importSource('searchHighlight')
+test('highlight treats HTML and regex characters as plain text', () => {
+  const text = '<img onerror=alert(1)> a+b A+B'
+  const fragments = highlight(text, 'a+b')
+  assert.equal(fragments.map(p => p.text).join(''), text)
+  assert.deepEqual(fragments.filter(p => p.match).map(p => p.text), ['a+b', 'A+B'])
+  assert.deepEqual(highlight(text, ''), [{ text, match: false }])
+})
+test('folder metadata survives a failed note save and restart', async () => {
+  const disk = storage()
+  const failed = createNoteSaveQueue({ storage: disk, key: 'outbox', save: async () => { throw new Error('offline') } })
+  failed.enqueue({ id: 1, title: 'A', content: 'body', folder: 'Java' })
+  await failed.flush()
+  const saved = []
+  const restarted = createNoteSaveQueue({ storage: disk, key: 'outbox', save: async d => saved.push(d) })
+  await restarted.flush()
+  assert.equal(saved[0].folder, 'Java')
+})

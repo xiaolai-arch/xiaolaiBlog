@@ -12,7 +12,7 @@
 
    ```bash
    mysql -u root -p < sql/schema.sql
-   for migration in user_role.sql migration_gallery.sql music.sql gallery_frame.sql note.sql progress.sql migration_token_version.sql; do
+   for migration in user_role.sql migration_gallery.sql music.sql gallery_frame.sql note.sql progress.sql migration_token_version.sql migration_features.sql; do
      mysql -u root -p xiaolai_blog < "sql/$migration"
    done
    ```
@@ -101,3 +101,7 @@ bash deploy.sh all
 此脚本针对已有的 `blog` systemd 服务、`www:www` 文件属主和 Nginx 静态目录。首次安装服务器时需要先配置这些服务及旧版本文件。脚本先发布后端，在迁移成功后才替换 jar；后端健康检查失败会恢复旧 jar。前端保留旧 hash 资源，最后原子替换首页；前端健康检查失败会恢复旧首页。前端发布失败时，已成功发布的后端会保留，请按报错处理并重试。
 
 本次令牌版本迁移会使旧登录状态失效，需要重新登录；退出登录和修改密码会注销同一账号的全部会话。已经被旧代码覆盖的数据需要从历史备份恢复。发布后应验证页面访问、登录、私人笔记保存和学习进度同步，并监控 HTTP 错误率、后端日志及磁盘空间。生产服务器配置、实际网络与备份恢复仍需在目标环境验收。
+
+## 功能升级
+
+写作草稿/版本/定时发布、笔记回收站与导入、系列、账号与复习计划使用说明见 [FEATURE_UPGRADE.md](FEATURE_UPGRADE.md)。生产邮件与 HTTPS 的实际开通状态见 [ops/README.md](ops/README.md)。

@@ -57,6 +57,11 @@ export const articleApi = {
   delete: (id: number) => api.delete(`/admin/articles/${id}`),
   restore: (id: number) => api.put(`/admin/articles/${id}/restore`),
   permanentDelete: (id: number) => api.delete(`/admin/articles/${id}/permanent`),
+  revisions: (id: number) => api.get(`/admin/articles/${id}/revisions`),
+  revision: (id: number, rev: number) => api.get(`/admin/articles/${id}/revisions/${rev}`),
+  restoreRevision: (id: number, rev: number) => api.post(`/admin/articles/${id}/revisions/${rev}/restore`),
+  series: () => api.get('/series'),
+  seriesArticles: (name: string) => api.get('/series/articles', { params: { name } }),
   getArchives: () => api.get('/archives'),
 }
 
@@ -130,11 +135,17 @@ export const siteApi = {
 }
 
 export const noteApi = {
-  list: () => api.get('/notes'),
+  list: (params?: { q?: string; folder?: string }) => api.get('/notes', { params }),
   detail: (id: number) => api.get(`/notes/${id}`),
-  create: (data: { title: string; content: string }) => api.post('/notes', data),
-  update: (id: number, data: { title?: string; content?: string }) => api.put(`/notes/${id}`, data),
+  create: (data: { title: string; content: string; folder?: string }) => api.post('/notes', data),
+  update: (id: number, data: { title?: string; content?: string; folder?: string }) => api.put(`/notes/${id}`, data),
   remove: (id: number) => api.delete(`/notes/${id}`),
+  trash: () => api.get('/notes/trash'),
+  restore: (id: number) => api.post(`/notes/${id}/restore`),
+  purge: (id: number) => api.delete(`/notes/${id}/permanent`),
+  revisions: (id: number) => api.get(`/notes/${id}/revisions`),
+  revision: (id: number, rev: number) => api.get(`/notes/${id}/revisions/${rev}`),
+  restoreRevision: (id: number, rev: number) => api.post(`/notes/${id}/revisions/${rev}/restore`),
 }
 
 export const progressApi = {
@@ -168,4 +179,20 @@ export const authApi = {
   login: (data: any) => api.post('/admin/auth/login', data),
   logout: () => api.post('/admin/auth/logout'),
   changePassword: (data: { oldPassword: string; newPassword: string }) => api.put('/admin/profile/password', data),
+}
+export const accountApi = {
+  me: () => api.get('/account'),
+  update: (data: { nickname: string; bio: string }) => api.put('/account', data),
+  password: (data: { oldPassword: string; newPassword: string }) => api.put('/account/password', data),
+  email: (email: string) => api.post('/account/email', { email }),
+  recovery: () => api.get('/auth/recovery'),
+  reset: (username: string) => api.post('/auth/password/reset', { username }),
+  confirm: (token: string, password: string) => api.post('/auth/password/confirm', { token, password }),
+  verify: (token: string) => api.post('/auth/email/verify', { token }),
+}
+export const studyApi = {
+  list: () => api.get('/study-items'),
+  create: (item: any) => api.post('/study-items', item),
+  update: (id: number, item: any) => api.put(`/study-items/${id}`, item),
+  remove: (id: number) => api.delete(`/study-items/${id}`),
 }
