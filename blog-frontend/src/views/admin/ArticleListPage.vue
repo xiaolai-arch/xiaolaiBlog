@@ -2,19 +2,19 @@
   <div class="article-list-page">
     <div class="page-header">
       <h2>文章管理</h2>
-      <el-button type="primary" @click="$router.push('/admin/articles/create')">
+      <el-button type="primary" @click="$router.push('/admin/articles/create')" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">
         <el-icon><Plus /></el-icon> 新建文章
       </el-button>
     </div>
 
-    <el-card>
+    <el-card class="bg-white rounded-2xl shadow-sm">
       <div class="table-toolbar">
-        <el-input v-model="keyword" placeholder="搜索标题…" clearable style="width: 280px" @clear="loadArticles" @keyup.enter="loadArticles" />
-        <el-select v-model="statusFilter" placeholder="状态" clearable @change="loadArticles" style="width: 140px">
+        <el-input v-model="keyword" placeholder="搜索标题…" clearable style="width: 280px" @clear="loadArticles" @keyup.enter="loadArticles" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
+        <el-select v-model="statusFilter" placeholder="状态" clearable @change="loadArticles" style="width: 140px" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all">
           <el-option label="已发布" :value="1" />
           <el-option label="草稿" :value="0" />
         </el-select>
-        <el-button @click="loadArticles">搜索</el-button>
+        <el-button @click="loadArticles" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">搜索</el-button>
       </div>
 
       <el-table :data="articles" v-loading="loading" stripe>
@@ -30,8 +30,8 @@
         <el-table-column prop="createTime" label="创建时间" width="170" />
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" @click="$router.push(`/admin/articles/${row.id}/edit`)">编辑</el-button>
-            <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
+            <el-button size="small" @click="$router.push(`/admin/articles/${row.id}/edit`)" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">编辑</el-button>
+            <el-button size="small" type="danger" @click="handleDelete(row)" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">删除</el-button>
           </template>
         </el-table-column>
       </el-table>

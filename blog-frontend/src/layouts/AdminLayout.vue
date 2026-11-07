@@ -1,177 +1,59 @@
 <template>
-  <div class="admin-layout">
-    <template v-if="route.name === 'AdminLogin'">
-      <router-view :key="$route.fullPath" />
-    </template>
+  <div class="admin-layout" data-theme="light" :class="{ 'sidebar-collapsed': isCollapsed }">
+    <router-view v-if="isLogin" :key="route.fullPath" />
     <template v-else>
-      <el-container style="height: 100vh">
-        <!-- Sidebar -->
-        <el-aside :width="isCollapsed ? '64px' : '220px'" class="admin-sidebar">
-          <div class="sidebar-header">
-            <router-link to="/" class="sidebar-logo">{{ isCollapsed ? 'XL' : '咲来管理' }}</router-link>
+      <a class="admin-skip-link" href="#admin-content">跳至主要内容</a>
+      <aside class="admin-sidebar" aria-label="后台侧栏">
+        <router-link to="/admin/dashboard" class="sidebar-brand" :aria-label="isCollapsed ? '咲来管理 · 概览' : undefined">
+          <span class="brand-mark" aria-hidden="true">咲</span><span v-if="!isCollapsed" class="brand-copy">咲来 <span>内容管理</span></span>
+        </router-link>
+        <AdminNavigation :collapsed="isCollapsed" />
+        <div class="sidebar-bottom">
+          <router-link to="/" class="site-return"><el-icon><ArrowLeft /></el-icon><span v-if="!isCollapsed">访问博客</span></router-link>
+          <button class="sidebar-toggle rounded-full font-medium transition-all duration-300" @click="isCollapsed = !isCollapsed" :aria-label="isCollapsed ? '展开侧栏' : '收起侧栏'" :aria-expanded="!isCollapsed">
+            <el-icon><component :is="isCollapsed ? 'Expand' : 'Fold'" /></el-icon><span v-if="!isCollapsed">收起侧栏</span>
+          </button>
+        </div>
+      </aside>
+      <div class="admin-workspace">
+        <header class="admin-header">
+          <div class="header-location">
+            <button class="mobile-nav-button rounded-full font-medium transition-all duration-300" @click="mobileOpen = true" aria-label="打开后台导航" :aria-expanded="mobileOpen"><el-icon><Menu /></el-icon></button>
+            <span class="workspace-label">工作空间</span><span class="header-separator" aria-hidden="true">/</span><span class="current-page">{{ pageName }}</span>
           </div>
-          <el-menu
-            :default-active="route.path"
-            :collapse="isCollapsed"
-            background-color="#1a1a2e"
-            text-color="#b0b3b8"
-            active-text-color="#5e7ce2"
-            router
-          >
-            <el-menu-item index="/admin/dashboard">
-              <el-icon><DataAnalysis /></el-icon>
-              <span>仪表盘</span>
-            </el-menu-item>
-            <el-menu-item index="/admin/articles">
-              <el-icon><Document /></el-icon>
-              <span>文章</span>
-            </el-menu-item>
-            <el-menu-item index="/admin/categories">
-              <el-icon><Folder /></el-icon>
-              <span>分类</span>
-            </el-menu-item>
-            <el-menu-item index="/admin/tags">
-              <el-icon><PriceTag /></el-icon>
-              <span>标签</span>
-            </el-menu-item>
-            <el-menu-item index="/admin/comments">
-              <el-icon><ChatDotSquare /></el-icon>
-              <span>评论</span>
-            </el-menu-item>
-            <el-menu-item index="/admin/media">
-              <el-icon><Picture /></el-icon>
-              <span>媒体</span>
-            </el-menu-item>
-            <el-menu-item index="/admin/gallery">
-              <el-icon><Printer /></el-icon>
-              <span>画廊映射</span>
-            </el-menu-item>
-            <el-menu-item index="/admin/music">
-              <el-icon><Headset /></el-icon>
-              <span>音乐</span>
-            </el-menu-item>
-            <el-menu-item index="/admin/settings">
-              <el-icon><Setting /></el-icon>
-              <span>设置</span>
-            </el-menu-item>
-          </el-menu>
-          <div class="sidebar-collapse" @click="isCollapsed = !isCollapsed">
-            <el-icon>
-              <component :is="isCollapsed ? 'Expand' : 'Fold'" />
-            </el-icon>
+          <div class="admin-header-actions">
+            <router-link to="/" class="header-site-link">查看网站 <el-icon><TopRight /></el-icon></router-link>
+            <el-dropdown trigger="click" @command="accountCommand">
+              <button class="account-button rounded-full font-medium transition-all duration-300" aria-label="账号菜单">
+                <span class="account-avatar">{{ userName.slice(0, 1) }}</span><span class="account-name">{{ userName }}</span><el-icon><ArrowDown /></el-icon>
+              </button>
+              <template #dropdown><el-dropdown-menu><el-dropdown-item command="account">账号设置</el-dropdown-item><el-dropdown-item command="logout" divided>退出登录</el-dropdown-item></el-dropdown-menu></template>
+            </el-dropdown>
           </div>
-        </el-aside>
-
-        <el-container>
-          <!-- Top bar -->
-          <el-header class="admin-header">
-            <div class="header-left">
-              <el-breadcrumb>
-                <el-breadcrumb-item :to="'/'">前台</el-breadcrumb-item>
-                <el-breadcrumb-item>管理后台</el-breadcrumb-item>
-              </el-breadcrumb>
-            </div>
-            <div class="header-right">
-              <el-button @click="themeStore.toggle()" circle size="small">
-                <el-icon><component :is="themeStore.isDark ? 'Sunny' : 'Moon'" /></el-icon>
-              </el-button>
-              <el-dropdown trigger="click">
-                <span class="user-info">
-                  {{ authStore.user?.nickname || '管理员' }}
-                  <el-icon><ArrowDown /></el-icon>
-                </span>
-                <template #dropdown>
-                  <el-dropdown-item @click="authStore.logout()">退出登录</el-dropdown-item>
-                </template>
-              </el-dropdown>
-            </div>
-          </el-header>
-
-          <!-- Content -->
-          <el-main class="admin-main">
-            <router-view :key="$route.fullPath" />
-          </el-main>
-        </el-container>
-      </el-container>
+        </header>
+        <main id="admin-content" class="admin-main" tabindex="-1"><div class="admin-content"><router-view :key="route.fullPath" /></div><footer class="admin-footer">咲来 · 内容管理<span>专注创作，记录每一步。</span></footer></main>
+      </div>
+      <el-drawer v-model="mobileOpen" direction="ltr" size="min(300px, 88vw)" title="咲来 · 内容管理" class="admin-mobile-drawer">
+        <AdminNavigation @navigate="mobileOpen = false" /><router-link to="/" class="site-return" @click="mobileOpen = false">访问博客 →</router-link>
+      </el-drawer>
     </template>
   </div>
 </template>
-
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRoute } from 'vue-router'
-import { useThemeStore } from '@/stores/theme'
+import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ArrowLeft, TopRight } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
-
-const route = useRoute()
-const themeStore = useThemeStore()
-const authStore = useAuthStore()
-
-const isCollapsed = ref(false)
+import AdminNavigation from '@/components/AdminNavigation.vue'
+import '@/assets/styles/admin.scss'
+const route = useRoute(), router = useRouter(), auth = useAuthStore()
+const isLogin = computed(() => route.name === 'AdminLogin')
+const isCollapsed = ref(false), mobileOpen = ref(false)
+const userName = computed(() => auth.user?.nickname || auth.user?.username || '管理员')
+const pageNames: Record<string, string> = { dashboard: '概览', articles: '文章', categories: '分类', tags: '标签', comments: '评论', media: '媒体库', gallery: '画廊映射', music: '音乐', settings: '站点设置' }
+const pageName = computed(() => pageNames[String(route.path.split('/')[2])] || '内容管理')
+watch(() => route.fullPath, () => { mobileOpen.value = false })
+onMounted(() => document.body.classList.add('admin-surface'))
+onBeforeUnmount(() => document.body.classList.remove('admin-surface'))
+async function accountCommand(command: string) { if (command === 'logout') { await auth.logout(); await router.replace('/admin/login') } else await router.push('/account') }
 </script>
-
-<style scoped>
-.admin-sidebar {
-  background: #1a1a2e;
-  display: flex;
-  flex-direction: column;
-  transition: width 0.3s;
-  overflow: hidden;
-}
-
-.sidebar-header {
-  padding: 16px;
-  text-align: center;
-  border-bottom: 1px solid #2d2d44;
-}
-
-.sidebar-logo {
-  color: #e4e6eb !important;
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.admin-header {
-  background: var(--header-bg);
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  height: 60px;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.user-info {
-  cursor: pointer;
-  color: var(--text-primary);
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.admin-main {
-  background: var(--bg-secondary);
-  padding: 20px;
-  overflow-y: auto;
-}
-
-.sidebar-collapse {
-  margin-top: auto;
-  padding: 12px 16px;
-  border-top: 1px solid #2d2d44;
-  cursor: pointer;
-  color: #b0b3b8;
-  text-align: center;
-}
-
-.sidebar-collapse:hover {
-  color: #5e7ce2;
-}
-</style>

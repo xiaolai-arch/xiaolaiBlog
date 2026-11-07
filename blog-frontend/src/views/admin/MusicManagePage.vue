@@ -3,7 +3,7 @@
     <div class="page-header">
       <h2>音乐管理</h2>
       <div class="header-actions">
-        <el-button type="primary" @click="openUploadDialog">
+        <el-button type="primary" @click="openUploadDialog" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">
           <el-icon><Upload /></el-icon> 上传音乐
         </el-button>
       </div>
@@ -21,7 +21,7 @@
     <el-dialog v-model="uploadVisible" title="上传音乐" width="520px" :close-on-click-modal="false">
       <el-form label-width="80px">
         <el-form-item label="音频">
-          <div class="audio-pick" @click="audioInput?.click()">
+          <div class="audio-pick" role="button" tabindex="0" aria-label="选择音频文件" @keydown.enter.prevent="audioInput?.click()" @keydown.space.prevent="audioInput?.click()" @click="audioInput?.click()">
             <input ref="audioInput" type="file" accept=".mp3,.m4a,.aac,.flac,.wav,.ogg" style="display: none" @change="e => onPick(e, 'audio')" />
             <el-icon v-if="!form.audio" :size="26"><UploadFilled /></el-icon>
             <span v-if="!form.audio" class="pick-hint">点击选择音频文件</span>
@@ -29,24 +29,24 @@
           </div>
         </el-form-item>
         <el-form-item label="封面">
-          <div class="cover-pick" @click="coverInput?.click()">
+          <div class="cover-pick" role="button" tabindex="0" aria-label="选择音乐封面" @keydown.enter.prevent="coverInput?.click()" @keydown.space.prevent="coverInput?.click()" @click="coverInput?.click()">
             <input ref="coverInput" type="file" accept="image/*" style="display: none" @change="e => onPick(e, 'cover')" />
-            <img v-if="coverPreview" :src="coverPreview" class="cover-preview" />
+            <img v-if="coverPreview" :src="coverPreview" class="cover-preview" alt="待上传的音乐封面" />
             <div v-else class="cover-placeholder">
               <el-icon :size="22"><Picture /></el-icon>
               <span class="pick-hint">选图（可选）</span>
             </div>
           </div>
-          <el-button v-if="form.cover" link type="danger" @click="clearCover">移除封面</el-button>
+          <el-button v-if="form.cover" link type="danger" @click="clearCover" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">移除封面</el-button>
         </el-form-item>
         <el-form-item label="歌名">
-          <el-input v-model="form.title" placeholder="必填，如：把回忆拼好给你" maxlength="100" />
+          <el-input v-model="form.title" placeholder="必填，如：把回忆拼好给你" maxlength="100" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
         </el-form-item>
         <el-form-item label="歌手">
-          <el-input v-model="form.artist" placeholder="可选" maxlength="100" />
+          <el-input v-model="form.artist" placeholder="可选" maxlength="100" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
         </el-form-item>
         <el-form-item label="专辑">
-          <el-input v-model="form.album" placeholder="可选" maxlength="100" />
+          <el-input v-model="form.album" placeholder="可选" maxlength="100" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
         </el-form-item>
         <el-form-item label="歌词">
           <el-input
@@ -54,12 +54,12 @@
             type="textarea"
             :rows="8"
             placeholder="可选，粘贴 LRC 歌词文本（[00:27.80]我们之间的回忆 …），首页播放时逐句同步"
-          />
+          class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="uploadVisible = false">取消</el-button>
-        <el-button type="primary" :loading="uploading" @click="submitUpload">
+        <el-button @click="uploadVisible = false" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">取消</el-button>
+        <el-button type="primary" :loading="uploading" @click="submitUpload" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">
           {{ uploading ? '上传中…' : '上传' }}
         </el-button>
       </template>
@@ -68,16 +68,16 @@
     <!-- 编辑信息对话框 -->
     <el-dialog v-model="editVisible" title="编辑歌曲信息" width="520px" :close-on-click-modal="false">
       <el-form label-width="80px">
-        <el-form-item label="歌名"><el-input v-model="editForm.title" maxlength="100" /></el-form-item>
-        <el-form-item label="歌手"><el-input v-model="editForm.artist" maxlength="100" /></el-form-item>
-        <el-form-item label="专辑"><el-input v-model="editForm.album" maxlength="100" /></el-form-item>
+        <el-form-item label="歌名"><el-input v-model="editForm.title" maxlength="100" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" /></el-form-item>
+        <el-form-item label="歌手"><el-input v-model="editForm.artist" maxlength="100" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" /></el-form-item>
+        <el-form-item label="专辑"><el-input v-model="editForm.album" maxlength="100" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" /></el-form-item>
         <el-form-item label="歌词">
-          <el-input v-model="editForm.lyrics" type="textarea" :rows="10" placeholder="LRC 歌词文本" />
+          <el-input v-model="editForm.lyrics" type="textarea" :rows="10" placeholder="LRC 歌词文本" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="editVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="submitEdit">保存</el-button>
+        <el-button @click="editVisible = false" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">取消</el-button>
+        <el-button type="primary" :loading="saving" @click="submitEdit" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">保存</el-button>
       </template>
     </el-dialog>
 
@@ -85,7 +85,7 @@
     <el-table :data="list" v-loading="loading" stripe>
       <el-table-column label="封面" width="72">
         <template #default="{ row }">
-          <img v-if="row.coverUrl" :src="row.coverUrl" class="row-cover" />
+          <img v-if="row.coverUrl" :src="row.coverUrl" class="row-cover" :alt="row.title" />
           <div v-else class="row-cover row-cover-empty"><el-icon><Headset /></el-icon></div>
         </template>
       </el-table-column>
@@ -115,10 +115,10 @@
       </el-table-column>
       <el-table-column label="操作" width="140" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
+          <el-button link type="primary" @click="openEdit(row)" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">编辑</el-button>
           <el-popconfirm title="删除后首页会回退到上一首，确定？" width="240" @confirm="remove(row)">
             <template #reference>
-              <el-button link type="danger">删除</el-button>
+              <el-button link type="danger" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">删除</el-button>
             </template>
           </el-popconfirm>
         </template>
@@ -334,7 +334,7 @@ onMounted(loadList)
   border-radius: 8px;
   cursor: pointer;
   color: var(--el-text-color-secondary);
-  transition: border-color 0.2s;
+  transition: border-color 300ms cubic-bezier(.25,.1,.25,1);
 }
 
 .audio-pick:hover {
@@ -361,7 +361,7 @@ onMounted(loadList)
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: border-color 0.2s;
+  transition: border-color 300ms cubic-bezier(.25,.1,.25,1);
 }
 
 .cover-pick:hover {

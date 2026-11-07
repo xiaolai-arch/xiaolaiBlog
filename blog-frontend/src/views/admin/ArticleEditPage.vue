@@ -1,21 +1,21 @@
 <template>
   <div class="article-edit-page">
-    <el-alert v-if="draftAvailable" title="发现此账号在本机保存的草稿" type="info" :closable="false"><el-button @click="recoverDraft">恢复到编辑器</el-button><el-button @click="discardDraft">丢弃本机草稿</el-button></el-alert>
-    <p role="status">{{ draftStatus }}</p>
-    <el-button @click="preview = !preview">{{ preview ? '继续编辑' : '预览' }}</el-button>
-    <el-button v-if="isEdit" @click="showHistory">版本历史</el-button>
-    <h2 class="page-title">{{ isEdit ? '编辑文章' : '新建文章' }}</h2>
+    <el-alert v-if="draftAvailable" title="发现此账号在本机保存的草稿" type="info" :closable="false"><el-button @click="recoverDraft" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">恢复到编辑器</el-button><el-button @click="discardDraft" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">丢弃本机草稿</el-button></el-alert>
+    <div class="page-header editor-header">
+      <div><h2 class="page-title">{{ isEdit ? '编辑文章' : '新建文章' }}</h2><p class="draft-status" role="status">{{ draftStatus }}</p></div>
+      <div class="header-actions"><el-button @click="preview = !preview" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">{{ preview ? '继续编辑' : '预览' }}</el-button><el-button v-if="isEdit" @click="showHistory" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">版本历史</el-button></div>
+    </div>
 
     <el-form :model="form" label-position="top" v-loading="loading">
       <el-row :gutter="20">
-        <el-col :xs="24" :md="16">
-          <el-card>
+        <el-col :xs="24" :lg="15">
+          <el-card class="bg-white rounded-2xl shadow-sm">
             <el-form-item label="标题" required>
-              <el-input v-model="form.title" placeholder="文章标题" size="large" />
+              <el-input v-model="form.title" placeholder="文章标题" size="large" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
             </el-form-item>
 
             <el-form-item label="URL 别名">
-              <el-input v-model="form.slug" placeholder="URL 标识（留空自动生成）" />
+              <el-input v-model="form.slug" placeholder="URL 标识（留空自动生成）" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
             </el-form-item>
 
             <div v-if="preview" class="markdown-body" v-html="previewHtml"></div>
@@ -25,13 +25,13 @@
                 type="textarea"
                 :rows="20"
                 placeholder="用 Markdown 写作……"
-              />
+              class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
             </el-form-item>
           </el-card>
         </el-col>
 
-        <el-col :xs="24" :md="8">
-          <el-card style="margin-bottom: 16px">
+        <el-col :xs="24" :lg="9">
+          <el-card style="margin-bottom: 16px" class="bg-white rounded-2xl shadow-sm">
             <template #header>发布</template>
             <el-form-item label="状态">
               <el-radio-group v-model="form.status">
@@ -42,49 +42,49 @@
             <el-form-item label="定时发布（北京时间，留空立即发布）">
               <el-date-picker v-model="form.publishAt" type="datetime" value-format="YYYY-MM-DDTHH:mm:ss" clearable />
             </el-form-item>
-            <el-form-item label="系列名称"><el-input v-model="form.seriesName" maxlength="100" /></el-form-item>
+            <el-form-item label="系列名称"><el-input v-model="form.seriesName" maxlength="100" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" /></el-form-item>
             <el-form-item label="系列顺序"><el-input-number v-model="form.seriesOrder" :min="0" /></el-form-item>
             <el-form-item label="置顶">
               <el-switch v-model="isTop" />
             </el-form-item>
-            <el-button type="primary" @click="save" :disabled="!loadSucceeded || loading" :loading="saving" style="width: 100%">
+            <el-button type="primary" @click="save" :disabled="!loadSucceeded || loading" :loading="saving" style="width: 100%" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">
               {{ saving ? '保存中…' : '保存' }}
             </el-button>
           </el-card>
 
-          <el-card style="margin-bottom: 16px">
+          <el-card style="margin-bottom: 16px" class="bg-white rounded-2xl shadow-sm">
             <template #header>分类</template>
-            <el-select v-model="form.categoryId" placeholder="选择分类" style="width: 100%">
+            <el-select v-model="form.categoryId" placeholder="选择分类" style="width: 100%" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all">
               <el-option v-for="cat in categories" :key="cat.id" :label="cat.name" :value="cat.id" />
             </el-select>
           </el-card>
 
-          <el-card style="margin-bottom: 16px">
+          <el-card style="margin-bottom: 16px" class="bg-white rounded-2xl shadow-sm">
             <template #header>标签</template>
-            <el-select v-model="form.tagIds" multiple placeholder="选择标签" style="width: 100%">
+            <el-select v-model="form.tagIds" multiple placeholder="选择标签" style="width: 100%" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all">
               <el-option v-for="tag in tags" :key="tag.id" :label="tag.name" :value="tag.id" />
             </el-select>
           </el-card>
 
-          <el-card>
+          <el-card class="bg-white rounded-2xl shadow-sm">
             <template #header>封面图片</template>
-            <el-input v-model="form.coverUrl" placeholder="封面图片地址" />
+            <el-input v-model="form.coverUrl" placeholder="封面图片地址" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
             <el-upload
               class="upload-btn"
               :http-request="handleUpload"
               :show-file-list="false"
               accept="image/*"
             >
-              <el-button size="small">上传</el-button>
+              <el-button size="small" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">上传</el-button>
             </el-upload>
           </el-card>
         </el-col>
       </el-row>
     </el-form>
     <el-dialog v-model="historyOpen" title="版本历史 · 恢复后为草稿" width="90%">
-      <el-select v-model="selectedRevision" placeholder="选择历史版本" @change="loadRevision"><el-option v-for="r in revisions" :key="r.id" :value="r.id" :label="`${r.createTime} · ${r.title}`" /></el-select>
+      <el-select v-model="selectedRevision" placeholder="选择历史版本" @change="loadRevision" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all"><el-option v-for="r in revisions" :key="r.id" :value="r.id" :label="`${r.createTime} · ${r.title}`" /></el-select>
       <div class="revision-compare"><div><h3>当前正文</h3><pre>{{ form.contentMd }}</pre></div><div><h3>历史正文</h3><pre>{{ revision?.content }}</pre></div></div>
-      <el-button :disabled="!revision" @click="restoreRevision">恢复此版本</el-button>
+      <el-button :disabled="!revision" @click="restoreRevision" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">恢复此版本</el-button>
     </el-dialog>
   </div>
 </template>

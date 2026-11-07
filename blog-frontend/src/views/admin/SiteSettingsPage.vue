@@ -2,80 +2,80 @@
   <div class="settings-page">
     <h2 class="page-title">站点设置</h2>
 
-    <el-card v-loading="loading">
+    <el-card v-loading="loading" class="bg-white rounded-2xl shadow-sm">
       <el-form :model="form" label-position="top">
         <el-divider>基本信息</el-divider>
         <el-row :gutter="20">
-          <el-col :span="12">
+          <el-col :xs="24" :sm="12">
             <el-form-item label="站点标题">
-              <el-input v-model="form.site_title" />
+              <el-input v-model="form.site_title" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :xs="24" :sm="12">
             <el-form-item label="站点副标题">
-              <el-input v-model="form.site_subtitle" />
+              <el-input v-model="form.site_subtitle" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
             </el-form-item>
           </el-col>
         </el-row>
         <el-form-item label="站点描述">
-          <el-input v-model="form.site_description" type="textarea" :rows="2" />
+          <el-input v-model="form.site_description" type="textarea" :rows="2" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
         </el-form-item>
-        <el-form-item label="Announcement（侧边栏公告，留空则不显示）">
-          <el-input v-model="form.announcement" placeholder="例如：正在学习微服务，欢迎交流！" />
+        <el-form-item label="侧边栏公告（留空则不显示）">
+          <el-input v-model="form.announcement" placeholder="例如：正在学习微服务，欢迎交流！" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
         </el-form-item>
 
         <el-divider>版权与社交</el-divider>
         <el-form-item label="版权信息">
-          <el-input v-model="form.copyright" />
+          <el-input v-model="form.copyright" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
         </el-form-item>
         <el-row :gutter="20">
-          <el-col :span="8">
+          <el-col :xs="24" :md="8">
             <el-form-item label="GitHub 地址">
-              <el-input v-model="form.social_github" placeholder="https://github.com/username" />
+              <el-input v-model="form.social_github" placeholder="https://github.com/username" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
             </el-form-item>
           </el-col>
-          <el-col :span="8">
+          <el-col :xs="24" :md="8">
             <el-form-item label="B 站地址">
-              <el-input v-model="form.social_bilibili" placeholder="https://space.bilibili.com/xxxx" />
+              <el-input v-model="form.social_bilibili" placeholder="https://space.bilibili.com/xxxx" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
             </el-form-item>
           </el-col>
-          <el-col :span="8">
+          <el-col :xs="24" :md="8">
             <el-form-item label="邮箱">
-              <el-input v-model="form.social_email" placeholder="email@example.com" />
+              <el-input v-model="form.social_email" placeholder="email@example.com" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
             </el-form-item>
           </el-col>
         </el-row>
 
         <el-divider>SEO</el-divider>
-        <el-form-item label="SEO Keywords">
-          <el-input v-model="form.seo_keywords" />
+        <el-form-item label="搜索关键词">
+          <el-input v-model="form.seo_keywords" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
         </el-form-item>
-        <el-form-item label="SEO Description">
-          <el-input v-model="form.seo_description" type="textarea" :rows="2" />
+        <el-form-item label="搜索结果描述">
+          <el-input v-model="form.seo_description" type="textarea" :rows="2" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
         </el-form-item>
 
         <el-form-item>
-          <el-button type="primary" @click="save" :loading="saving">
+          <el-button type="primary" @click="save" :loading="saving" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">
             {{ saving ? '保存中…' : '保存设置' }}
           </el-button>
         </el-form-item>
       </el-form>
     </el-card>
 
-    <el-card class="password-card">
+    <el-card class="password-card bg-white rounded-2xl shadow-sm">
       <template #header>修改密码</template>
       <el-form :model="pwForm" label-position="top" class="password-form" @submit.prevent="changePassword">
         <el-form-item label="当前密码">
-          <el-input v-model="pwForm.oldPassword" type="password" show-password autocomplete="current-password" />
+          <el-input v-model="pwForm.oldPassword" type="password" show-password autocomplete="current-password" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
         </el-form-item>
         <el-form-item label="新密码（至少 8 位）">
-          <el-input v-model="pwForm.newPassword" type="password" show-password autocomplete="new-password" />
+          <el-input v-model="pwForm.newPassword" type="password" show-password autocomplete="new-password" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
         </el-form-item>
         <el-form-item label="确认新密码">
-          <el-input v-model="pwForm.confirm" type="password" show-password autocomplete="new-password" />
+          <el-input v-model="pwForm.confirm" type="password" show-password autocomplete="new-password" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" native-type="submit" :loading="changingPw">Update Password</el-button>
+          <el-button type="primary" native-type="submit" :loading="changingPw" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">更新密码</el-button>
         </el-form-item>
       </el-form>
     </el-card>

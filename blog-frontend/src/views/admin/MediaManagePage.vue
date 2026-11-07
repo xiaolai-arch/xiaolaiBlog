@@ -3,10 +3,10 @@
     <div class="page-header">
       <h2>图库管理</h2>
       <div class="header-actions">
-        <el-button @click="showCategoryDialog = true">
+        <el-button @click="showCategoryDialog = true" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">
           <el-icon><Folder /></el-icon> 管理分类
         </el-button>
-        <el-button type="primary" @click="openUploadDialog">
+        <el-button type="primary" @click="openUploadDialog" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">
             <el-icon><Upload /></el-icon> 上传图片
           </el-button>
       </div>
@@ -18,7 +18,7 @@
         :type="!filterCategoryId ? 'primary' : 'default'"
         size="small"
         @click="filterByCategory(null)"
-      >
+       class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">
         全部
       </el-button>
       <el-button
@@ -27,7 +27,7 @@
         :type="filterCategoryId === cat.id ? 'primary' : 'default'"
         size="small"
         @click="filterByCategory(cat.id)"
-      >
+       class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">
         {{ cat.name }}
       </el-button>
     </div>
@@ -36,7 +36,7 @@
     <el-dialog v-model="uploadDialogVisible" title="上传图片" width="460px" :close-on-click-modal="false">
       <el-form label-width="80px">
         <el-form-item label="选择文件">
-          <div class="custom-upload" @click="triggerFileInput">
+          <div class="custom-upload" role="button" tabindex="0" aria-label="选择上传图片" @keydown.enter.prevent="triggerFileInput" @keydown.space.prevent="triggerFileInput" @click="triggerFileInput">
             <input
               ref="fileInputRef"
               type="file"
@@ -55,17 +55,17 @@
           </div>
         </el-form-item>
         <el-form-item label="图片标题">
-          <el-input v-model="uploadTitle" placeholder="可选，图片下方显示的标题" />
+          <el-input v-model="uploadTitle" placeholder="可选，图片下方显示的标题" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
         </el-form-item>
         <el-form-item label="所属分类">
-          <el-select v-model="uploadCategoryId" placeholder="选择分类" clearable style="width: 100%">
+          <el-select v-model="uploadCategoryId" placeholder="选择分类" clearable style="width: 100%" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all">
             <el-option v-for="cat in categories" :key="cat.id" :label="cat.name" :value="cat.id" />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="cancelUpload">取消</el-button>
-        <el-button type="primary" @click="submitUpload" :disabled="!pendingFile" :loading="uploading">
+        <el-button @click="cancelUpload" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">取消</el-button>
+        <el-button type="primary" @click="submitUpload" :disabled="!pendingFile" :loading="uploading" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">
           确认上传
         </el-button>
       </template>
@@ -75,34 +75,34 @@
     <el-dialog v-model="editDialogVisible" title="编辑图片信息" width="420px">
       <el-form label-width="80px">
         <el-form-item label="标题">
-          <el-input v-model="editTitle" placeholder="图片标题" />
+          <el-input v-model="editTitle" placeholder="图片标题" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
         </el-form-item>
         <el-form-item label="分类">
-          <el-select v-model="editCategoryId" placeholder="选择分类" clearable style="width: 100%">
+          <el-select v-model="editCategoryId" placeholder="选择分类" clearable style="width: 100%" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all">
             <el-option v-for="cat in categories" :key="cat.id" :label="cat.name" :value="cat.id" />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="editDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveEdit">保存</el-button>
+        <el-button @click="editDialogVisible = false" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">取消</el-button>
+        <el-button type="primary" @click="saveEdit" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">保存</el-button>
       </template>
     </el-dialog>
 
     <!-- Category management dialog -->
     <el-dialog v-model="showCategoryDialog" title="管理图库分类" width="500px">
       <div style="margin-bottom: 16px; display: flex; gap: 8px">
-        <el-input v-model="newCatName" placeholder="分类名称" style="flex:1" />
-        <el-input v-model="newCatSlug" placeholder="slug (选填)" style="flex:1" />
-        <el-button type="primary" @click="addCategory">添加</el-button>
+        <el-input v-model="newCatName" placeholder="分类名称" style="flex:1" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
+        <el-input v-model="newCatSlug" placeholder="slug (选填)" style="flex:1" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
+        <el-button type="primary" @click="addCategory" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">添加</el-button>
       </div>
       <el-table :data="categories" size="small">
         <el-table-column prop="name" label="名称" />
         <el-table-column prop="slug" label="Slug" />
         <el-table-column label="操作" width="120">
           <template #default="{ row }">
-            <el-button size="small" text type="primary" @click="editCategory(row)">编辑</el-button>
-            <el-button size="small" text type="danger" @click="deleteCategory(row)">删除</el-button>
+            <el-button size="small" text type="primary" @click="editCategory(row)" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">编辑</el-button>
+            <el-button size="small" text type="danger" @click="deleteCategory(row)" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -110,22 +110,22 @@
       <div v-if="editingCat" style="margin-top: 16px; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
         <p style="font-size:13px;color:var(--text-muted);margin-bottom:8px">编辑分类: {{ editingCat.name }}</p>
         <div style="display:flex;gap:8px">
-          <el-input v-model="editingCat.name" placeholder="名称" style="flex:1" size="small" />
-          <el-input v-model="editingCat.slug" placeholder="slug" style="flex:1" size="small" />
-          <el-button size="small" type="primary" @click="saveEditCategory">保存</el-button>
-          <el-button size="small" @click="editingCat = null">取消</el-button>
+          <el-input v-model="editingCat.name" placeholder="名称" style="flex:1" size="small" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
+          <el-input v-model="editingCat.slug" placeholder="slug" style="flex:1" size="small" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
+          <el-button size="small" type="primary" @click="saveEditCategory" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">保存</el-button>
+          <el-button size="small" @click="editingCat = null" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">取消</el-button>
         </div>
       </div>
     </el-dialog>
 
     <!-- Media grid -->
-    <el-card v-loading="loading">
+    <section v-loading="loading" aria-label="媒体图片列表">
       <div v-if="files.length === 0" class="empty">
         <p>暂无图片</p>
         <p class="empty-hint">点击右上角"上传图片"按钮开始添加</p>
       </div>
       <div v-else class="media-grid">
-        <div v-for="file in files" :key="file.id" class="media-item">
+        <div v-for="file in files" :key="file.id" class="media-item group bg-white rounded-2xl shadow-sm">
           <div class="media-preview-wrapper">
             <img :src="file.url" :alt="file.title || file.originalName" class="media-preview" />
           </div>
@@ -135,14 +135,14 @@
               {{ getCategoryName(file.categoryId) }}
             </p>
             <div class="media-actions">
-              <el-button size="small" @click="openEdit(file)">编辑</el-button>
-              <el-button size="small" @click="copyUrl(file.url)">复制链接</el-button>
-              <el-button size="small" type="danger" @click="remove(file)">删除</el-button>
+              <el-button size="small" @click="openEdit(file)" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">编辑</el-button>
+              <el-button size="small" @click="copyUrl(file.url)" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">复制链接</el-button>
+              <el-button size="small" type="danger" @click="remove(file)" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">删除</el-button>
             </div>
           </div>
         </div>
       </div>
-    </el-card>
+    </section>
   </div>
 </template>
 
@@ -389,9 +389,9 @@ async function deleteCategory(cat: MediaCategory) {
 
 .media-item {
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: 16px;
   overflow: hidden;
-  transition: box-shadow 0.2s;
+  transition: box-shadow 300ms cubic-bezier(.25,.1,.25,1);
 }
 .media-item:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
 
@@ -409,7 +409,9 @@ async function deleteCategory(cat: MediaCategory) {
   height: 100%;
   object-fit: cover;
 }
-.media-info { padding: 12px; }
+.media-preview { transition: transform 500ms cubic-bezier(.25,.1,.25,1); }
+.media-item:hover .media-preview { transform: scale(1.05); }
+.media-info { padding: 18px; }
 .media-title {
   font-size: 13px;
   font-weight: 500;
@@ -425,18 +427,18 @@ async function deleteCategory(cat: MediaCategory) {
 }
 .media-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
-.empty { text-align: center; padding: 80px; color: var(--text-muted); }
+.empty { text-align: center; padding: 64px 20px; color: var(--text-muted); }
 .empty p { margin: 0; }
-.empty-hint { font-size: 13px; margin-top: 8px; opacity: 0.7; }
+.empty-hint { font-size: 13px; margin-top: 8px;  }
 
 /* Custom upload */
 .custom-upload {
   cursor: pointer;
   width: 100%;
-  border: 2px dashed var(--border-color);
-  border-radius: 10px;
+  border: 1px dashed var(--border-color);
+  border-radius: 16px;
   overflow: hidden;
-  transition: border-color 0.2s;
+  transition: border-color 300ms cubic-bezier(.25,.1,.25,1), transform 300ms cubic-bezier(.25,.1,.25,1);
 }
 .custom-upload:hover { border-color: var(--accent-color); }
 

@@ -3,14 +3,14 @@
     <div class="page-header">
       <h2>评论管理</h2>
       <div class="tabs">
-        <el-button :type="statusFilter === '' ? 'primary' : ''" @click="statusFilter = ''; load()">全部</el-button>
-        <el-button :type="statusFilter === 0 ? 'primary' : ''" @click="statusFilter = 0; load()">待审核</el-button>
-        <el-button :type="statusFilter === 1 ? 'primary' : ''" @click="statusFilter = 1; load()">已通过</el-button>
-        <el-button :type="statusFilter === 3 ? 'primary' : ''" @click="statusFilter = 3; load()">垃圾</el-button>
+        <el-button :type="statusFilter === '' ? 'primary' : ''" @click="statusFilter = ''; load()" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">全部</el-button>
+        <el-button :type="statusFilter === 0 ? 'primary' : ''" @click="statusFilter = 0; load()" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">待审核</el-button>
+        <el-button :type="statusFilter === 1 ? 'primary' : ''" @click="statusFilter = 1; load()" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">已通过</el-button>
+        <el-button :type="statusFilter === 3 ? 'primary' : ''" @click="statusFilter = 3; load()" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">垃圾</el-button>
       </div>
     </div>
 
-    <el-card>
+    <el-card class="bg-white rounded-2xl shadow-sm">
       <el-table :data="comments" v-loading="loading" stripe>
         <el-table-column prop="nickname" label="作者" width="120" />
         <el-table-column prop="contentMd" label="内容" min-width="300" show-overflow-tooltip />
@@ -25,9 +25,9 @@
         <el-table-column prop="createTime" label="日期" width="160" />
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
-            <el-button v-if="row.status !== 1" size="small" type="success" @click="approve(row)">通过</el-button>
-            <el-button v-if="row.status !== 3" size="small" type="warning" @click="markSpam(row)">垃圾</el-button>
-            <el-button size="small" type="danger" @click="remove(row)">删除</el-button>
+            <el-button v-if="row.status !== 1" size="small" type="success" @click="approve(row)" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">通过</el-button>
+            <el-button v-if="row.status !== 3" size="small" type="warning" @click="markSpam(row)" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">垃圾</el-button>
+            <el-button size="small" type="danger" @click="remove(row)" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">删除</el-button>
           </template>
         </el-table-column>
       </el-table>

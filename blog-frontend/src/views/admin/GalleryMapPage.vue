@@ -6,22 +6,22 @@
         <p class="page-sub">为 3D 美术馆的 12 个画框指定挂画，按导览顺序排列；未配置的画框沿用自动填充（本站上传优先，其次内置藏品）。选图后可按画框比例裁剪。</p>
       </div>
       <div class="header-actions">
-        <el-button @click="loadAll" :loading="loading">刷新</el-button>
-        <el-button type="primary" :loading="saving" @click="saveAll">保存映射</el-button>
+        <el-button @click="loadAll" :loading="loading" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">刷新</el-button>
+        <el-button type="primary" :loading="saving" @click="saveAll" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">保存映射</el-button>
       </div>
     </div>
 
     <div class="frame-grid" v-loading="loading">
-      <div v-for="frame in frames" :key="frame.id" class="frame-card" :class="{ filled: Boolean(model[frame.id]) }">
+      <div v-for="frame in frames" :key="frame.id" class="frame-card group bg-white rounded-2xl shadow-sm" :class="{ filled: Boolean(model[frame.id]) }">
         <div class="frame-thumb" :style="{ aspectRatio: frameRatio(frame) }">
           <img v-if="model[frame.id]?.imageUrl" :src="model[frame.id]?.imageUrl" :alt="frame.id" />
           <span v-else class="empty-hint">自动填充</span>
           <button
             v-if="model[frame.id]?.imageUrl"
-            class="crop-btn"
+            class="crop-btn rounded-full font-medium transition-all duration-300"
             type="button"
             @click="openCrop(frame)"
-          >✂ 裁剪</button>
+          >裁剪</button>
         </div>
         <div class="frame-meta">
           <p class="frame-name">{{ frameTitle(frame) }}<span class="frame-aspect">{{ frame.aspect === 'portrait' ? '3:4' : '3:2' }}</span></p>
@@ -33,7 +33,7 @@
             filterable
             clearable
             value-key="imageUrl"
-            class="frame-select"
+            class="frame-select bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all"
             @update:model-value="(v: FrameValue | null) => onPick(frame, v)"
           >
             <el-option
@@ -69,8 +69,8 @@
         />
       </div>
       <template #footer>
-        <el-button @click="useOriginal">使用原图</el-button>
-        <el-button type="primary" :loading="cropping" @click="confirmCrop">确认裁剪</el-button>
+        <el-button @click="useOriginal" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">使用原图</el-button>
+        <el-button type="primary" :loading="cropping" @click="confirmCrop" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">确认裁剪</el-button>
       </template>
     </el-dialog>
   </div>
@@ -269,12 +269,12 @@ onMounted(loadAll)
   gap: 10px;
   padding: 14px;
   border: 1px solid var(--border-color, #e4e4e7);
-  border-radius: 14px;
+  border-radius: 16px;
   background: var(--card-bg, #fff);
 }
 
 .frame-card.filled {
-  border-color: #86efac;
+  border-color: var(--border-color);
 }
 
 .frame-thumb {
@@ -286,7 +286,9 @@ onMounted(loadAll)
   place-items: center;
 }
 
+.frame-card:hover .frame-thumb img { transform: scale(1.05); }
 .frame-thumb img {
+  transition: transform 500ms cubic-bezier(.25,.1,.25,1);
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -309,8 +311,8 @@ onMounted(loadAll)
   color: #fff;
   font-size: 12px;
   cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.2s;
+  opacity: 1;
+  transition: opacity 300ms cubic-bezier(.25,.1,.25,1);
 }
 
 .frame-thumb:hover .crop-btn {
@@ -338,7 +340,7 @@ onMounted(loadAll)
   margin-left: 8px;
   font-size: 11px;
   font-weight: 500;
-  color: #a1a1aa;
+  color: #66666b;
 }
 
 .frame-id {
@@ -348,7 +350,7 @@ onMounted(loadAll)
 }
 
 .frame-label {
-  color: #86efac;
+  color: #0063c6;
 }
 
 .frame-select {

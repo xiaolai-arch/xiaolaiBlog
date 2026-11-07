@@ -1,92 +1,31 @@
 <template>
-  <div class="login-page">
-    <div class="login-card">
-      <h1 class="login-title">咲来的 Blog · 管理登录</h1>
-      <el-form :model="form" label-position="top" @keyup.enter="handleLogin">
-        <el-form-item label="用户名">
-          <el-input v-model="form.username" placeholder="用户名" size="large" />
-        </el-form-item>
-        <el-form-item label="密码">
-          <el-input v-model="form.password" type="password" placeholder="密码" size="large" show-password />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" size="large" :loading="loading" @click="handleLogin" style="width: 100%">
-            {{ loading ? '登录中…' : '登录' }}
-          </el-button>
-        </el-form-item>
-        <p v-if="error" class="error">{{ error }}</p>
-      </el-form>
-      <router-link to="/" class="back-link">这里不是你该来的地方，快回去吧！</router-link>
-    </div>
-  </div>
+  <main class="admin-login-page"><router-link to="/" class="login-home">咲来 Blog</router-link>
+    <section class="admin-login-card bg-white rounded-2xl shadow-sm"><span class="login-brand-mark" aria-hidden="true">咲</span><h1>欢迎回来。</h1><p class="login-description">登录内容管理，继续你的创作。</p>
+      <el-form :model="form" label-position="top" @submit.prevent="handleLogin">
+        <el-form-item label="用户名"><el-input v-model.trim="form.username" name="username" autocomplete="username" placeholder="输入管理员用户名" size="large" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all " /></el-form-item>
+        <el-form-item label="密码"><el-input v-model="form.password" name="password" type="password" autocomplete="current-password" placeholder="输入密码" size="large" show-password class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all " /></el-form-item>
+        <p v-if="error" class="login-error" role="alert">{{ error }}</p>
+        <el-button type="primary" size="large" native-type="submit" :loading="loading" class="login-submit rounded-full font-medium transition-all duration-300 active:scale-[0.98]">{{ loading ? '正在登录…' : '登录管理后台' }}</el-button>
+      </el-form><router-link to="/" class="login-back">返回博客 <span aria-hidden="true">↗</span></router-link>
+    </section><p class="login-footer">专注创作，记录每一步。</p>
+  </main>
 </template>
-
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-
-const router = useRouter()
-const authStore = useAuthStore()
-const form = ref({ username: '', password: '' })
-const loading = ref(false)
-const error = ref('')
-
+const router = useRouter(), authStore = useAuthStore()
+const form = ref({ username: '', password: '' }), loading = ref(false), error = ref('')
 async function handleLogin() {
-  if (!form.value.username || !form.value.password) {
-    error.value = 'Please enter username and password'
-    return
-  }
-  loading.value = true
-  error.value = ''
+  if (loading.value) return
+  if (!form.value.username || !form.value.password) { error.value = '请输入用户名和密码'; return }
+  loading.value = true; error.value = ''
   try {
     const success = await authStore.login(form.value.username, form.value.password)
-    if (success) {
-      router.push('/admin/dashboard')
-    } else {
-      error.value = 'Invalid username or password'
-    }
-  } catch (e: any) {
-    error.value = e.response?.data?.message || '登录失败'
-  }
-  loading.value = false
+    if (success && authStore.isAdmin) await router.replace('/admin/dashboard')
+    else if (success) { await authStore.logout(); error.value = '此账号没有后台管理权限，请使用管理员账号登录' }
+    else error.value = '用户名或密码不正确'
+  } catch (e: any) { error.value = e.response?.data?.message || '登录失败，请稍后重试' }
+  finally { loading.value = false }
 }
 </script>
-
-<style scoped>
-.login-page {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  background: var(--bg-secondary);
-}
-
-.login-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
-  padding: 40px;
-  width: 400px;
-  max-width: 90vw;
-}
-
-.login-title {
-  text-align: center;
-  margin-bottom: 32px;
-  font-size: 24px;
-}
-
-.error {
-  color: #e74c3c;
-  text-align: center;
-  font-size: 14px;
-}
-
-.back-link {
-  display: block;
-  text-align: center;
-  margin-top: 16px;
-  font-size: 14px;
-}
-</style>

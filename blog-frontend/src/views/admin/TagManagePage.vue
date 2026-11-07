@@ -2,20 +2,20 @@
   <div class="tag-manage">
     <div class="page-header">
       <h2>标签管理</h2>
-      <el-button type="primary" @click="showDialog = true">
+      <el-button type="primary" @click="showDialog = true" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">
         <el-icon><Plus /></el-icon> 新建标签
       </el-button>
     </div>
 
-    <el-card>
+    <el-card class="bg-white rounded-2xl shadow-sm">
       <el-table :data="tags" v-loading="loading" stripe>
         <el-table-column prop="name" label="名称" />
         <el-table-column prop="slug" label="URL 别名" />
         <el-table-column prop="articleCount" label="文章数" width="100" />
         <el-table-column label="操作" width="160">
           <template #default="{ row }">
-            <el-button size="small" @click="edit(row)">编辑</el-button>
-            <el-button size="small" type="danger" @click="remove(row)">删除</el-button>
+            <el-button size="small" @click="edit(row)" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">编辑</el-button>
+            <el-button size="small" type="danger" @click="remove(row)" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -24,15 +24,15 @@
     <el-dialog v-model="showDialog" :title="editing ? '编辑标签' : '新建标签'" width="400">
       <el-form :model="form" label-position="top">
         <el-form-item label="名称" required>
-          <el-input v-model="form.name" placeholder="标签名称" />
+          <el-input v-model="form.name" placeholder="标签名称" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
         </el-form-item>
         <el-form-item label="URL 别名">
-          <el-input v-model="form.slug" placeholder="URL 标识" />
+          <el-input v-model="form.slug" placeholder="URL 标识" class="bg-[#f5f5f7] rounded-xl text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/30 transition-all" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showDialog = false">取消</el-button>
-        <el-button type="primary" @click="save" :loading="saving">{{ saving ? '保存中…' : '保存' }}</el-button>
+        <el-button @click="showDialog = false" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">取消</el-button>
+        <el-button type="primary" @click="save" :loading="saving" class="rounded-full font-medium transition-all duration-300 active:scale-[0.98]">{{ saving ? '保存中…' : '保存' }}</el-button>
       </template>
     </el-dialog>
   </div>
