@@ -39,6 +39,7 @@ build/
 node_modules/
 blog-frontend/node_modules/
 blog-frontend/dist/
+*.tsbuildinfo
 
 ### Uploads ###
 uploads/
