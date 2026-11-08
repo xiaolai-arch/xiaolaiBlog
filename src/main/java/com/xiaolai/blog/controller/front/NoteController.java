@@ -10,6 +10,7 @@ import com.xiaolai.blog.entity.User;
 import com.xiaolai.blog.mapper.NoteMapper;
 import com.xiaolai.blog.mapper.UserMapper;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,11 +27,18 @@ public class NoteController {
     private final NoteMapper noteMapper;
     private final UserMapper userMapper;
     private final com.xiaolai.blog.service.RevisionService revisions;
+    private final int maxNotesPerUser;
+    private final long maxNoteStorageBytes;
 
-    public NoteController(NoteMapper noteMapper, UserMapper userMapper, com.xiaolai.blog.service.RevisionService revisions) {
+    public NoteController(NoteMapper noteMapper, UserMapper userMapper,
+                          com.xiaolai.blog.service.RevisionService revisions,
+                          @Value("${app.content-limits.max-notes-per-user:200}") int maxNotesPerUser,
+                          @Value("${app.content-limits.max-note-storage-bytes:20971520}") long maxNoteStorageBytes) {
         this.noteMapper = noteMapper;
         this.userMapper = userMapper;
         this.revisions = revisions;
+        this.maxNotesPerUser = maxNotesPerUser;
+        this.maxNoteStorageBytes = maxNoteStorageBytes;
     }
 
     @GetMapping
@@ -54,9 +62,13 @@ public class NoteController {
     }
 
     @PostMapping
+    @org.springframework.transaction.annotation.Transactional
     public Result<Note> create(@Valid @RequestBody NoteDTO dto) {
+        Long userId = currentUserId();
+        lockUser(userId);
+        ensureStorageAvailable(userId, true, utf8Length(dto.getContent()), 0, 0);
         Note note = new Note();
-        note.setUserId(currentUserId());
+        note.setUserId(userId);
         note.setTitle(dto.getTitle() == null ? "" : dto.getTitle());
         note.setContent(dto.getContent() == null ? "" : dto.getContent());
         note.setFolder(dto.getFolder() == null ? "" : dto.getFolder().trim());
@@ -70,8 +82,13 @@ public class NoteController {
     public Result<Note> update(@PathVariable Long id, @Valid @RequestBody NoteDTO dto) {
         Note note = ownedNote(id);
         if (note == null) return Result.notFound("Note not found");
+        lockUser(note.getUserId());
         boolean changed = (dto.getTitle()!=null && !java.util.Objects.equals(note.getTitle(), dto.getTitle()))
                 || (dto.getContent()!=null && !java.util.Objects.equals(note.getContent(), dto.getContent()));
+        long oldContentBytes = utf8Length(note.getContent());
+        long newContentBytes = dto.getContent() == null ? oldContentBytes : utf8Length(dto.getContent());
+        ensureStorageAvailable(note.getUserId(), false, newContentBytes, oldContentBytes,
+                changed ? oldContentBytes : 0);
         if (changed) revisions.save("note", id, note.getUserId(), note.getTitle(), note.getContent(), null);
         if (dto.getTitle() != null) note.setTitle(dto.getTitle());
         if (dto.getContent() != null) note.setContent(dto.getContent());
@@ -139,5 +156,25 @@ public class NoteController {
         User user = userMapper.selectByUsername(username);
         if (user == null) throw new BlogException(401, "请重新登录");
         return user.getId();
+    }
+
+    private void lockUser(Long userId) {
+        if (userMapper.lockById(userId) == null) throw new BlogException(401, "请重新登录");
+    }
+
+    private void ensureStorageAvailable(Long userId, boolean creating, long newContentBytes,
+                                        long replacedContentBytes,
+                                        long revisionBytes) {
+        if (creating && noteMapper.countAllByUser(userId) >= maxNotesPerUser) {
+            throw new BlogException(422, "笔记数量已达到账号上限");
+        }
+        long stored = noteMapper.contentBytesByUser(userId) + revisions.noteStorageBytes(userId);
+        if (stored - replacedContentBytes + newContentBytes + revisionBytes > maxNoteStorageBytes) {
+            throw new BlogException(422, "笔记正文存储空间已达到账号上限");
+        }
+    }
+
+    private long utf8Length(String value) {
+        return value == null ? 0 : value.getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
     }
 }

@@ -11,6 +11,7 @@ public interface CategoryMapper extends BaseMapper<Category> {
 
     @Select("SELECT c.*, COUNT(a.id) as article_count " +
             "FROM category c LEFT JOIN article a ON c.id = a.category_id AND a.status = 1 AND a.deleted = 0 " +
+            "AND (a.publish_at IS NULL OR a.publish_at <= CURRENT_TIMESTAMP) " +
             "GROUP BY c.id ORDER BY article_count DESC")
     java.util.List<Category> selectAllWithCount();
 

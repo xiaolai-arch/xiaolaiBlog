@@ -33,7 +33,7 @@
 
 ## 升级与验证
 
-已有数据库先备份，再按 `note.sql`、`progress.sql`、`migration_token_version.sql`、`migration_features.sql` 顺序升级；发布脚本已自动包含这些迁移。新迁移可重复执行，兼容生产 MySQL 5.7。恢复备份演练会重复执行迁移并检查既有行数。
+已有数据库先备份，再按 `note.sql`、`progress.sql`、`migration_token_version.sql`、`migration_features.sql`、`migration_review_fixes.sql` 顺序升级；发布脚本已自动包含这些迁移。新迁移可重复执行，兼容生产 MySQL 5.7。恢复备份演练会重复执行迁移并检查既有行数。
 
 本次验证结果：
 

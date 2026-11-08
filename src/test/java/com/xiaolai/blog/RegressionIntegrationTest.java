@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
         "spring.datasource.url=${TEST_DATABASE_URL:jdbc:h2:mem:regression;MODE=MySQL;DB_CLOSE_DELAY=-1;NON_KEYWORDS=USER,VALUE}",
         "spring.datasource.driver-class-name=${TEST_DATABASE_DRIVER:org.h2.Driver}",
         "spring.datasource.username=${TEST_DATABASE_USERNAME:sa}", "spring.datasource.password=${TEST_DATABASE_PASSWORD:}",
+        "app.content-limits.max-notes-per-user=3",
         "mybatis-plus.configuration.log-impl=org.apache.ibatis.logging.nologging.NoLoggingImpl"
 })
 @AutoConfigureMockMvc
@@ -37,7 +38,7 @@ class RegressionIntegrationTest {
             if ("MySQL".equals(connection.getMetaData().getDatabaseProductName())) {
                 // Only the disposable databases created by tools/verify_mysql.sh may be cleared.
                 assertTrue(connection.getCatalog().matches("xiaolai_test_[a-z0-9_]+"), "A disposable test database is required");
-                for (String table : new String[]{"content_revision", "account_token", "account_email", "study_item", "article_tag", "comment", "article", "category", "tag", "note", "user_progress", "user"}) {
+                for (String table : new String[]{"content_revision", "account_token", "account_email", "study_item", "article_tag", "comment", "article", "category", "tag", "note", "user_progress", "media", "user"}) {
                     db.execute("DELETE FROM `" + table + "`");
                 }
                 createAdmin();
@@ -51,9 +52,14 @@ class RegressionIntegrationTest {
         db.execute("CREATE TABLE article(id BIGINT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(100), slug VARCHAR(100), summary VARCHAR(100), " +
                 "content_md CLOB, content_html CLOB, cover_url VARCHAR(255), category_id BIGINT, status INT, is_top INT, views INT, " +
                 "publish_at TIMESTAMP, series_name VARCHAR(100) DEFAULT '', series_order INT DEFAULT 0, password VARCHAR(255), seo_title VARCHAR(100), seo_description VARCHAR(100), create_time TIMESTAMP, update_time TIMESTAMP, deleted INT DEFAULT 0)");
-        db.execute("CREATE TABLE category(id BIGINT PRIMARY KEY, name VARCHAR(100), slug VARCHAR(100))");
-        db.execute("CREATE TABLE tag(id BIGINT PRIMARY KEY, name VARCHAR(100), slug VARCHAR(100))");
+        db.execute("CREATE TABLE category(id BIGINT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100), slug VARCHAR(100), description VARCHAR(200), create_time TIMESTAMP, update_time TIMESTAMP)");
+        db.execute("CREATE TABLE tag(id BIGINT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100), slug VARCHAR(100), create_time TIMESTAMP, update_time TIMESTAMP)");
         db.execute("CREATE TABLE article_tag(id BIGINT PRIMARY KEY, article_id BIGINT, tag_id BIGINT)");
+        db.execute("CREATE TABLE comment(id BIGINT AUTO_INCREMENT PRIMARY KEY, article_id BIGINT, parent_id BIGINT, nickname VARCHAR(100), " +
+                "email VARCHAR(100), website VARCHAR(200), content_md CLOB, content_html CLOB, status INT, is_admin INT, " +
+                "create_time TIMESTAMP, update_time TIMESTAMP)");
+        db.execute("CREATE TABLE media(id BIGINT AUTO_INCREMENT PRIMARY KEY, original_name VARCHAR(255), title VARCHAR(255), category_id BIGINT, " +
+                "stored_name VARCHAR(255), url VARCHAR(500), path VARCHAR(500), type VARCHAR(50), size BIGINT, create_time TIMESTAMP)");
         db.execute("CREATE TABLE note(id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id BIGINT, title VARCHAR(200), folder VARCHAR(100) DEFAULT '', content CLOB, create_time TIMESTAMP, update_time TIMESTAMP, deleted INT DEFAULT 0)");
         db.execute("CREATE TABLE user_progress(id BIGINT AUTO_INCREMENT PRIMARY KEY, user_id BIGINT, prog_key VARCHAR(64), value CLOB, create_time TIMESTAMP, update_time TIMESTAMP, UNIQUE(user_id, prog_key))");
         db.execute("CREATE TABLE content_revision(id BIGINT AUTO_INCREMENT PRIMARY KEY, kind VARCHAR(16), resource_id BIGINT, owner_id BIGINT, title VARCHAR(200), content CLOB, metadata CLOB, create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
@@ -122,12 +128,119 @@ class RegressionIntegrationTest {
         mvc.perform(get("/api/v1/articles").param("page", "2").param("size", "1").param("category", "java").param("tag", "spring").param("keyword", "Match"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.total").value(3))
                 .andExpect(jsonPath("$.data.list.length()").value(1)).andExpect(jsonPath("$.data.list[0].slug").value("post-2"))
-                .andExpect(jsonPath("$.data.list[0].contentMd").isEmpty()).andExpect(jsonPath("$.data.list[0].tags[0].slug").value("spring"));
+                .andExpect(jsonPath("$.data.list[0].contentMd").doesNotExist())
+                .andExpect(jsonPath("$.data.list[0].summary").value("long body"))
+                .andExpect(jsonPath("$.data.list[0].tags[0].slug").value("spring"));
         mvc.perform(get("/api/v1/articles").param("page", "-1")).andExpect(jsonPath("$.code").value(422));
         mvc.perform(get("/api/v1/articles").param("size", "10000")).andExpect(jsonPath("$.code").value(422));
         mvc.perform(get("/api/v1/articles/post-2/navigation"))
                 .andExpect(jsonPath("$.data.previous.slug").value("post-1"))
                 .andExpect(jsonPath("$.data.next.slug").value("post-3"));
+    }
+
+    @Test
+    void galleryValidatesPaginationAndNeverExposesStoragePaths() throws Exception {
+        db.update("INSERT INTO media(id,original_name,title,category_id,stored_name,url,path,type,size,create_time) " +
+                "VALUES(1,'photo.jpg','Photo',1,'generated.jpg','/uploads/photo.jpg','/data/blog/uploads/photo.jpg','image/jpeg',12,CURRENT_TIMESTAMP)");
+
+        mvc.perform(get("/api/v1/gallery/images").param("page", "0")).andExpect(jsonPath("$.code").value(422));
+        mvc.perform(get("/api/v1/gallery/images").param("size", "-1")).andExpect(jsonPath("$.code").value(422));
+        mvc.perform(get("/api/v1/gallery/images").param("page", "1").param("size", "20"))
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(header().string("X-Frame-Options", "SAMEORIGIN"))
+                .andExpect(jsonPath("$.data.list[0].url").value("/uploads/photo.jpg"))
+                .andExpect(jsonPath("$.data.list[0].path").doesNotExist())
+                .andExpect(jsonPath("$.data.list[0].storedName").doesNotExist());
+    }
+
+    @Test
+    void archivesReturnOneGroupedLightweightPayloadWithGeneratedSummary() throws Exception {
+        db.update("INSERT INTO category(id,name,slug) VALUES(1,'Java','java')");
+        db.update("INSERT INTO article(id,title,slug,summary,content_md,content_html,category_id,status,is_top,deleted,create_time) " +
+                "VALUES(1,'Archive','archive','','# Heading Body text','<h1>Heading</h1><p>Body text</p>',1,1,0,0,'2026-01-15 10:00:00')");
+
+        mvc.perform(get("/api/v1/archives"))
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.archives['2026-01'].length()").value(1))
+                .andExpect(jsonPath("$.data.archives['2026-01'][0].summary").value("Heading Body text"))
+                .andExpect(jsonPath("$.data.archives['2026-01'][0].contentMd").doesNotExist())
+                .andExpect(jsonPath("$.data.archives['2026-01'][0].contentHtml").doesNotExist());
+    }
+
+    @Test
+    void categoryAndTagCountsIgnoreScheduledArticles() throws Exception {
+        db.update("INSERT INTO category(id,name,slug) VALUES(1,'Java','java')");
+        db.update("INSERT INTO tag(id,name,slug) VALUES(1,'Spring','spring')");
+        db.update("INSERT INTO article(id,title,slug,content_md,content_html,category_id,status,is_top,deleted,publish_at) " +
+                "VALUES(1,'Published','published','','',1,1,0,0,NULL)");
+        db.update("INSERT INTO article(id,title,slug,content_md,content_html,category_id,status,is_top,deleted,publish_at) " +
+                "VALUES(2,'Future','future','','',1,1,0,0,?)", java.time.LocalDateTime.now().plusDays(1));
+        db.update("INSERT INTO article_tag(id,article_id,tag_id) VALUES(1,1,1)");
+        db.update("INSERT INTO article_tag(id,article_id,tag_id) VALUES(2,2,1)");
+
+        mvc.perform(get("/api/v1/categories")).andExpect(jsonPath("$.data[0].articleCount").value(1));
+        mvc.perform(get("/api/v1/tags")).andExpect(jsonPath("$.data[0].articleCount").value(1));
+    }
+
+    @Test
+    void categorySlugIsValidatedAndGeneratedWhenBlank() throws Exception {
+        String token = login("original123");
+        mvc.perform(post("/api/v1/admin/categories").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Java\",\"slug\":\"bad slug\"}"))
+                .andExpect(jsonPath("$.code").value(422));
+        var created = mvc.perform(post("/api/v1/admin/categories").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Java Notes\",\"slug\":\"\"}"))
+                .andExpect(jsonPath("$.data.slug").value("java-notes")).andReturn();
+        long id = json.readTree(created.getResponse().getContentAsString()).path("data").path("id").asLong();
+        mvc.perform(put("/api/v1/admin/categories/" + id).header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Renamed\"}"))
+                .andExpect(jsonPath("$.data.slug").value("java-notes"));
+    }
+
+    @Test
+    void commentRepliesMustTargetAnApprovedParentInTheSameArticle() throws Exception {
+        db.update("INSERT INTO article(id,title,slug,content_md,content_html,status,deleted) VALUES(1,'One','one','','',1,0)");
+        db.update("INSERT INTO article(id,title,slug,content_md,content_html,status,deleted) VALUES(2,'Two','two','','',1,0)");
+        db.update("INSERT INTO comment(id,article_id,nickname,email,content_md,content_html,status,is_admin) " +
+                "VALUES(10,2,'Reader','reader@example.com','parent','',1,0)");
+        String body = "{\"nickname\":\"Reader\",\"email\":\"reader@example.com\",\"contentMd\":\"reply\",\"parentId\":10}";
+
+        mvc.perform(post("/api/v1/articles/one/comments").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(jsonPath("$.code").value(422));
+        assertEquals(0, db.queryForObject("SELECT COUNT(*) FROM comment WHERE parent_id=10", Integer.class));
+    }
+
+    @Test
+    void deletingCommentParentAlsoDeletesItsReplies() throws Exception {
+        db.update("INSERT INTO article(id,title,slug,content_md,content_html,status,deleted) VALUES(1,'One','one','','',1,0)");
+        db.update("INSERT INTO comment(id,article_id,nickname,email,content_md,content_html,status,is_admin) " +
+                "VALUES(1,1,'Reader','reader@example.com','parent','',1,0)");
+        db.update("INSERT INTO comment(id,article_id,parent_id,nickname,email,content_md,content_html,status,is_admin) " +
+                "VALUES(2,1,1,'Admin','admin@example.com','reply','',1,1)");
+
+        mvc.perform(delete("/api/v1/admin/comments/1").header("Authorization", "Bearer " + login("original123")))
+                .andExpect(jsonPath("$.code").value(200));
+        assertEquals(0, db.queryForObject("SELECT COUNT(*) FROM comment", Integer.class));
+    }
+
+    @Test
+    void authenticatedStorageEndpointsEnforceAccountLimits() throws Exception {
+        String token = login("original123");
+        for (int i = 1; i <= 3; i++) {
+            mvc.perform(post("/api/v1/notes").header("Authorization", "Bearer " + token)
+                            .contentType(MediaType.APPLICATION_JSON).content("{\"title\":\"Note\",\"content\":\"body\"}"))
+                    .andExpect(jsonPath("$.code").value(200));
+        }
+        mvc.perform(post("/api/v1/notes").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"title\":\"Over quota\",\"content\":\"body\"}"))
+                .andExpect(jsonPath("$.code").value(422));
+
+        mvc.perform(put("/api/v1/progress/arbitrary-key").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"value\":\"[]\"}"))
+                .andExpect(jsonPath("$.code").value(422));
+        mvc.perform(put("/api/v1/progress/study:log").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"value\":\"not-json\"}"))
+                .andExpect(jsonPath("$.code").value(422));
     }
 
     @Test

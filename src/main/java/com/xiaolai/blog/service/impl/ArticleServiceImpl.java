@@ -2,8 +2,8 @@ package com.xiaolai.blog.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xiaolai.blog.common.constant.BlogConstant;
 import com.xiaolai.blog.common.exception.BlogException;
+import com.xiaolai.blog.common.validation.SlugUtils;
 import com.xiaolai.blog.dto.ArticleDTO;
 import com.xiaolai.blog.entity.Article;
 import com.xiaolai.blog.entity.ArticleTag;
@@ -18,6 +18,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
 
 @Service
 public class ArticleServiceImpl implements ArticleService {
@@ -49,6 +52,7 @@ public class ArticleServiceImpl implements ArticleService {
         validatePagination(page, size);
         if (keyword != null && keyword.length() > 256) throw new BlogException(422, "搜索词过长");
         Page<Article> result = articleMapper.selectPublicPage(new Page<>(page, size), category, tag, keyword);
+        fillSummaryFallbacks(result.getRecords());
         attachTags(result.getRecords());
         return result;
     }
@@ -62,6 +66,15 @@ public class ArticleServiceImpl implements ArticleService {
         var byArticle = tagMapper.selectByArticleIds(articles.stream().map(Article::getId).toList())
                 .stream().collect(java.util.stream.Collectors.groupingBy(com.xiaolai.blog.entity.Tag::getArticleId));
         articles.forEach(article -> article.setTags(byArticle.getOrDefault(article.getId(), List.of())));
+    }
+
+    private void fillSummaryFallbacks(List<Article> articles) {
+        articles.forEach(article -> {
+            if (article.getSummary() == null || article.getSummary().isBlank()) {
+                article.setSummary(makeSummary(null, article.getSummaryFallback()));
+            }
+            article.setSummaryFallback(null);
+        });
     }
 
     @Override
@@ -107,8 +120,15 @@ public class ArticleServiceImpl implements ArticleService {
     public Article create(ArticleDTO dto) {
         Article article = new Article();
         article.setTitle(dto.getTitle());
-        article.setSlug(dto.getSlug() != null && !dto.getSlug().isBlank() ? dto.getSlug() : toSlug(dto.getTitle()));
-        article.setSummary(dto.getSummary());
+        String slug = dto.getSlug() != null && !dto.getSlug().isBlank()
+                ? SlugUtils.requireValid(dto.getSlug(), "文章 slug")
+                : SlugUtils.from(dto.getTitle());
+        SlugUtils.requireValid(slug, "文章 slug");
+        if (articleMapper.countBySlugIncludingDeleted(slug, null) > 0) {
+            throw new BlogException(422, "文章 slug 已存在");
+        }
+        article.setSlug(slug);
+        article.setSummary(makeSummary(dto.getSummary(), dto.getContentMd()));
         article.setContentMd(dto.getContentMd());
         article.setContentHtml(renderHtml(dto.getContentMd()));
         article.setCoverUrl(dto.getCoverUrl());
@@ -121,15 +141,7 @@ public class ArticleServiceImpl implements ArticleService {
         applyPublication(article, dto);
 
         articleMapper.insert(article);
-
-        if (dto.getTagIds() != null) {
-            for (Long tagId : dto.getTagIds()) {
-                ArticleTag at = new ArticleTag();
-                at.setArticleId(article.getId());
-                at.setTagId(tagId);
-                articleTagMapper.insert(at);
-            }
-        }
+        attachRequestedTags(article.getId(), dto.getTagIds());
 
         return getById(article.getId());
     }
@@ -150,8 +162,14 @@ public class ArticleServiceImpl implements ArticleService {
         }
 
         article.setTitle(dto.getTitle());
-        if (dto.getSlug() != null && !dto.getSlug().isBlank()) article.setSlug(dto.getSlug());
-        article.setSummary(dto.getSummary());
+        if (dto.getSlug() != null && !dto.getSlug().isBlank()) {
+            String slug = SlugUtils.requireValid(dto.getSlug(), "文章 slug");
+            if (articleMapper.countBySlugIncludingDeleted(slug, id) > 0) {
+                throw new BlogException(422, "文章 slug 已存在");
+            }
+            article.setSlug(slug);
+        }
+        article.setSummary(makeSummary(dto.getSummary(), dto.getContentMd()));
         article.setContentMd(dto.getContentMd());
         article.setContentHtml(renderHtml(dto.getContentMd()));
         article.setCoverUrl(dto.getCoverUrl());
@@ -166,14 +184,7 @@ public class ArticleServiceImpl implements ArticleService {
         articleMapper.updateById(article);
 
         articleTagMapper.deleteByArticleId(id);
-        if (dto.getTagIds() != null) {
-            for (Long tagId : dto.getTagIds()) {
-                ArticleTag at = new ArticleTag();
-                at.setArticleId(id);
-                at.setTagId(tagId);
-                articleTagMapper.insert(at);
-            }
-        }
+        attachRequestedTags(id, dto.getTagIds());
 
         return getById(id);
     }
@@ -197,17 +208,22 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     public List<Article> getTopArticles() {
-        return articleMapper.selectTopArticles();
+        List<Article> articles = articleMapper.selectTopArticles();
+        fillSummaryFallbacks(articles);
+        return articles;
     }
 
     @Override
-    public List<String> getArchiveYears() {
-        return articleMapper.selectArchiveYears();
-    }
-
-    @Override
-    public List<Article> getByYearMonth(String yearMonth) {
-        return articleMapper.selectByYearMonth(yearMonth);
+    public Map<String, List<Article>> getArchives() {
+        List<Article> articles = articleMapper.selectArchiveEntries();
+        fillSummaryFallbacks(articles);
+        Map<String, List<Article>> archives = new LinkedHashMap<>();
+        for (Article article : articles) {
+            if (article.getCreateTime() == null) continue;
+            String yearMonth = article.getCreateTime().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM"));
+            archives.computeIfAbsent(yearMonth, ignored -> new java.util.ArrayList<>()).add(article);
+        }
+        return archives;
     }
 
     @Override
@@ -225,10 +241,21 @@ public class ArticleServiceImpl implements ArticleService {
         articleMapper.incrementViews(id);
     }
 
-    private String toSlug(String title) {
-        return title.toLowerCase()
-                .replaceAll("[^a-z0-9\\u4e00-\\u9fa5]+", "-")
-                .replaceAll("^-|-$", "");
+    private void attachRequestedTags(Long articleId, List<Long> tagIds) {
+        if (tagIds == null || tagIds.isEmpty()) return;
+        List<Long> unique = tagIds.stream().filter(Objects::nonNull).distinct().toList();
+        if (unique.size() != tagIds.size() || unique.size() > 20) {
+            throw new BlogException(422, "标签数量无效或超过 20 个");
+        }
+        if (tagMapper.selectBatchIds(unique).size() != unique.size()) {
+            throw new BlogException(422, "包含不存在的标签");
+        }
+        for (Long tagId : unique) {
+            ArticleTag at = new ArticleTag();
+            at.setArticleId(articleId);
+            at.setTagId(tagId);
+            articleTagMapper.insert(at);
+        }
     }
 
     private void applyPublication(Article article, ArticleDTO dto) {
@@ -242,5 +269,22 @@ public class ArticleServiceImpl implements ArticleService {
         if (md == null) return "";
         Node document = parser.parse(md);
         return htmlRenderer.render(document);
+    }
+
+    static String makeSummary(String explicit, String markdown) {
+        String value = explicit == null ? "" : explicit.trim();
+        if (value.isEmpty() && markdown != null) {
+            value = markdown
+                    .replaceAll("(?s)```.*?```", " ")
+                    .replaceAll("!\\[([^]]*)]\\([^)]*\\)", "$1")
+                    .replaceAll("\\[([^]]+)]\\([^)]*\\)", "$1")
+                    .replaceAll("<[^>]+>", " ")
+                    .replaceAll("(?m)^\\s{0,3}(?:#{1,6}|>|[-+*]|\\d+[.)])\\s*", " ")
+                    .replaceAll("[`*_~|]", " ")
+                    .replaceAll("\\s+", " ")
+                    .trim();
+        }
+        if (value.length() > 280) return value.substring(0, 279).trim() + "…";
+        return value;
     }
 }

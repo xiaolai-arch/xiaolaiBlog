@@ -35,6 +35,14 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public Comment create(Long articleId, CommentDTO dto) {
+        if (dto.getParentId() != null) {
+            Comment parent = commentMapper.selectById(dto.getParentId());
+            if (parent == null || parent.getParentId() != null
+                    || !parent.getArticleId().equals(articleId)
+                    || !Integer.valueOf(1).equals(parent.getStatus())) {
+                throw new BlogException(422, "只能回复当前文章中已通过审核的一级评论");
+            }
+        }
         Comment comment = new Comment();
         comment.setArticleId(articleId);
         comment.setParentId(dto.getParentId());
@@ -110,12 +118,17 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public void delete(Long id) {
+        commentMapper.deleteRepliesByParentId(id);
         commentMapper.deleteById(id);
     }
 
     @Override
     public void reply(Long commentId, String content) {
+        if (content == null || content.isBlank()) {
+            throw new BlogException(422, "回复内容不能为空");
+        }
         Comment parent = commentMapper.selectById(commentId);
         if (parent == null) throw new BlogException(404, "Comment not found");
 

@@ -24,7 +24,7 @@ deploy_backend() {
   "${MVN:-mvn}" -B verify
   local stage="$BACKEND_DIR/$release_id"
   ssh "$SERVER" mkdir -p "$stage"
-  scp target/blog-1.0.0.jar sql/note.sql sql/progress.sql sql/migration_token_version.sql sql/migration_features.sql "$SERVER:$stage/"
+  scp target/blog-1.0.0.jar sql/note.sql sql/progress.sql sql/migration_token_version.sql sql/migration_features.sql sql/migration_review_fixes.sql "$SERVER:$stage/"
   ssh "$SERVER" bash -s -- "$BACKEND_DIR" "$stage" "$BACKEND_HEALTH_URL" < tools/deploy_backend.sh
 }
 

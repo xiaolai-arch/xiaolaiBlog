@@ -37,7 +37,7 @@ class DeployRegressionTest(unittest.TestCase):
         (self.site / "blog.env").write_text("DB_USERNAME=test\nDB_PASSWORD=test\n")
         (self.site / "blog-1.0.0.jar").write_text("old backend")
         (self.stage / "blog-1.0.0.jar").write_text("new backend")
-        for name in ["note.sql", "progress.sql", "migration_token_version.sql", "migration_features.sql"]:
+        for name in ["note.sql", "progress.sql", "migration_token_version.sql", "migration_features.sql", "migration_review_fixes.sql"]:
             (self.stage / name).write_text("SELECT 1;\n")
         return ["bash", str(ROOT / "tools/deploy_backend.sh"), str(self.site), str(self.stage), "http://127.0.0.1:8081/api/v1/rss"]
 

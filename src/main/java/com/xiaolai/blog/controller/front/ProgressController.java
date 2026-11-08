@@ -15,6 +15,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 学习进度键值存取（刷题打卡、四级看课等），登录用户可用。
@@ -23,6 +24,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/progress")
 public class ProgressController {
+    private static final Set<String> ALLOWED_KEYS =
+            Set.of("leetcode", "cet4", "agent", "lc-log", "study:log");
 
     private final UserProgressMapper progressMapper;
     private final UserMapper userMapper;
@@ -46,6 +49,7 @@ public class ProgressController {
     public Result<Map<String, String>> put(@PathVariable String key, @Valid @RequestBody ProgressDTO dto) {
         validateKey(key);
         Long userId = currentUserId();
+        if (userMapper.lockById(userId) == null) throw new BlogException(401, "请重新登录");
         progressMapper.ensureRow(userId, key);
         UserProgress row = progressMapper.lockRow(userId, key);
         row.setValue(merger.merge(key, row.getValue(), dto.getValue()));
@@ -54,7 +58,7 @@ public class ProgressController {
     }
 
     private void validateKey(String key) {
-        if (!key.matches("[A-Za-z0-9_-]{1,64}")) throw new BlogException(422, "进度键格式不正确");
+        if (!ALLOWED_KEYS.contains(key)) throw new BlogException(422, "不支持的进度键");
     }
 
     private UserProgress ownedRow(String key) {

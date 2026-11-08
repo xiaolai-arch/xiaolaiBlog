@@ -6,6 +6,12 @@ import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 public interface NoteMapper extends BaseMapper<Note> {
+    @org.apache.ibatis.annotations.Select("SELECT COUNT(*) FROM note WHERE user_id=#{userId}")
+    long countAllByUser(@org.apache.ibatis.annotations.Param("userId") Long userId);
+
+    @org.apache.ibatis.annotations.Select("SELECT COALESCE(SUM(OCTET_LENGTH(content)),0) FROM note WHERE user_id=#{userId}")
+    long contentBytesByUser(@org.apache.ibatis.annotations.Param("userId") Long userId);
+
     @org.apache.ibatis.annotations.Select("SELECT id,user_id,title,folder,create_time,update_time,deleted FROM note WHERE user_id=#{userId} AND deleted=1 ORDER BY update_time DESC")
     java.util.List<Note> trash(Long userId);
 

@@ -1,6 +1,7 @@
 package com.xiaolai.blog.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import java.time.LocalDateTime;
 
@@ -19,6 +20,7 @@ public class Article {
     private Integer status;
     private Integer isTop;
     private Integer views;
+    @JsonIgnore
     private String password;
     private String seoTitle;
     private String seoDescription;
@@ -41,4 +43,9 @@ public class Article {
 
     @TableField(exist = false)
     private java.util.List<Tag> tags;
+
+    /** Short Markdown prefix selected by lightweight queries to fill missing legacy summaries. */
+    @JsonIgnore
+    @TableField(exist = false)
+    private String summaryFallback;
 }

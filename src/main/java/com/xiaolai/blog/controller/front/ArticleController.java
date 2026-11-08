@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xiaolai.blog.common.constant.BlogConstant;
 import com.xiaolai.blog.common.response.PageResult;
 import com.xiaolai.blog.common.response.Result;
+import com.xiaolai.blog.dto.ArticleSummaryDTO;
 import com.xiaolai.blog.entity.Article;
 import com.xiaolai.blog.service.ArticleService;
 import org.springframework.web.bind.annotation.*;
@@ -23,19 +24,20 @@ public class ArticleController {
     }
 
     @GetMapping("/articles")
-    public Result<PageResult<Article>> list(
+    public Result<PageResult<ArticleSummaryDTO>> list(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String tag,
             @RequestParam(required = false) String keyword) {
         Page<Article> result = articleService.getPublishedArticles(page, size, category, tag, keyword);
-        return Result.success(PageResult.of(result.getTotal(), page, size, result.getRecords()));
+        List<ArticleSummaryDTO> list = result.getRecords().stream().map(ArticleSummaryDTO::from).toList();
+        return Result.success(PageResult.of(result.getTotal(), page, size, list));
     }
 
     @GetMapping("/articles/top")
-    public Result<List<Article>> top() {
-        return Result.success(articleService.getTopArticles());
+    public Result<List<ArticleSummaryDTO>> top() {
+        return Result.success(articleService.getTopArticles().stream().map(ArticleSummaryDTO::from).toList());
     }
 
     @GetMapping("/articles/{slug}")
@@ -56,8 +58,8 @@ public class ArticleController {
         Article next = articleService.getNextArticle(article.getId(), article.getCategoryId());
 
         Map<String, Object> nav = new HashMap<>();
-        nav.put("previous", prev);
-        nav.put("next", next);
+        nav.put("previous", prev == null ? null : ArticleSummaryDTO.from(prev));
+        nav.put("next", next == null ? null : ArticleSummaryDTO.from(next));
         return Result.success(nav);
     }
 
@@ -65,21 +67,20 @@ public class ArticleController {
     public Result<List<String>> seriesNames() { return Result.success(mapper.selectSeriesNames()); }
 
     @GetMapping("/series/articles")
-    public Result<List<Article>> series(@RequestParam String name) { return Result.success(mapper.selectSeries(name)); }
+    public Result<List<ArticleSummaryDTO>> series(@RequestParam String name) {
+        if (name == null || name.length() > 100) return Result.error(422, "系列名称过长");
+        return Result.success(mapper.selectSeries(name).stream().map(ArticleSummaryDTO::from).toList());
+    }
 
     @GetMapping("/archives")
     public Result<Map<String, Object>> archives() {
-        List<String> years = articleService.getArchiveYears();
-        Map<String, List<Article>> archives = new LinkedHashMap<>();
-        for (String year : years) {
-            for (int month = 12; month >= 1; month--) {
-                String ym = year + "-" + String.format("%02d", month);
-                List<Article> articles = articleService.getByYearMonth(ym);
-                if (!articles.isEmpty()) {
-                    archives.put(ym, articles);
-                }
-            }
-        }
+        Map<String, List<ArticleSummaryDTO>> archives = new LinkedHashMap<>();
+        articleService.getArchives().forEach((yearMonth, articles) ->
+                archives.put(yearMonth, articles.stream().map(ArticleSummaryDTO::from).toList()));
+        List<String> years = archives.keySet().stream()
+                .map(yearMonth -> yearMonth.substring(0, 4))
+                .distinct()
+                .toList();
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("years", years);
         result.put("archives", archives);

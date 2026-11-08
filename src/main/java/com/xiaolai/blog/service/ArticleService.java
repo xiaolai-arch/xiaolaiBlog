@@ -18,8 +18,7 @@ public interface ArticleService {
     void restore(Long id);
     void deletePermanently(Long id);
     List<Article> getTopArticles();
-    List<String> getArchiveYears();
-    List<Article> getByYearMonth(String yearMonth);
+    Map<String, List<Article>> getArchives();
     Article getPreviousArticle(Long articleId, Long categoryId);
     Article getNextArticle(Long articleId, Long categoryId);
     void incrementViews(Long id);

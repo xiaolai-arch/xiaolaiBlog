@@ -52,7 +52,8 @@ public class SecurityConfig {
             .headers(headers -> headers
                 .xssProtection(xss -> {})
                 .contentTypeOptions(contentType -> {})
-                .frameOptions(frame -> frame.deny())
+                // Real-time homepage previews are same-origin iframes; external framing stays blocked.
+                .frameOptions(frame -> frame.sameOrigin())
                 .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31536000))
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

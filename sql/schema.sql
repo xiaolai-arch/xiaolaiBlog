@@ -105,7 +105,8 @@ CREATE TABLE `comment` (
     KEY `idx_article_id` (`article_id`),
     KEY `idx_parent_id` (`parent_id`),
     KEY `idx_status` (`status`),
-    CONSTRAINT `fk_comment_article` FOREIGN KEY (`article_id`) REFERENCES `article` (`id`) ON DELETE CASCADE
+    CONSTRAINT `fk_comment_article` FOREIGN KEY (`article_id`) REFERENCES `article` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_comment_parent` FOREIGN KEY (`parent_id`) REFERENCES `comment` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Comments';
 
 -- Media / file table
@@ -143,10 +144,6 @@ CREATE TABLE `login_log` (
     KEY `idx_username` (`username`),
     KEY `idx_create_time` (`create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Login logs';
-
--- Insert default admin user (password: admin123, please change after first login)
-INSERT INTO `user` (`username`, `password`, `nickname`, `email`) VALUES
-('admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Admin', 'admin@xiaolai.com');
 
 -- Insert default site config
 INSERT INTO `site_config` (`config_key`, `config_value`) VALUES

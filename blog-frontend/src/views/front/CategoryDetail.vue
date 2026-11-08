@@ -13,7 +13,7 @@
           <h2 class="card-title">
             <router-link :to="`/articles/${article.slug}`">{{ article.title }}</router-link>
           </h2>
-          <p class="card-summary">{{ article.summary || stripHtml(article.contentHtml).substring(0, 200) }}</p>
+          <p class="card-summary">{{ article.summary }}</p>
         </article>
 
         <div class="pagination" v-if="total > size">
@@ -81,11 +81,6 @@ function onPageChange(p: number) {
 }
 
 function formatDate(d: string) { return dayjs(d).format('YYYY-MM-DD') }
-function stripHtml(html: string) {
-  if (!html) return ''
-  const div = document.createElement('div'); div.innerHTML = html
-  return div.textContent || div.innerText || ''
-}
 </script>
 
 <style scoped>

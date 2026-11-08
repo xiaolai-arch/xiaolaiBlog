@@ -46,6 +46,9 @@ jwt:
 app:
   cors:
     allowed-origins: ${APP_CORS_ORIGINS:http://localhost:5173,http://127.0.0.1:5173,https://www.xiaolai.cyou,https://xiaolai.cyou}
+  content-limits:
+    max-notes-per-user: ${MAX_NOTES_PER_USER:200}
+    max-note-storage-bytes: ${MAX_NOTE_STORAGE_BYTES:20971520}
 
 # File upload
 upload:

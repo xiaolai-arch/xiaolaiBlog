@@ -13,7 +13,8 @@
     </update>
 
     <select id="selectPublicPage" resultMap="articleWithCategory">
-        SELECT a.id, a.title, a.slug, a.summary, a.cover_url, a.category_id, a.status,
+        SELECT a.id, a.title, a.slug, a.summary, LEFT(a.content_md, 500) AS summary_fallback,
+               a.cover_url, a.category_id, a.status,
                a.is_top, a.views, a.publish_at, a.series_name, a.series_order, a.create_time, a.update_time,
                c.name AS category_name, c.slug AS category_slug
         FROM article a LEFT JOIN category c ON a.category_id = c.id

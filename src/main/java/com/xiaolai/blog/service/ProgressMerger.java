@@ -15,7 +15,14 @@ public class ProgressMerger {
     public ProgressMerger(ObjectMapper json) { this.json = json; }
 
     public String merge(String key, String stored, String incoming) {
-        if (!Set.of("leetcode", "cet4", "agent", "lc-log").contains(key)) return incoming;
+        if (key.equals("study:log")) {
+            validateStudyLog(stored);
+            validateStudyLog(incoming);
+            return incoming;
+        }
+        if (!Set.of("leetcode", "cet4", "agent", "lc-log").contains(key)) {
+            throw new BlogException(422, "不支持的进度键");
+        }
         try {
             JsonNode left = json.readTree(stored == null || stored.isBlank() ? "[]" : stored);
             JsonNode right = json.readTree(incoming);
@@ -42,6 +49,22 @@ public class ProgressMerger {
             return result;
         } catch (BlogException e) { throw e; }
         catch (Exception e) { throw new BlogException(422, "学习进度格式不正确"); }
+    }
+
+    private void validateStudyLog(String raw) {
+        try {
+            JsonNode value = json.readTree(raw == null || raw.isBlank() ? "[]" : raw);
+            if (!value.isArray()) throw new IllegalArgumentException();
+            for (JsonNode entry : value) {
+                if (!entry.path("d").asText().matches("\\d{4}-\\d{2}-\\d{2}")
+                        || !entry.path("k").isTextual() || entry.path("k").asText().isBlank()
+                        || (entry.has("s") && (!entry.path("s").isIntegralNumber() || entry.path("s").asLong() < 0))) {
+                    throw new IllegalArgumentException();
+                }
+            }
+        } catch (Exception e) {
+            throw new BlogException(422, "学习日志格式不正确");
+        }
     }
 
     private void collect(JsonNode source, Map<String, JsonNode> items) {

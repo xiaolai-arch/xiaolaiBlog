@@ -12,12 +12,23 @@
 
    ```bash
    mysql -u root -p < sql/schema.sql
-   for migration in user_role.sql migration_gallery.sql music.sql gallery_frame.sql note.sql progress.sql migration_token_version.sql migration_features.sql; do
+   for migration in user_role.sql migration_gallery.sql music.sql gallery_frame.sql note.sql progress.sql migration_token_version.sql migration_features.sql migration_review_fixes.sql; do
      mysql -u root -p xiaolai_blog < "sql/$migration"
    done
    ```
 
-2. 使用本机数据库凭据和独立 JWT 密钥启动后端。密钥至少 32 字节，可以用 `openssl rand -hex 32` 生成；不要提交真实密钥。
+2. 安装前端依赖并创建管理员。密码至少 12 位，脚本只输出 BCrypt 哈希，不会输出密码；请通过环境变量输入，避免写入 shell 历史。
+
+   ```bash
+   (cd blog-frontend && npm ci)
+   export BLOG_ADMIN_PASSWORD='replace-with-a-long-random-password'
+   ADMIN_HASH=$(node tools/create_admin_hash.mjs)
+   mysql -u root -p xiaolai_blog -e \
+     "INSERT INTO user (username,password,nickname,email) VALUES ('admin','$ADMIN_HASH','Admin','admin@xiaolai.com');"
+   unset BLOG_ADMIN_PASSWORD ADMIN_HASH
+   ```
+
+3. 使用本机数据库凭据和独立 JWT 密钥启动后端。密钥至少 32 字节，可以用 `openssl rand -hex 32` 生成；不要提交真实密钥。
 
    ```bash
    export SPRING_DATASOURCE_USERNAME=your_local_user
@@ -28,7 +39,7 @@
 
    数据库默认地址为 `localhost:3306/xiaolai_blog`，可通过 `SPRING_DATASOURCE_URL` 覆盖。后端端口为 `8081`。
 
-3. 在另一终端启动前端：
+4. 在另一终端启动前端：
 
    ```bash
    cd blog-frontend
@@ -36,7 +47,7 @@
    npm run dev
    ```
 
-   打开 `http://localhost:3000`，开发服务器将 `/api` 和 `/uploads` 转发到后端。基础 SQL 包含初始管理员记录，首次使用时应设置自己的管理员密码。
+   打开 `http://localhost:3000`，开发服务器将 `/api` 和 `/uploads` 转发到后端。
 
 ## 测试与构建
 
@@ -86,6 +97,8 @@ GitHub Actions 会在推送到 `main`、创建/更新 PR 或手动触发时执�
 发布前需要备份生产数据库、上传目录和服务器环境配置，并检查备份可读取；保存当前 jar、前端首页和实际服务端口。GitHub 源码仓库不包含用户数据备份。数据库备份可以使用 `mysqldump --single-transaction --routines --triggers`，密码通过受保护的客户端配置提供；备份应保存到服务器之外，定期在独立数据库演练恢复。
 
 服务器应在 `BACKEND_DIR/blog.env` 中提供 `DB_USERNAME`、`DB_PASSWORD`、`JWT_SECRET`，可按需设置 `DB_HOST`、`DB_NAME`。Java 应用的连接地址由 Spring 配置决定；自定义数据库地址时也要配置 `SPRING_DATASOURCE_URL`，使其与迁移目标一致。保持环境文件仅授权账号可读。
+
+云笔记默认限制为每个账号 200 篇、正文和可恢复历史版本合计 20 MiB，可通过 `MAX_NOTES_PER_USER` 和 `MAX_NOTE_STORAGE_BYTES` 调整。注册用户可写入的学习进度键采用固定白名单，单值仍限制在 200 KB。
 
 确认测试和备份后，手动发布：
 

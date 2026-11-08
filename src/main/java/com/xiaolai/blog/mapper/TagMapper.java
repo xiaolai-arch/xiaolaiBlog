@@ -11,9 +11,10 @@ import java.util.List;
 @Mapper
 public interface TagMapper extends BaseMapper<Tag> {
 
-    @Select("SELECT t.*, COUNT(at.article_id) as article_count " +
+    @Select("SELECT t.*, COUNT(a.id) as article_count " +
             "FROM tag t LEFT JOIN article_tag at ON t.id = at.tag_id " +
             "LEFT JOIN article a ON at.article_id = a.id AND a.status = 1 AND a.deleted = 0 " +
+            "AND (a.publish_at IS NULL OR a.publish_at <= CURRENT_TIMESTAMP) " +
             "GROUP BY t.id ORDER BY article_count DESC")
     List<Tag> selectAllWithCount();
 

@@ -41,7 +41,7 @@ gzip -dc "$backup_dir/database.sql.gz" | mysql "${mysql_args[@]}" xiaolai_restor
 mysqlcheck "${mysql_args[@]}" --check xiaolai_restore
 before=$(mysql "${mysql_args[@]}" --batch --skip-column-names xiaolai_restore -e 'SELECT COUNT(*) FROM `user`; SELECT COUNT(*) FROM article; SELECT COUNT(*) FROM note; SELECT COUNT(*) FROM user_progress;')
 for attempt in 1 2; do
-  for migration in note.sql progress.sql migration_token_version.sql migration_features.sql; do
+  for migration in note.sql progress.sql migration_token_version.sql migration_features.sql migration_review_fixes.sql; do
     mysql "${mysql_args[@]}" xiaolai_restore < "$migrations_dir/$migration"
   done
 done

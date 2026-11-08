@@ -14,4 +14,7 @@ public interface UserMapper extends BaseMapper<User> {
 
     @Update("UPDATE user SET token_version = token_version + 1 WHERE username = #{username}")
     int revokeTokens(String username);
+
+    @Select("SELECT id FROM user WHERE id = #{id} FOR UPDATE")
+    Long lockById(Long id);
 }

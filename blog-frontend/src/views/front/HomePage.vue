@@ -31,7 +31,6 @@
       </nav>
     </div>
 
-    <nav class="home-entrances"><router-link to="/archives">文章归档 →</router-link><router-link to="/series">系列阅读 →</router-link><router-link to="/study">学习中心 →</router-link><router-link to="/study/review">复习计划 →</router-link></nav>
     <!-- ============ 项目网格（2 列） ============ -->
     <div class="project-grid">
       <component
@@ -42,8 +41,10 @@
         class="project-card"
         :class="{ featured: card.featured }"
         :style="{ animationDelay: Math.min(i * 60, 300) + 'ms' }"
-        @mouseenter="card.live ? (liveHovered[card.to] = true) : undefined"
-        @mouseleave="card.live ? (liveHovered[card.to] = false) : undefined"
+        @mouseenter="onCardEnter(card)"
+        @mouseleave="onCardLeave(card)"
+        @focusin="onCardFocus(card)"
+        @focusout="onCardBlur(card, $event)"
       >
         <div
           class="media"
@@ -102,8 +103,10 @@
         to="/archives"
         class="project-card"
         :style="{ animationDelay: '180ms' }"
-        @mouseenter="blogHovered = true"
-        @mouseleave="blogHovered = false"
+        @mouseenter="activateBlog"
+        @mouseleave="deactivateBlog"
+        @focusin="activateBlog"
+        @focusout="deactivateBlog"
       >
         <div class="media grad-paper">
           <LivePreview
@@ -131,19 +134,53 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive } from 'vue'
 import LivePreview, { type TourStep } from '@/components/LivePreview.vue'
 import MusicCard from '@/components/MusicCard.vue'
 import FilmCard from '@/components/FilmCard.vue'
 
 
-/* Blog 卡：延迟挂载 iframe，错开三段演示视频的加载；悬停时暂停滚动便于阅读 */
+/* 实时预览仅在用户明确悬停或键盘聚焦时挂载，手机端点击直接进入页面。 */
 const blogLiveReady = ref(false)
 const blogHovered = ref(false)
 
-/* live 卡（3D 展厅 / 拍立得）：按路由延迟挂载（初始化较重），悬停时暂停导览便于细看 */
+/* live 卡（3D 展厅 / 拍立得）：用户悬停或聚焦时挂载，离开后卸载以释放 WebGL 资源 */
 const liveReady = reactive<Record<string, boolean>>({})
 const liveHovered = reactive<Record<string, boolean>>({})
+
+function onCardEnter(card: HomeCard) {
+  if (!card.live) return
+  for (const key of Object.keys(liveReady)) liveReady[key] = false
+  liveReady[card.to] = true
+  liveHovered[card.to] = true
+}
+
+function onCardLeave(card: HomeCard) {
+  if (!card.live) return
+  liveReady[card.to] = false
+  liveHovered[card.to] = false
+}
+
+function onCardFocus(card: HomeCard) {
+  if (card.live) onCardEnter(card)
+}
+
+function onCardBlur(card: HomeCard, event: Event) {
+  const focus = event as FocusEvent
+  if (card.live && !(focus.currentTarget as HTMLElement).contains(focus.relatedTarget as Node | null)) {
+    onCardLeave(card)
+  }
+}
+
+function activateBlog() {
+  blogLiveReady.value = true
+  blogHovered.value = true
+}
+
+function deactivateBlog() {
+  blogLiveReady.value = false
+  blogHovered.value = false
+}
 
 /* 拍立得卡导览脚本：依次点过七种机身色，循环往复 */
 const POLAROID_TOUR_STEPS: TourStep[] = [
@@ -201,17 +238,6 @@ const cards: HomeCard[] = [
   },
 ]
 
-onMounted(() => {
-  window.setTimeout(() => {
-    blogLiveReady.value = true
-  }, 600)
-  window.setTimeout(() => {
-    liveReady['/gallery/3d'] = true
-  }, 1200)
-  window.setTimeout(() => {
-    liveReady['/toys/polaroid'] = true
-  }, 1800)
-})
 </script>
 
 <style scoped>
@@ -595,5 +621,3 @@ onMounted(() => {
   }
 }
 </style>
-
-<style scoped>.home-entrances { display: flex; gap: 24px; flex-wrap: wrap; max-width: 1000px; margin: 24px auto; padding: 0 24px; }</style>

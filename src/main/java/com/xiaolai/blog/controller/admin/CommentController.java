@@ -6,8 +6,9 @@ import com.xiaolai.blog.common.response.Result;
 import com.xiaolai.blog.entity.Comment;
 import com.xiaolai.blog.service.CommentService;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import jakarta.validation.Valid;
 
 @RestController("adminCommentController")
 @RequestMapping("/api/v1/admin/comments")
@@ -47,8 +48,8 @@ public class CommentController {
     }
 
     @PostMapping("/{id}/reply")
-    public Result<Void> reply(@PathVariable Long id, @RequestBody Map<String, String> body) {
-        commentService.reply(id, body.get("content"));
+    public Result<Void> reply(@PathVariable Long id, @Valid @RequestBody ReplyRequest body) {
+        commentService.reply(id, body.content());
         return Result.success();
     }
 
@@ -56,5 +57,11 @@ public class CommentController {
     public Result<Void> delete(@PathVariable Long id) {
         commentService.delete(id);
         return Result.success();
+    }
+
+    public record ReplyRequest(
+            @NotBlank(message = "Reply content is required")
+            @Size(max = 2000, message = "Reply content must be at most 2000 characters")
+            String content) {
     }
 }

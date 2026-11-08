@@ -89,3 +89,5 @@ HTTPS 已取得 `www.xiaolai.cyou` 的 Let's Encrypt 证书，有效期至 **202
 Nginx 已监听 443，服务器本机使用正确域名和证书校验访问 HTTPS 首页与 RSS 均为 200。firewalld 已允许 HTTPS。**外部网络访问 443 仍然超时**，需要检查腾讯云安全组/上游入站策略；当前凭据只可 SSH，未修改云端控制台。为保持网站可访问，没有启用强制 HTTPS 跳转，HTTP 首页和 API 继续为 200；巡检和发布仍用实际可达的 HTTP 地址。旧 Nginx 配置备份在 `/root/xiaolai-nginx-before-tls-20261107.conf`。
 
 服务器没有 SMTP 配置，`/api/v1/auth/recovery` 实际返回 `enabled:false`。不要把已实现邮件接口描述成已开通找回服务。公网 HTTPS 与 SMTP 投递均验收成功后，再启用 `APP_PUBLIC_URL` 及邮件配置，并更新巡检、RSS 站点地址及 HTTP 跳转策略。
+
+2026-11-08 复审修复新增 `sql/migration_review_fixes.sql`，发布脚本会自动执行。该迁移回填历史文章摘要、修复空 slug、清理伪造/孤立回复并增加评论父级外键，同时禁用旧版不可登录的管理员占位哈希。首次初始化不再内置固定管理员密码；按 README 使用环境变量生成 BCrypt 哈希。已有账号不受影响。

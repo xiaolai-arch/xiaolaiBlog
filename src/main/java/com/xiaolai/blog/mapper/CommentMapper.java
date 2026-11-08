@@ -13,4 +13,7 @@ public interface CommentMapper extends BaseMapper<Comment> {
     List<Comment> selectApprovedByArticleId(@Param("articleId") Long articleId);
 
     List<Comment> selectRepliesByParentId(@Param("parentId") Long parentId);
+
+    @org.apache.ibatis.annotations.Delete("DELETE FROM comment WHERE parent_id = #{parentId}")
+    int deleteRepliesByParentId(@Param("parentId") Long parentId);
 }

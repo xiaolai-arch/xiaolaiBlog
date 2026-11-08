@@ -6,8 +6,10 @@
     aria-label="进入胶片图集页"
     tabindex="0"
     @keydown.enter="enter"
-    @mouseenter="hovered = true"
-    @mouseleave="hovered = false"
+    @mouseenter="activate"
+    @mouseleave="deactivate"
+    @focusin="activate"
+    @focusout="onFocusOut"
   >
     <!-- 媒体区即真正的 /film 页实时缩微预览：所见即所得，与点进去的页面一模一样 -->
     <div class="stage">
@@ -47,16 +49,27 @@ function enter() {
 }
 
 onMounted(async () => {
-  // 卡片进入视口后再挂 iframe（省资源）；数量仅用于角标文案
-  requestAnimationFrame(() => {
-    ready.value = true
-  })
   try {
     const res = await fetch('/api/v1/gallery/images?page=1&size=1')
     const body = await res.json()
     if (body?.code === 200) count.value = body.data?.total ?? 0
   } catch (_) {}
 })
+
+function activate() {
+  ready.value = true
+  hovered.value = true
+}
+
+function deactivate() {
+  ready.value = false
+  hovered.value = false
+}
+
+function onFocusOut(event: FocusEvent) {
+  if ((event.currentTarget as HTMLElement).contains(event.relatedTarget as Node | null)) return
+  deactivate()
+}
 </script>
 
 <style scoped>

@@ -58,7 +58,7 @@
       <!-- 自我介绍（后台可编辑；无内容时不渲染） -->
       <section v-if="content" class="about-content-wrap">
         <div v-if="loading" class="loading">加载中...</div>
-        <div v-else class="about-content markdown-body" v-html="content"></div>
+        <div v-else class="about-content markdown-body" v-html="sanitizedContent"></div>
       </section>
     </div>
   </div>
@@ -66,6 +66,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import DOMPurify from 'dompurify'
 import { siteApi } from '@/api'
 import { techIconPaths } from '@/data/techIcons'
 import GithubActivity from '@/components/GithubActivity.vue'
@@ -76,6 +77,18 @@ const loading = ref(true)
 const description = ref('')
 const github = ref('')
 const email = ref('')
+const sanitizedContent = computed(() => {
+  const html = DOMPurify.sanitize(content.value, {
+    USE_PROFILES: { html: true },
+    FORBID_TAGS: ['form', 'input', 'button', 'style'],
+    FORBID_ATTR: ['style'],
+  })
+  const document = new DOMParser().parseFromString(html, 'text/html')
+  document.querySelectorAll('a[target="_blank"]').forEach(link => {
+    link.setAttribute('rel', 'noopener noreferrer')
+  })
+  return document.body.innerHTML
+})
 
 /* 从 GitHub 主页链接解析用户名，供贡献热力图使用 */
 const githubUser = computed(() => {

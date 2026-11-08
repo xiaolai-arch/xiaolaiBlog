@@ -34,4 +34,12 @@ public class RevisionService {
         if (rows.isEmpty()) throw new BlogException(404, "历史版本不存在");
         return rows.getFirst();
     }
+
+    public long noteStorageBytes(long owner) {
+        Long bytes = db.queryForObject(
+                "SELECT COALESCE(SUM(COALESCE(OCTET_LENGTH(content),0) + COALESCE(OCTET_LENGTH(metadata),0)),0) " +
+                        "FROM content_revision WHERE kind='note' AND owner_id=?",
+                Long.class, owner);
+        return bytes == null ? 0 : bytes;
+    }
 }
